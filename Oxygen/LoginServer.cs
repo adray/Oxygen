@@ -29,7 +29,7 @@ namespace Oxygen
 
                 if (user != null && User.CheckPassword(user, password))
                 {
-                    SendAck(client, "LOGIN");
+                    SendAck(client, msg.MessageName);
 
                     client.SetProperty("LOGGED_IN", true);
                     client.SetProperty("USER_NAME", username);
@@ -38,7 +38,7 @@ namespace Oxygen
                 }
                 else
                 {
-                    SendNack(client, 200, "Login failed", "LOGIN");
+                    SendNack(client, 200, "Login failed", msg.MessageName);
                     Audit.Instance.Log("Attempt to login for user {0} with an username/password failed.", username);
                 }
             }
@@ -51,7 +51,7 @@ namespace Oxygen
                 {
                     if (Authorizer.CheckPermission(user, this.Name, msg.MessageName))
                     {
-                        SendAck(client, "LOGIN_API_KEY");
+                        SendAck(client, msg.MessageName);
 
                         client.SetProperty("LOGGED_IN", true);
                         client.SetProperty("USER_NAME", user.Name);
@@ -60,13 +60,13 @@ namespace Oxygen
                     }
                     else
                     {
-                        SendNack(client, 200, "Login failed", "LOGIN_API_KEY");
+                        SendNack(client, 200, "Login failed", msg.MessageName);
                         Audit.Instance.Log("User {0} attempted to login with a API key, but not permissioned.", user.Name);
                     }
                 }
                 else
                 {
-                    SendNack(client, 200, "Login failed", "LOGIN_API_KEY");
+                    SendNack(client, 200, "Login failed", msg.MessageName);
                     Audit.Instance.Log("Attempt to login with an API key failed.");
                 }
             }
@@ -81,21 +81,48 @@ namespace Oxygen
                     {
                         string apiKey = users.CreateAPIKey(username);
 
-                        Message response = new Message(this.Name, "CREATE_API_KEY");
+                        Message response = new Message(this.Name, msg.MessageName);
                         response.WriteString("ACK");
                         response.WriteString(apiKey);
                         client.Send(response);
                     }
                     else
                     {
-                        SendNack(client, 200, "API key could not be created.", "LOGIN_API_KEY");
+                        SendNack(client, 200, "API key could not be created.", msg.MessageName);
                         Audit.Instance.Log("User {0} attempted to create an API key, but not permissioned.", username);
                     }
                 }
                 else
                 {
-                    SendNack(client, 400, "Authorization required", "CREATE_API_KEY");
+                    SendNack(client, 400, "Authorization required", msg.MessageName);
                     Audit.Instance.Log("Attempt to create an API key failed, user not logged in.");
+                }
+            }
+            else if (name == "REVOKE_API_KEY")
+            {
+                bool? loggedIn = (bool?)client.GetProperty("LOGGED_IN");
+                string? username = client.GetProperty("USER_NAME") as string;
+                if (loggedIn.GetValueOrDefault() && username != null)
+                {
+                    User? user = Users.Instance.GetUserByName(username);
+                    if (user != null && Authorizer.CheckPermission(user, this.Name, msg.MessageName))
+                    {
+                        users.RevokeAPIKey(username);
+
+                        Message response = new Message(this.Name, msg.MessageName);
+                        response.WriteString("ACK");
+                        client.Send(response);
+                    }
+                    else
+                    {
+                        SendNack(client, 200, "API key could not be created.", msg.MessageName);
+                        Audit.Instance.Log("User {0} attempted to create revokes API keys, but not permissioned.", username);
+                    }
+                }
+                else
+                {
+                    SendNack(client, 400, "Authorization required", msg.MessageName);
+                    Audit.Instance.Log("Attempt to revoke API keys failed, user not logged in.");
                 }
             }
             else

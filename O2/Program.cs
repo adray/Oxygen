@@ -22,14 +22,17 @@ namespace O2
                     case "login":
                         LoginCommand();
                         break;
-                    case "create":
-                        CreateCommand(args);
+                    case "api-key":
+                        APIKeyCommand(args);
                         break;
                     case "user":
                         UserCommand(args);
                         break;
                     case "set-permission":
                         SetPermissionCommand(args);
+                        break;
+                    case "get-permission":
+                        GetPermissionCommand(args);
                         break;
                     default:
                         Console.WriteLine("Invalid command");
@@ -40,16 +43,20 @@ namespace O2
             {
                 Console.WriteLine("Help");
                 Console.WriteLine("o2 login                                                 Tests login");
-                Console.WriteLine("o2 create api-key                                        Create an api key used to login");
-                Console.WriteLine("o2 create user                                           Create a new user");
+                Console.WriteLine("o2 api-key create                                        Create an api key used to login");
+                Console.WriteLine("o2 api-key revoke username                               Revokes all api keys for the specified user");
+                Console.WriteLine("o2 user create                                           Create a new user");
+                Console.WriteLine("o2 user delete username                                  Deletes a user");
                 Console.WriteLine("o2 user list                                             Lists the users in the system");
-                Console.WriteLine("o2 asset patch                                           Downloads the lastest version of each asset");
+                Console.WriteLine("o2 asset patch                                           Downloads the latest version of each asset");
                 Console.WriteLine("o2 asset upload myAsset.png                              Uploads an asset of the file specified");
                 Console.WriteLine("o2 asset download myAsset.png                            Downloads an asset of the file specified");
                 Console.WriteLine("o2 asset list                                            Lists the assets stored on the server");
                 Console.WriteLine("o2 asset history myAsset.png                             Lists the revision history of the asset specified");
                 Console.WriteLine("o2 asset restore myAsset.png 10                          Restores the specified asset at the revision specified");
-                Console.WriteLine("o2 set-permission user LOGIN_SVR CREATE_API_KEY allow    Sets a permission for particular operation.");
+                Console.WriteLine("o2 set-permission user LOGIN_SVR CREATE_API_KEY allow    Sets a permission for a particular operation");
+                Console.WriteLine("                                                         Options: Allow/Deny/Default");
+                Console.WriteLine("o2 get-permission user                                   Gets the permissions for the specified user");
             }
         }
 
@@ -136,19 +143,43 @@ namespace O2
             return null;
         }
 
-        static void CreateCommand(string[] args)
+        static void APIKeyCommand(string[] args)
         {
             if (args.Length > 1)
             {
                 switch (args[1])
                 {
-                    case "api-key":
+                    case "create":
                         CreateAPIKeyCommand();
                         break;
-                    case "user":
-                        CreateNewUserCommand();
+                    case "revoke":
+                        RevokeAPIKeyCommand(args);
                         break;
                 }
+            }
+        }
+
+        static void RevokeAPIKeyCommand(string[] args)
+        {
+            if (args.Length == 3)
+            {
+                string username = args[2];
+
+                var client = StartClient();
+
+                try
+                {
+                    LoginWithAPIKey(client);
+                    client.RevokeAPIKeys(username);
+                }
+                catch (ClientException ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
+            }
+            else
+            {
+                Console.WriteLine("Invalid command");
             }
         }
 
@@ -210,6 +241,33 @@ namespace O2
                         cli.Login(username, password);
                     }
                 }
+            }
+        }
+
+        static void GetPermissionCommand(string[] args)
+        {
+            if (args.Length == 2)
+            {
+                string username = args[1];
+
+                var client = StartClient();
+
+                try
+                {
+                    LoginWithAPIKey(client);
+                    foreach (var permission in client.GetPermissionsForUser(username))
+                    {
+                        Console.WriteLine(permission);
+                    }
+                }
+                catch (ClientException ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
+            }
+            else
+            {
+                Console.WriteLine("Invalid command");
             }
         }
 
@@ -279,6 +337,36 @@ namespace O2
                     case "list":
                         ListUserCommand();
                         break;
+                    case "create":
+                        CreateNewUserCommand();
+                        break;
+                    case "delete":
+                        DeleteUserCommand(args);
+                        break;
+                }
+            }
+            else
+            {
+                Console.WriteLine("Invalid command");
+            }
+        }
+
+        static void DeleteUserCommand(string[] args)
+        {
+            if (args.Length == 3)
+            {
+                string user = args[2];
+
+                Client cli = StartClient();
+
+                try
+                {
+                    LoginWithAPIKey(cli);
+                    cli.DeleteUser(user);
+                }
+                catch (ClientException ex)
+                {
+                    Console.WriteLine(ex.Message);
                 }
             }
             else

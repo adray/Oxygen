@@ -43,7 +43,14 @@ namespace Oxygen
                 string userName = msg.ReadString();
                 if (!string.IsNullOrEmpty(userName))
                 {
-
+                    if (users.DeleteUser(userName))
+                    {
+                        SendAck(client, msg.MessageName);
+                    }
+                    else
+                    {
+                        SendNack(client, 200, $"Unable to delete user {userName}.", msg.MessageName);
+                    }
                 }
                 else
                 {
@@ -61,7 +68,7 @@ namespace Oxygen
 
                 if (user != null)
                 {
-                    if (flags == 2)
+                    if (flags == (int)Authorizer.PermissionAttribute.Default)
                     {
                         Authorizer.RemovePermission(user, node, messageName);
                         Audit.Instance.Log("Permission {0}/{1} for user {2} reverted", node, messageName, userName);
@@ -81,6 +88,22 @@ namespace Oxygen
                 {
                     SendNack(client, 200, $"Cannot find user {userName}.", msg.MessageName);
                 }
+            }
+            else if (msg.MessageName == "GET_PERMISSION")
+            {
+                string user = msg.ReadString();
+
+                Message response = new Message(msg.NodeName, msg.MessageName);
+                response.WriteString("ACK");
+
+                var permissions = Authorizer.GetPermissionsForUser(user);
+                response.WriteInt(permissions.Count);
+                foreach (string permission in permissions)
+                {
+                    response.WriteString(permission);
+                }
+
+                client.Send(response);
             }
             else if (msg.MessageName == "USER_LIST")
             {

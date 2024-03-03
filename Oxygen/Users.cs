@@ -4,6 +4,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace Oxygen
 {
@@ -118,6 +119,25 @@ namespace Oxygen
             }
         }
 
+        public void RevokeAPIKey(string username)
+        {
+            List<string> keys = new List<string>();
+            foreach (var api_key in this.apiUsers)
+            {
+                if (api_key.Value.Name == username)
+                {
+                    keys.Add(api_key.Key);
+                }
+            }
+
+            foreach (var api_key in keys)
+            {
+                apiUsers.Remove(api_key);
+            }
+
+            WriteUserData();
+        }
+
         public string CreateAPIKey(string username)
         {
             Guid guid = Guid.NewGuid();
@@ -154,16 +174,18 @@ namespace Oxygen
                 hashedBytes = sha256.ComputeHash(bytes);
             }
 
-            User? user = null;
-            if (hashedBytes != null)
-            {
-                user = new User(name, hashedBytes, userId++);
-                users.Add(name, user);
-                Audit.Instance.Log("New user created {0}.", name);
-                WriteUserData();
-            }
+            return CreateUser(name, hashedBytes);
+        }
 
-            return user;
+        public bool DeleteUser(string username)
+        {
+            if (users.Remove(username))
+            {
+                Audit.Instance.Log("User deleted {0}.", username);
+                WriteUserData();
+                return true;
+            }
+            return false;
         }
 
         public User? GetUserByName(string username)

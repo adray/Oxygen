@@ -19,6 +19,12 @@
       "Default": "Deny"
     },
     {
+      "Node": "LOGIN_SVR",
+      "Message": "REVOKE_API_KEY",
+      "Text": "Permission to revoke API keys.",
+      "Default": "Deny"
+    },
+    {
       "Node": "USER_SVR",
       "Message": "CREATE_USER",
       "Text": "Permission to create a new user.",
@@ -40,6 +46,12 @@
       "Node": "USER_SVR",
       "Message": "SET_PERMISSION",
       "Text": "Permission to set the permissions of a user.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "USER_SVR",
+      "Message": "GET_PERMISSION",
+      "Text": "Permission to get the permissions of a user.",
       "Default": "Deny"
     },
     {

@@ -38,12 +38,34 @@ namespace O2Client
         private Message Read()
         {
             byte[] length = new byte[4];
-            networkStream.Read(length, 0, length.Length);
+            try
+            {
+                networkStream.Read(length, 0, length.Length);
+            }
+            catch (IOException ex)
+            {
+                throw new ClientException(0, ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                throw new ClientException(0, ex.Message);
+            }
 
             int len = length[0] | (length[1] << 8) | (length[2] << 16) | (length[3] << 24);
 
             byte[] bytes = new byte[len];
-            networkStream.Read(bytes, 0, len);
+            try
+            {
+                networkStream.Read(bytes, 0, len);
+            }
+            catch (IOException ex)
+            {
+                throw new ClientException(0, ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                throw new ClientException(0, ex.Message);
+            }
 
             return new Message(bytes);
         }
@@ -324,7 +346,25 @@ namespace O2Client
             CheckAck();
         }
 
-        private IList<string> ListResource(string node, string messageName)
+        public void DeleteUser(string username)
+        {
+            using (MemoryStream stream = new MemoryStream())
+            {
+                using (BinaryWriter writer = new BinaryWriter(stream))
+                {
+                    writer.Write("USER_SVR");
+                    writer.Write("DELETE_USER");
+
+                    writer.Write(username);
+
+                    Send(stream.ToArray());
+                }
+            }
+
+            CheckAck();
+        }
+
+        private IList<string> ListResource(string node, string messageName, string? resource = null)
         {
             using (MemoryStream stream = new MemoryStream())
             {
@@ -332,6 +372,11 @@ namespace O2Client
                 {
                     writer.Write(node);
                     writer.Write(messageName);
+
+                    if (resource != null)
+                    {
+                        writer.Write(resource);
+                    }
 
                     Send(stream.ToArray());
                 }
@@ -363,6 +408,29 @@ namespace O2Client
         public IList<string> ListUsers()
         {
             return ListResource("USER_SVR", "USER_LIST");
+        }
+
+        public IList<string> GetPermissionsForUser(string username)
+        {
+            return ListResource("USER_SVR", "GET_PERMISSION", username);
+        }
+
+        public void RevokeAPIKeys(string username)
+        {
+            using (MemoryStream stream = new MemoryStream())
+            {
+                using (BinaryWriter writer = new BinaryWriter(stream))
+                {
+                    writer.Write("LOGIN_SVR");
+                    writer.Write("REVOKE_API_KEY");
+
+                    writer.Write(username);
+
+                    Send(stream.ToArray());
+                }
+            }
+
+            CheckAck();
         }
 
         public void SetPermission(string username, string nodeName, string messageName, string permission)

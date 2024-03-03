@@ -12,7 +12,8 @@ namespace Oxygen
         internal enum PermissionAttribute
         {
             Allow = 0,
-            Deny = 1
+            Deny = 1,
+            Default = 2
         }
 
         private class Permission
@@ -104,6 +105,20 @@ namespace Oxygen
             }
 
             return false;
+        }
+
+        public static IList<string> GetPermissionsForUser(string username)
+        {
+            List<string> permissionList = new List<string>();
+            string prefix = username + ".";
+            foreach (var permission in userPermissions)
+            {
+                if (permission.Key.StartsWith(prefix))
+                {
+                    permissionList.Add($"{permission.Key} - {permission.Value}");
+                }
+            }
+            return permissionList;
         }
 
         public static bool IsAuthorized(Client client, Message message)

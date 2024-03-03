@@ -7,38 +7,6 @@ using System.Threading.Tasks;
 
 namespace Oxygen
 {
-    internal class User
-    {
-        public string Name { get; private set; }
-        public byte[] Password { get; private set; }
-        public int Id { get; private set; }
-
-        public User(string name, byte[] password, int id)
-        {
-            Name = name;
-            Password = password;
-            Id = id;
-        }
-
-        public static bool CheckPassword(User user, byte[] password)
-        {
-            if (user.Password.Length != password.Length)
-            {
-                return false;
-            }
-
-            for (int i = 0; i < user.Password.Length; i++)
-            {
-                if (user.Password[i] != password[i])
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-    }
-
     internal class Users
     {
         private readonly Dictionary<string, User> users = new Dictionary<string, User>();
@@ -47,6 +15,22 @@ namespace Oxygen
 
         private const string userFile = @"Data\users.data";
         private const string apiKeysFile = @"Data\api_keys.data";
+
+        private static Users? instance;
+
+        public static Users Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    instance = new Users();
+                    instance.LoadUsers();
+                }
+
+                return instance;
+            }
+        }
 
         public void LoadUsers()
         {
@@ -151,7 +135,16 @@ namespace Oxygen
             return apiKey;
         }
 
-        public void CreateUser(string name, string password)
+        public User? CreateUser(string name, byte[] password)
+        {
+            User user = new User(name, password, userId++);
+            users.Add(name, user);
+            Audit.Instance.Log("New user created {0}.", name);
+            WriteUserData();
+            return user;
+        }
+
+        public User? CreateUser(string name, string password)
         {
             byte[] bytes = Encoding.UTF8.GetBytes(password);
 
@@ -161,12 +154,16 @@ namespace Oxygen
                 hashedBytes = sha256.ComputeHash(bytes);
             }
 
+            User? user = null;
             if (hashedBytes != null)
             {
-                users.Add(name, new User(name, hashedBytes, userId++));
+                user = new User(name, hashedBytes, userId++);
+                users.Add(name, user);
                 Audit.Instance.Log("New user created {0}.", name);
                 WriteUserData();
             }
+
+            return user;
         }
 
         public User? GetUserByName(string username)
@@ -179,6 +176,19 @@ namespace Oxygen
         {
             apiUsers.TryGetValue(apiKey, out User? user);
             return user;
+        }
+
+        public IList<User> UserList
+        {
+            get
+            {
+                List<User> users = new List<User>();
+                foreach (var user in this.users)
+                {
+                    users.Add(user.Value);
+                }
+                return users;
+            }
         }
     }
 }

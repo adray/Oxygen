@@ -42,7 +42,7 @@ namespace Oxygen
         {
             base.OnRecieveMessage(client, msg);
 
-            if (!Authorizer.IsAuthorized(client))
+            if (!Authorizer.IsAuthorized(client, msg))
             {
                 return;
             }

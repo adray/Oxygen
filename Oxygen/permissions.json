@@ -1,0 +1,88 @@
+{
+  "Permissions": [
+    {
+      "Node": "LOGIN_SVR",
+      "Message": "LOGIN",
+      "Text": "Permission to login the server.",
+      "Default": "Allow"
+    },
+    {
+      "Node": "LOGIN_SVR",
+      "Message": "LOGIN_API_KEY",
+      "Text": "Permission to login into the server using an API Key.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "LOGIN_SVR",
+      "Message": "CREATE_API_KEY",
+      "Text": "Permission to create an API key.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "USER_SVR",
+      "Message": "CREATE_USER",
+      "Text": "Permission to create a new user.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "USER_SVR",
+      "Message": "DELETE_USER",
+      "Text": "Permission to delete users.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "USER_SVR",
+      "Message": "USER_LIST",
+      "Text": "Permission to list users.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "USER_SVR",
+      "Message": "SET_PERMISSION",
+      "Text": "Permission to set the permissions of a user.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "ASSET_SVR",
+      "Message": "ASSET_LIST",
+      "Text": "Permission to list the assets on the server.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "ASSET_SVR",
+      "Message": "UPLOAD_ASSET",
+      "Text": "Permission to upload assets.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "ASSET_SVR",
+      "Message": "UPLOAD_ASSET_PART",
+      "Text": "Permission to upload assets in parts.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "ASSET_SVR",
+      "Message": "DOWNLOAD_ASSET",
+      "Text": "Permission to download assets.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "ASSET_SVR",
+      "Message": "DOWNLOAD_ASSET_PART",
+      "Text": "Permission to download assets in parts.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "ASSET_SVR",
+      "Message": "ASSET_HISTORY",
+      "Text": "Permission to view the version history of assets.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "ASSET_SVR",
+      "Message": "ASSET_RESTORE",
+      "Text": "Permission to restore an asset from previous version.",
+      "Default": "Deny"
+    }
+  ]
+}

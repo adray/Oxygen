@@ -24,7 +24,7 @@ namespace Oxygen
         {
             base.OnRecieveMessage(client, msg);
 
-            if (!Authorizer.IsAuthorized(client))
+            if (!Authorizer.IsAuthorized(client, msg))
             {
                 return;
             }
@@ -62,8 +62,9 @@ namespace Oxygen
             }
             else if (messageName == "ADD_OBJECT")
             {
-                string objectType = msg.ReadString();
+                LevelObject obj = new LevelObject();
 
+                string objectType = msg.ReadString();
 
                 double posX = msg.ReadDouble();
                 double posY = msg.ReadDouble();
@@ -75,7 +76,18 @@ namespace Oxygen
                 double rotationY = msg.ReadDouble();
                 double rotationZ = msg.ReadDouble();
 
+                Transform transform = new Transform();
+                transform.SetPos(posX, posY, posZ);
+                transform.SetScale(scaleX, scaleY, scaleZ);
+                transform.SetRotation(rotationX, rotationY, rotationZ);
 
+                obj.Transform = transform;
+
+                Level? level = client.GetProperty("LEVEL") as Level;
+                if (level != null)
+                {
+                    level.AddObject(obj);
+                }
             }
             else
             {

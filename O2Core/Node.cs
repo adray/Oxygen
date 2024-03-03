@@ -87,7 +87,7 @@ namespace Oxygen
 
             DateTime dateTime = DateTime.Now;
 
-            Message response = new Message(this.Name, "");
+            Message response = new Message(this.Name, msg.MessageName);
             response.WriteString(dateTime.ToString("HH:mm:ss ddMMyyyy"));
 
             client.Send(response);

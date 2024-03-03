@@ -10,10 +10,14 @@ namespace Oxygen
             {
                 Console.WriteLine("Starting server!");
 
+                Authorizer.LoadPermissions();
+                Authorizer.LoadAuthorizationData();
+
                 Server server = new Server(9888);
                 server.AddNode(new AssetServer());
                 server.AddNode(new LoginServer());
                 server.AddNode(new LevelServer());
+                server.AddNode(new UserServer());
 
                 try
                 {
@@ -51,8 +55,17 @@ namespace Oxygen
                     }
                     Console.WriteLine();
 
+                    Authorizer.LoadPermissions();
                     Users users = new Users();
-                    users.CreateUser("root", password);
+                    User? user = users.CreateUser("root", password);
+
+                    if (user != null)
+                    {
+                        // Enable standard root features
+                        Authorizer.SetPermission(user, "USER_SVR", "SET_PERMISSION", Authorizer.PermissionAttribute.Allow);
+                        Authorizer.SetPermission(user, "USER_SVR", "CREATE_USER", Authorizer.PermissionAttribute.Allow);
+                        Authorizer.SetPermission(user, "USER_SVR", "DELETE_USER", Authorizer.PermissionAttribute.Allow);
+                    }
                 }
             }
         }

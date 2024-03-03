@@ -11,4 +11,10 @@
     <ProjectReference Include="..\O2Core\O2Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="permissions.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

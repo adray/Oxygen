@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
@@ -102,41 +103,9 @@ namespace O2Client
             }
         }
 
-        public List<string> ListAssets()
+        public IList<string> ListAssets()
         {
-            List<string> assets = new List<string>();
-
-            using (MemoryStream stream = new MemoryStream())
-            {
-                using (BinaryWriter writer = new BinaryWriter(stream))
-                {
-                    writer.Write("ASSET_SVR");
-                    writer.Write("ASSET_LIST");
-                }
-
-                Send(stream.ToArray());
-            }
-
-            Message response = Read();
-
-            string ack = response.ReadString();
-            if (ack == "ACK")
-            {
-                int numAssets = response.ReadInt();
-                for (int i = 0; i < numAssets; i++)
-                {
-                    assets.Add(response.ReadString());
-                }
-            }
-            else
-            {
-                int errorCode = response.ReadInt();
-                string errorMsg = response.ReadString();
-
-                throw new ClientException(errorCode, errorMsg);
-            }
-
-            return assets;
+            return ListResource("ASSET_SVR", "ASSET_LIST");
         }
 
         public void DownloadAsset(string name)
@@ -327,6 +296,97 @@ namespace O2Client
                     writer.Write(username);
                     writer.Write(password.Length);
                     writer.Write(password);
+
+                    Send(stream.ToArray());
+                }
+            }
+
+            CheckAck();
+        }
+
+        public void CreateNewUser(string username, byte[] password)
+        {
+            using (MemoryStream stream = new MemoryStream())
+            {
+                using (BinaryWriter writer = new BinaryWriter(stream))
+                {
+                    writer.Write("USER_SVR");
+                    writer.Write("CREATE_USER");
+
+                    writer.Write(username);
+                    writer.Write(password.Length);
+                    writer.Write(password);
+
+                    Send(stream.ToArray());
+                }
+            }
+
+            CheckAck();
+        }
+
+        private IList<string> ListResource(string node, string messageName)
+        {
+            using (MemoryStream stream = new MemoryStream())
+            {
+                using (BinaryWriter writer = new BinaryWriter(stream))
+                {
+                    writer.Write(node);
+                    writer.Write(messageName);
+
+                    Send(stream.ToArray());
+                }
+            }
+
+            Message response = Read();
+            List<string> resources = new List<string>();
+
+            string ack = response.ReadString();
+            if (ack == "ACK")
+            {
+                int numAssets = response.ReadInt();
+                for (int i = 0; i < numAssets; i++)
+                {
+                    resources.Add(response.ReadString());
+                }
+            }
+            else
+            {
+                int errorCode = response.ReadInt();
+                string errorMsg = response.ReadString();
+
+                throw new ClientException(errorCode, errorMsg);
+            }
+
+            return resources;
+        }
+
+        public IList<string> ListUsers()
+        {
+            return ListResource("USER_SVR", "USER_LIST");
+        }
+
+        public void SetPermission(string username, string nodeName, string messageName, string permission)
+        {
+            using (MemoryStream stream = new MemoryStream())
+            {
+                using (BinaryWriter writer = new BinaryWriter(stream))
+                {
+                    writer.Write("USER_SVR");
+                    writer.Write("SET_PERMISSION");
+
+                    writer.Write(username);
+
+                    int value = 0;
+                    switch (permission)
+                    {
+                        case "allow": value = 0; break;
+                        case "deny": value = 1; break;
+                        case "default": value = 2; break;
+                    }
+
+                    writer.Write(value);
+                    writer.Write(nodeName);
+                    writer.Write(messageName);
 
                     Send(stream.ToArray());
                 }

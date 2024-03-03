@@ -8,12 +8,11 @@ namespace Oxygen
 {
     internal class LoginServer : Node
     {
-        private Users users = new Users();
+        private Users users = Users.Instance;
 
         public LoginServer()
             : base("LOGIN_SVR")
         {
-            users.LoadUsers();
         }
 
         public override void OnRecieveMessage(Client client, Message msg)
@@ -50,12 +49,20 @@ namespace Oxygen
 
                 if (user != null)
                 {
-                    SendAck(client, "LOGIN_API_KEY");
+                    if (Authorizer.CheckPermission(user, this.Name, msg.MessageName))
+                    {
+                        SendAck(client, "LOGIN_API_KEY");
 
-                    client.SetProperty("LOGGED_IN", true);
-                    client.SetProperty("USER_NAME", user.Name);
+                        client.SetProperty("LOGGED_IN", true);
+                        client.SetProperty("USER_NAME", user.Name);
 
-                    Audit.Instance.Log("User {0} logged in with API key.", user.Name);
+                        Audit.Instance.Log("User {0} logged in with API key.", user.Name);
+                    }
+                    else
+                    {
+                        SendNack(client, 200, "Login failed", "LOGIN_API_KEY");
+                        Audit.Instance.Log("User {0} attempted to login with a API key, but not permissioned.", user.Name);
+                    }
                 }
                 else
                 {
@@ -69,12 +76,21 @@ namespace Oxygen
                 string? username = client.GetProperty("USER_NAME") as string;
                 if (loggedIn.GetValueOrDefault() && username != null)
                 {
-                    string apiKey = users.CreateAPIKey(username);
+                    User? user = Users.Instance.GetUserByName(username);
+                    if (user != null && Authorizer.CheckPermission(user, this.Name, msg.MessageName))
+                    {
+                        string apiKey = users.CreateAPIKey(username);
 
-                    Message response = new Message(this.Name, "CREATE_API_KEY");
-                    response.WriteString("ACK");
-                    response.WriteString(apiKey);
-                    client.Send(response);
+                        Message response = new Message(this.Name, "CREATE_API_KEY");
+                        response.WriteString("ACK");
+                        response.WriteString(apiKey);
+                        client.Send(response);
+                    }
+                    else
+                    {
+                        SendNack(client, 200, "API key could not be created.", "LOGIN_API_KEY");
+                        Audit.Instance.Log("User {0} attempted to create an API key, but not permissioned.", username);
+                    }
                 }
                 else
                 {

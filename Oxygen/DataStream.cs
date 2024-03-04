@@ -52,25 +52,36 @@ namespace Oxygen
         private class DownloadStream
         {
             private long totalBytes;
-            private BinaryReader reader;
+            private BinaryReader? reader;
             private bool completed;
 
             public DownloadStream(string name)
             {
-                FileStream file = File.OpenRead(name);
-                totalBytes = file.Length;
-                this.reader = new BinaryReader(file);
+                try
+                {
+                    FileStream file = File.OpenRead(name);
+                    totalBytes = file.Length;
+                    this.reader = new BinaryReader(file);
+                }
+                catch (IOException)
+                {
+                    this.completed = true;
+                }
             }
 
             public long TotalBytes => totalBytes;
 
-            public byte[] ReadBytes(int numBytes)
+            public byte[]? ReadBytes(int numBytes)
             {
-                byte[] bytes = reader.ReadBytes(numBytes);
-                if (reader.BaseStream.Position == reader.BaseStream.Length)
+                byte[]? bytes = null;
+                if (reader != null)
                 {
-                    this.completed = true;
-                    reader.Close();
+                    bytes = reader.ReadBytes(numBytes);
+                    if (reader.BaseStream.Position == reader.BaseStream.Length)
+                    {
+                        this.completed = true;
+                        reader.Close();
+                    }
                 }
 
                 return bytes;
@@ -84,6 +95,11 @@ namespace Oxygen
 
         public long AddDownloadStream(Client client, string streamFile)
         {
+            if (downloadStreams.ContainsKey(client))
+            {
+                return -1;
+            }
+
             DownloadStream stream = new DownloadStream(streamFile);
             downloadStreams.Add(client, stream);
             return stream.TotalBytes;
@@ -93,7 +109,7 @@ namespace Oxygen
         {
             if (downloadStreams.TryGetValue(client, out DownloadStream? stream))
             {
-                byte[] bytes = stream.ReadBytes(numBytes);
+                byte[]? bytes = stream.ReadBytes(numBytes);
                 if (stream.Completed)
                 {
                     CloseDownloadStream(client);

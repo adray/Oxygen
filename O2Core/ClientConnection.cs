@@ -13,6 +13,7 @@ namespace Oxygen
 {
     public class ClientConnection
     {
+        private Cache cache = new Cache();
         private TcpClient client;
         private NetworkStream networkStream;
         private List<Subscriber> subscribers = new List<Subscriber>();
@@ -22,6 +23,16 @@ namespace Oxygen
         {
             client = new TcpClient(hostname, port);
             networkStream = client.GetStream();
+        }
+
+        public void LoadCache(string filename)
+        {
+            cache.LoadCache(filename);
+        }
+
+        public void SaveCache()
+        {
+            cache.SaveCache();
         }
 
         private void Send(byte[] bytes)
@@ -132,9 +143,7 @@ namespace Oxygen
 
         public void DownloadAsset(string name)
         {
-            File.Delete(name);
-
-            BinaryWriter fileWriter = new BinaryWriter(File.OpenWrite(name));
+            BinaryWriter? fileWriter = null;
 
             SendDownloadAsset(name);
 
@@ -143,15 +152,23 @@ namespace Oxygen
 
             string ack = response.ReadString();
 
-            int numBytes;
+            int numBytes = 0;
+            string? checksum;
             if (ack == "ACK")
             {
-                numBytes = response.ReadInt();
+                checksum = response.ReadString();
+                if (checksum != cache.GetChecksum(name))
+                {
+                    File.Delete(name);
+                    fileWriter = new BinaryWriter(File.OpenWrite(name));
 
-                byte[] data = response.ReadByteArray();
+                    numBytes = response.ReadInt();
 
-                recieved += data.Length;
-                fileWriter.Write(data);
+                    byte[] data = response.ReadByteArray();
+
+                    recieved += data.Length;
+                    fileWriter.Write(data);
+                }
             }
             else
             {
@@ -173,7 +190,7 @@ namespace Oxygen
                     byte[] data = response.ReadByteArray();
 
                     recieved += data.Length;
-                    fileWriter.Write(data);
+                    fileWriter?.Write(data);
                 }
                 else
                 {
@@ -184,7 +201,12 @@ namespace Oxygen
                 }
             }
 
-            fileWriter.Close();
+            fileWriter?.Close();
+
+            if (checksum != null)
+            {
+                cache.CacheItem(name, checksum);
+            }
         }
 
         private void SendDownloadAssetPart()
@@ -210,6 +232,13 @@ namespace Oxygen
                     writer.Write("ASSET_SVR");
                     writer.Write("DOWNLOAD_ASSET");
                     writer.Write(name);
+
+                    string? checksum = cache.GetChecksum(name);
+                    writer.Write(checksum != null ? 1 : 0);
+                    if (checksum != null)
+                    {
+                        writer.Write(checksum);
+                    }
                 }
 
                 Send(stream.ToArray());

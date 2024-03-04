@@ -5,8 +5,8 @@
         public string NodeName { get; private set; }
         public string MessageName { get; private set; }
 
-        public event EventHandler<ClientException> Error;
-        internal event EventHandler<Message> MessageReady;
+        public event EventHandler<ClientException>? Error;
+        internal event EventHandler<Message>? MessageReady;
 
         public Subscriber(string nodeName, string messageName)
         {

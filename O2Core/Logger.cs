@@ -8,8 +8,8 @@ namespace Oxygen
 {
     public class Logger
     {
-        private static Logger instance;
-        private StreamWriter _writer;
+        private static Logger? instance;
+        private StreamWriter? _writer;
         private object _lock = new object();
 
         public static Logger Instance

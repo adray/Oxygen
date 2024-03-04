@@ -10,7 +10,7 @@ namespace Oxygen
     {
         private List<string> assets = new List<string>();
 
-        public event EventHandler Loaded;
+        public event EventHandler? Loaded;
 
         public AssetListSubscriber()
             : base("ASSET_SVR", "ASSET_LIST")

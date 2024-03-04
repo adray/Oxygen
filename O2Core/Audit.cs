@@ -8,8 +8,8 @@ namespace Oxygen
 {
     public class Audit
     {
-        private static Audit instance;
-        private StreamWriter _writer;
+        private static Audit? instance;
+        private StreamWriter? _writer;
         private object _lock = new object();
 
         public static Audit Instance

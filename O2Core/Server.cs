@@ -56,16 +56,16 @@ namespace Oxygen
         private class ClientConnection
         {
             public bool Running { get; set; }
-            public TcpClient Connection { get; set; }
-            public Client Client { get; set; }
-            public EventWaitHandle MsgHandle { get; set; }
+            public TcpClient? Connection { get; set; }
+            public Client? Client { get; set; }
+            public EventWaitHandle? MsgHandle { get; set; }
         }
 
         private class ServerTimer
         {
-            public Node Node { get; set; }
-            public NodeTimer NodeTimer { get; set; }
-            public Timer Timer { get; set; }
+            public Node? Node { get; set; }
+            public NodeTimer? NodeTimer { get; set; }
+            public Timer? Timer { get; set; }
         }
 
         private int port;

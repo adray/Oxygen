@@ -10,6 +10,8 @@ namespace O2
 {
     internal class Program
     {
+        private static string cacheName = "o2-cache";
+
         static void Main(string[] args)
         {
             if (args.Length > 0)
@@ -460,6 +462,7 @@ namespace O2
             try
             {
                 LoginWithAPIKey(cli);
+                cli.LoadCache(cacheName);
 
                 IList<string> assets = cli.ListAssets();
 
@@ -468,6 +471,7 @@ namespace O2
                     cli.DownloadAsset(asset);
                     Console.WriteLine($"Patched {asset}");
                 }
+                cli.SaveCache();
             }
             catch (ClientException ex)
             {
@@ -529,8 +533,10 @@ namespace O2
 
                 try
                 {
+                    client.LoadCache(cacheName);
                     LoginWithAPIKey(client);
                     client.DownloadAsset(name);
+                    client.SaveCache();
                 }
                 catch (ClientException ex)
                 {

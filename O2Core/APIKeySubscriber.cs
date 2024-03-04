@@ -8,7 +8,7 @@ namespace Oxygen
 {
     public class APIKeySubscriber : Subscriber
     {
-        public event EventHandler LoggedIn;
+        public event EventHandler? LoggedIn;
 
         public APIKeySubscriber()
             : base("LOGIN_SVR", "LOGIN_API_KEY")

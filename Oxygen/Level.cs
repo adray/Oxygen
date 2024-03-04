@@ -14,6 +14,12 @@ namespace Oxygen
         }
     }
 
+    internal interface IOriginator
+    {
+        object SaveToMemento();
+        void RestoreFromMemento(object memento);
+    }
+
     internal struct Transform
     {
         private double[] pos = new double[3];
@@ -50,8 +56,20 @@ namespace Oxygen
         public readonly double[] Rotation => rotation;
     }
 
-    internal class LevelObject
+    internal class LevelObject : IOriginator
     {
+        internal class Memento
+        {
+            private Transform transform;
+
+            public Memento(Transform transform)
+            {
+                this.transform = transform;
+            }
+
+            public Transform Transform => transform;
+        }
+
         private Transform transform;
 
         public LevelObject()
@@ -70,12 +88,74 @@ namespace Oxygen
                 this.transform = value;
             }
         }
+
+        public void RestoreFromMemento(object memento)
+        {
+            Memento value = (Memento)memento;
+            this.transform = value.Transform;
+        }
+
+        public object SaveToMemento()
+        {
+            return new Memento(this.transform);
+        }
+    }
+
+    internal interface ITransaction
+    {
+        void Apply(TransactionContext context);
+    }
+
+    internal class TransactionContext
+    {
+        public LevelObject Object { get; private set; }
+        public object Data { get; private set; }
+        private object? memento;
+
+        public TransactionContext(LevelObject @object, object data)
+        {
+            Object = @object;
+            Data = data;
+        }
+
+        public void Save()
+        {
+            memento = Object.SaveToMemento();
+        }
+
+        public void Restore()
+        {
+            if (memento != null)
+            {
+                Object.RestoreFromMemento(memento);
+            }
+        }
+    }
+
+    internal class MoveObjectTransaction : ITransaction
+    {
+        public void Apply(TransactionContext context)
+        {
+            double[]? pos = context.Data as double[];
+            if (pos != null)
+            {
+                context.Object.Transform.SetPos(pos[0], pos[1], pos[2]);
+            }
+        }
     }
 
     internal class Level
     {
         private List<Client> connected = new List<Client>();
         private List<LevelObject> objects = new List<LevelObject>();
+        private Dictionary<Type, ITransaction> transactions = new Dictionary<Type, ITransaction>();
+        private Stack<TransactionContext> undo = new Stack<TransactionContext>();
+        private Stack<TransactionContext> redo = new Stack<TransactionContext>();
+
+        public Level()
+        {
+            transactions.Add(typeof(MoveObjectTransaction), new MoveObjectTransaction());
+        }
 
         public void AddClient(Client client)
         {
@@ -87,11 +167,32 @@ namespace Oxygen
             connected.Remove(client);
         }
 
+        public void RunTransaction<T>(TransactionContext context)
+        {
+            context.Save();
+            ITransaction transaction = transactions[typeof(T)];
+            transaction.Apply(context);
+        }
+
+        public void Undo()
+        {
+            TransactionContext cxt = undo.Peek();
+            cxt.Restore();
+            redo.Push(cxt);
+            undo.Pop();
+        }
+
+        public void Redo()
+        {
+            TransactionContext cxt = redo.Peek();
+            // TODO: call RunTransaction
+        }
+
         public void AddObject(LevelObject obj)
         {
             objects.Add(obj);
 
-            Message msg = new Message("LEVEL_SVR", "LEVEL_STREAM");
+            Message msg = new Message("LEVEL_SVR", "LEVEL_STREAM_OBJECT");
             msg.WriteDouble(obj.Transform.Pos[0]);
             msg.WriteDouble(obj.Transform.Pos[1]);
             msg.WriteDouble(obj.Transform.Pos[2]);

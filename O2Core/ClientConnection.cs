@@ -9,16 +9,16 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
-namespace O2Client
+namespace Oxygen
 {
-    public class Client
+    public class ClientConnection
     {
         private TcpClient client;
         private NetworkStream networkStream;
         private List<Subscriber> subscribers = new List<Subscriber>();
         private object subscriberLock = new object();
 
-        public Client(string hostname, int port)
+        public ClientConnection(string hostname, int port)
         {
             client = new TcpClient(hostname, port);
             networkStream = client.GetStream();

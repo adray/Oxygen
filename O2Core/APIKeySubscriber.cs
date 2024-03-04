@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace O2Client
+namespace Oxygen
 {
     public class APIKeySubscriber : Subscriber
     {

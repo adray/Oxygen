@@ -4,7 +4,7 @@ using System.Security;
 using System.Security.Cryptography;
 using System.Text;
 using System.Xml.Linq;
-using O2Client;
+using Oxygen;
 
 namespace O2
 {
@@ -60,9 +60,9 @@ namespace O2
             }
         }
 
-        static Client StartClient()
+        static ClientConnection StartClient()
         {
-            Client cli = new Client("localhost", 9888);
+            ClientConnection cli = new ClientConnection("localhost", 9888);
             return cli;
         }
 
@@ -116,7 +116,7 @@ namespace O2
             return hashedBytes;
         }
 
-        static Client? LoginCommand()
+        static ClientConnection? LoginCommand()
         {
             string? username = UserNamePrompt();
             if (username != null)
@@ -125,7 +125,7 @@ namespace O2
 
                 if (hashedBytes != null)
                 {
-                    Client cli = StartClient();
+                    ClientConnection cli = StartClient();
 
                     try
                     {
@@ -191,7 +191,7 @@ namespace O2
                 return;
             }
 
-            Client? client = LoginCommand();
+            ClientConnection? client = LoginCommand();
             if (client != null)
             {
                 try
@@ -222,7 +222,7 @@ namespace O2
             return null;
         }
 
-        private static void LoginWithAPIKey(Client cli)
+        private static void LoginWithAPIKey(ClientConnection cli)
         {
             string? apikey = LoadAPIKey();
             if (apikey != null)
@@ -357,7 +357,7 @@ namespace O2
             {
                 string user = args[2];
 
-                Client cli = StartClient();
+                ClientConnection cli = StartClient();
 
                 try
                 {
@@ -377,7 +377,7 @@ namespace O2
 
         static void ListUserCommand()
         {
-            Client cli = StartClient();
+            ClientConnection cli = StartClient();
 
             try
             {
@@ -455,7 +455,7 @@ namespace O2
 
         static void PatchAssetsCommand()
         {
-            Client cli = StartClient();
+            ClientConnection cli = StartClient();
 
             try
             {
@@ -501,7 +501,7 @@ namespace O2
 
         static void ListAssetCommand(string[] args)
         {
-            Client cli = StartClient();
+            ClientConnection cli = StartClient();
 
             try
             {

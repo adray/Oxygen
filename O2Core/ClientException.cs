@@ -1,4 +1,4 @@
-﻿namespace O2Client
+﻿namespace Oxygen
 {
     public class ClientException : Exception
     {

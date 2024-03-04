@@ -50,6 +50,7 @@ namespace O2
                 Console.WriteLine("o2 user create                                           Create a new user");
                 Console.WriteLine("o2 user delete username                                  Deletes a user");
                 Console.WriteLine("o2 user list                                             Lists the users in the system");
+                Console.WriteLine("o2 user reset                                            Reset the users password");
                 Console.WriteLine("o2 asset patch                                           Downloads the latest version of each asset");
                 Console.WriteLine("o2 asset upload myAsset.png                              Uploads an asset of the file specified");
                 Console.WriteLine("o2 asset download myAsset.png                            Downloads an asset of the file specified");
@@ -143,6 +144,25 @@ namespace O2
             }
 
             return null;
+        }
+
+        static void ChangePassword()
+        {
+            ClientConnection cli = StartClient();
+
+            try
+            {
+                LoginWithAPIKey(cli);
+
+                Console.WriteLine("Change password");
+                byte[] password = PasswordPrompt();
+                byte[] newpassword = PasswordPrompt();
+                cli.ResetPassword(password, newpassword);
+            }
+            catch (ClientException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
         }
 
         static void APIKeyCommand(string[] args)
@@ -344,6 +364,9 @@ namespace O2
                         break;
                     case "delete":
                         DeleteUserCommand(args);
+                        break;
+                    case "reset":
+                        ChangePassword();
                         break;
                 }
             }

@@ -87,7 +87,7 @@ namespace Oxygen
             }
         }
 
-        private void WriteUserData()
+        public void WriteUserData()
         {
             using (FileStream stream = File.OpenWrite(userFile))
             {
@@ -121,6 +121,12 @@ namespace Oxygen
 
         public void RevokeAPIKey(string username)
         {
+            RevokeKeysInternal(username);
+            WriteUserData();
+        }
+
+        private void RevokeKeysInternal(string username)
+        {
             List<string> keys = new List<string>();
             foreach (var api_key in this.apiUsers)
             {
@@ -134,8 +140,6 @@ namespace Oxygen
             {
                 apiUsers.Remove(api_key);
             }
-
-            WriteUserData();
         }
 
         public string CreateAPIKey(string username)
@@ -181,6 +185,7 @@ namespace Oxygen
         {
             if (users.Remove(username))
             {
+                RevokeKeysInternal(username);
                 Audit.Instance.Log("User deleted {0}.", username);
                 WriteUserData();
                 return true;

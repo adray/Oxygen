@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace Oxygen
 {
@@ -55,6 +56,39 @@ namespace Oxygen
                 else
                 {
                     SendNack(client, 200, "Username not specified", msg.MessageName);
+                }
+            }
+            else if (msg.MessageName == "RESET_PASSWORD")
+            {
+                string? userName = client.GetProperty("USER_NAME") as string;
+                if (userName != null)
+                {
+                    User? user = Users.Instance.GetUserByName(userName);
+
+                    if (user != null)
+                    {
+                        byte[] password = msg.ReadByteArray();
+                        byte[] newPassword = msg.ReadByteArray();
+                        if (User.CheckPassword(user, password))
+                        {
+                            user.ChangePassword(newPassword);
+                            users.WriteUserData();
+                            Audit.Instance.Log("Password changed for user {0}.",  userName);
+                            SendAck(client, msg.MessageName);
+                        }
+                        else
+                        {
+                            SendNack(client, 100, "Unable to change password", msg.MessageName);
+                        }
+                    }
+                    else
+                    {
+                        SendNack(client, 200, $"Cannot find user {userName}.", msg.MessageName);
+                    }
+                }
+                else
+                {
+                    SendNack(client, 200, $"Cannot find user {userName}.", msg.MessageName);
                 }
             }
             else if (msg.MessageName == "SET_PERMISSION")

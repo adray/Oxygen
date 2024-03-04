@@ -32,6 +32,12 @@
     },
     {
       "Node": "USER_SVR",
+      "Message": "RESET_PASSWORD",
+      "Text": "Permission to change password.",
+      "Default": "Allow"
+    },
+    {
+      "Node": "USER_SVR",
       "Message": "DELETE_USER",
       "Text": "Permission to delete users.",
       "Default": "Deny"

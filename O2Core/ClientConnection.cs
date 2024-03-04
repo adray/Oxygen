@@ -355,6 +355,27 @@ namespace Oxygen
             CheckAck();
         }
 
+        public void ResetPassword(byte[] password, byte[] newPassword)
+        {
+            using (MemoryStream stream = new MemoryStream())
+            {
+                using (BinaryWriter writer = new BinaryWriter(stream))
+                {
+                    writer.Write("USER_SVR");
+                    writer.Write("RESET_PASSWORD");
+
+                    writer.Write(password.Length);
+                    writer.Write(password);
+                    writer.Write(newPassword.Length);
+                    writer.Write(newPassword);
+
+                    Send(stream.ToArray());
+                }
+            }
+
+            CheckAck();
+        }
+
         public void CreateNewUser(string username, byte[] password)
         {
             using (MemoryStream stream = new MemoryStream())

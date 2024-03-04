@@ -13,6 +13,12 @@
             Id = id;
         }
 
+
+        public void ChangePassword(byte[] password)
+        {
+            Password = password;
+        }
+
         public static bool CheckPassword(User user, byte[] password)
         {
             if (user.Password.Length != password.Length)

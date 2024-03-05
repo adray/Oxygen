@@ -71,6 +71,7 @@ namespace Oxygen
         }
 
         private Transform transform;
+        private int modelID;
 
         public LevelObject()
         {
@@ -89,6 +90,18 @@ namespace Oxygen
             }
         }
 
+        public int ModelID
+        {
+            get
+            {
+                return this.modelID;
+            }
+            set
+            {
+                this.modelID = value;
+            }
+        }
+
         public void RestoreFromMemento(object memento)
         {
             Memento value = (Memento)memento;
@@ -98,6 +111,20 @@ namespace Oxygen
         public object SaveToMemento()
         {
             return new Memento(this.transform);
+        }
+
+        public void Serialize(Message stream)
+        {
+            stream.WriteDouble(transform.Pos[0]);
+            stream.WriteDouble(transform.Pos[1]);
+            stream.WriteDouble(transform.Pos[2]);
+            stream.WriteDouble(Transform.Scale[0]);
+            stream.WriteDouble(Transform.Scale[1]);
+            stream.WriteDouble(Transform.Scale[2]);
+            stream.WriteDouble(Transform.Rotation[0]);
+            stream.WriteDouble(Transform.Rotation[1]);
+            stream.WriteDouble(Transform.Rotation[2]);
+            stream.WriteInt(ModelID);
         }
     }
 
@@ -193,15 +220,7 @@ namespace Oxygen
             objects.Add(obj);
 
             Message msg = new Message("LEVEL_SVR", "LEVEL_STREAM_OBJECT");
-            msg.WriteDouble(obj.Transform.Pos[0]);
-            msg.WriteDouble(obj.Transform.Pos[1]);
-            msg.WriteDouble(obj.Transform.Pos[2]);
-            msg.WriteDouble(obj.Transform.Scale[0]);
-            msg.WriteDouble(obj.Transform.Scale[1]);
-            msg.WriteDouble(obj.Transform.Scale[2]);
-            msg.WriteDouble(obj.Transform.Rotation[0]);
-            msg.WriteDouble(obj.Transform.Rotation[1]);
-            msg.WriteDouble(obj.Transform.Rotation[2]);
+            obj.Serialize(msg);
 
             foreach (Client client in connected)
             {

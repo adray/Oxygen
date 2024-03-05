@@ -4,6 +4,7 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Reflection.PortableExecutable;
@@ -26,17 +27,27 @@ namespace Oxygen
 
     public class Client
     {
+        private readonly EventWaitHandle waitHandle;
+        private readonly object msgLock = new object();
         private readonly Queue<Message> msgs;
         private readonly Dictionary<string, object> properies = new Dictionary<string, object>();
 
-        public Client(Queue<Message> msgs)
+        public Client(Queue<Message> msgs, object msgLock, EventWaitHandle waitHandle)
         {
             this.msgs = msgs;
+            this.msgLock = msgLock;
+            this.waitHandle = waitHandle;
         }
 
         public void Send(Message msg)
         {
-            this.msgs.Enqueue(msg);
+            lock (msgLock)
+            {
+                this.msgs.Enqueue(msg);
+            }
+
+            // Sets the wait handle for Read thread to consume the message queue.
+            waitHandle.Set();
         }
 
         public void SetProperty(string name, object value)
@@ -56,9 +67,31 @@ namespace Oxygen
         private class ClientConnection
         {
             public bool Running { get; set; }
-            public TcpClient? Connection { get; set; }
-            public Client? Client { get; set; }
-            public EventWaitHandle? MsgHandle { get; set; }
+            public TcpClient Connection { get; private set; }
+            public Client Client { get; private set; }
+            public EventWaitHandle MsgHandle { get; private set; }
+            public Queue<Message> Messages { get; private set; }
+            public object MsgLock { get; private set; }
+            private int threadEndCount;
+
+            public ClientConnection(TcpClient connection, Client client, EventWaitHandle msgHandle, object msgLock, Queue<Message> messages)
+            {
+                Connection = connection;
+                Client = client;
+                MsgHandle = msgHandle;
+                MsgLock = msgLock;
+                Messages = messages;
+            }
+
+            public void ExitClientThread()
+            {
+                // if the we have finished write+read threads then safe to dispose the handle.
+                int result = Interlocked.Increment(ref threadEndCount);
+                if (result == 2)
+                {
+                    MsgHandle.Dispose();
+                }
+            }
         }
 
         private class ServerTimer
@@ -73,7 +106,6 @@ namespace Oxygen
         private object clientLock = new object();
         private object eventLock = new object();
         private readonly List<ClientConnection> clients = new List<ClientConnection>();
-        private readonly List<Thread> threads = new List<Thread>();
         private readonly List<Node> nodes = new List<Node>();
         private Queue<Event> events = new Queue<Event>();
         private EventWaitHandle eventHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
@@ -115,13 +147,17 @@ namespace Oxygen
         {
             // Disconnected
             cli.Running = false;
+            bool removed;
             lock (this.clientLock)
             {
-                this.clients.Remove(cli);
-                this.threads.Remove(Thread.CurrentThread);
+                removed = this.clients.Remove(cli);
             }
 
-            QueueEvent(new DisconnectionEvent(cli.Client));
+            if (removed)
+            {
+                cli.MsgHandle.Set();
+                QueueEvent(new DisconnectionEvent(cli.Client));
+            }
         }
 
         private void QueueEvent(Event e)
@@ -197,18 +233,12 @@ namespace Oxygen
 
         const int INCOMING_HEADER_SIZE = 4;
 
-        private void ClientThread(object? state)
+        private void ClientReadThread(object? state)
         {
             var cli = state as ClientConnection;
 
             if (cli != null)
             {
-                Log("Client connected");
-
-                Queue<Message> messages = new Queue<Message>();
-                var client = new Client(messages);
-                cli.Client = client;
-
                 var stream = cli.Connection.GetStream();
 
                 byte[] buffer = new byte[2048];
@@ -253,31 +283,56 @@ namespace Oxygen
                             string name = msg.NodeName;
                             Log($"Message: {name}/{msg.MessageName}");
 
-                            QueueEvent(new MessageRecievedEvent(client, name, msg, cli.MsgHandle));
-                            cli.MsgHandle.WaitOne();
-
-                            while (messages.Count > 0)
-                            {
-                                // Write response
-                                var response = messages.Dequeue();
-                                byte[] payload = response.GetData();
-                                
-                                int payloadSize = payload.Length;
-
-                                WriteToStream(cli, stream, new byte[]
-                                {
-                                    (byte)(payloadSize & 0xFF),
-                                    (byte)((payloadSize >> 8) & 0xFF),
-                                    (byte)((payloadSize >> 16) & 0xFF),
-                                    (byte)((payloadSize >> 24) & 0xFF)
-                                });
-                                WriteToStream(cli, stream, payload);
-                            }
+                            QueueEvent(new MessageRecievedEvent(cli.Client, name, msg, cli.MsgHandle));
                         }
                     }
                 }
 
+                cli.ExitClientThread();
                 Log("Client disconnected");
+            }
+        }
+
+        private void ClientWriteThread(object? state)
+        {
+            var cli = state as ClientConnection;
+
+            if (cli != null)
+            {
+                var stream = cli.Connection.GetStream();
+                var messages = cli.Messages;
+
+                while (cli.Running)
+                {
+                    // Wait for the signal that a message has been enqueued.
+                    // This will also be set in the case the client has been disconnected.
+                    cli.MsgHandle.WaitOne();
+
+                    while (messages.Count > 0)
+                    {
+                        // Write response
+                        Message response;
+                        
+                        lock (cli.MsgLock)
+                        {
+                            response = messages.Dequeue();
+                        }
+                        byte[] payload = response.GetData();
+
+                        int payloadSize = payload.Length;
+
+                        WriteToStream(cli, stream, new byte[]
+                        {
+                            (byte)(payloadSize & 0xFF),
+                            (byte)((payloadSize >> 8) & 0xFF),
+                            (byte)((payloadSize >> 16) & 0xFF),
+                            (byte)((payloadSize >> 24) & 0xFF)
+                        });
+                        WriteToStream(cli, stream, payload);
+                    }
+                }
+
+                cli.ExitClientThread();
             }
         }
 
@@ -297,24 +352,37 @@ namespace Oxygen
             while (this.running)
             {
                 TcpClient client = listener.AcceptTcpClient();
-                ClientConnection cli = new ClientConnection()
+                var msgs = new Queue<Message>();
+                var handle = new EventWaitHandle(false, EventResetMode.AutoReset);
+                var msgLock = new object();
+                ClientConnection cli = new ClientConnection(client,
+                    new Client(msgs, msgLock, handle),
+                    handle,
+                    msgLock,
+                    msgs)
                 {
-                    Connection = client,
-                    Running = true,
-                    MsgHandle = new EventWaitHandle(false, EventResetMode.AutoReset)
+                    Running = true
                 };
+
+                string address = client.Client.LocalEndPoint?.ToString() ?? "Unknown";
+
+                Log("Client connected {0}", address);
 
                 client.GetStream().ReadTimeout = 60000;
 
-                var thread = new Thread(ClientThread);
-                thread.Name = "Client";
+                var read = new Thread(ClientReadThread);
+                read.Name = "ReadThread";
+
+                var write = new Thread(ClientWriteThread);
+                write.Name = "WriteThread";
+
                 lock (clientLock)
                 {
                     this.clients.Add(cli);
-                    this.threads.Add(thread);
                 }
 
-                thread.Start(cli);
+                read.Start(cli);
+                write.Start(cli);
             }
 
             listener.Stop();
@@ -361,6 +429,7 @@ namespace Oxygen
                 }
             }
         }
+
 
         public void Start()
         {

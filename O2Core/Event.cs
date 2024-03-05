@@ -64,13 +64,6 @@ namespace Oxygen
                 node.OnRecieveMessage(this.Client, msg);
             }
         }
-
-        public override void EventEnd()
-        {
-            base.EventEnd();
-
-            this.handle.Set();
-        }
     }
 
     internal class TimerEvent : Event

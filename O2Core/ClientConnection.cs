@@ -211,38 +211,21 @@ namespace Oxygen
 
         private void SendDownloadAssetPart()
         {
-            using (MemoryStream stream = new MemoryStream())
-            {
-                using (BinaryWriter writer = new BinaryWriter(stream))
-                {
-                    writer.Write("ASSET_SVR");
-                    writer.Write("DOWNLOAD_ASSET_PART");
-                }
-
-                Send(stream.ToArray());
-            }
+            Message msg = new Message("ASSET_SVR", "DOWNLOAD_ASSET_PART");
+            Send(msg.GetData());
         }
 
         private void SendDownloadAsset(string name)
         {
-            using (MemoryStream stream = new MemoryStream())
+            Message msg = new Message("ASSET_SVR", "DOWNLOAD_ASSET");
+            msg.WriteString(name);
+            string? checksum = cache.GetChecksum(name);
+            msg.WriteInt(checksum != null ? 1 : 0);
+            if (checksum != null)
             {
-                using (BinaryWriter writer = new BinaryWriter(stream))
-                {
-                    writer.Write("ASSET_SVR");
-                    writer.Write("DOWNLOAD_ASSET");
-                    writer.Write(name);
-
-                    string? checksum = cache.GetChecksum(name);
-                    writer.Write(checksum != null ? 1 : 0);
-                    if (checksum != null)
-                    {
-                        writer.Write(checksum);
-                    }
-                }
-
-                Send(stream.ToArray());
+                msg.WriteString(checksum);
             }
+            Send(msg.GetData());
         }
 
         public void UploadAsset(string name)
@@ -256,30 +239,21 @@ namespace Oxygen
 
             const int chunkSize = 1024;
 
-            using (MemoryStream stream = new MemoryStream())
-            {
-                using (BinaryWriter writer = new BinaryWriter(stream))
-                {
-                    writer.Write("ASSET_SVR");
-                    writer.Write("UPLOAD_ASSET");
-                    writer.Write(name);
-                    writer.Write((int)file.Length);
-
-                    byte[] data = new byte[chunkSize];
-                    int size = file.Read(data, 0, data.Length);
-                    writer.Write(size);
-                    writer.Write(data, 0, size);
-                }
-
-                Send(stream.ToArray());
-            }
+            Message msg = new Message("ASSET_SVR", "UPLOAD_ASSET");
+            msg.WriteString(name);
+            msg.WriteInt((int)file.Length);
+            byte[] data = new byte[chunkSize];
+            int size = file.Read(data, 0, data.Length);
+            msg.WriteInt(size);
+            msg.WriteBytes(data, size);
+            Send(msg.GetData());
 
             CheckAck();
 
             while (file.Position < file.Length)
             {
-                byte[] data = new byte[chunkSize];
-                int size = file.Read(data, 0, data.Length);
+                data = new byte[chunkSize];
+                size = file.Read(data, 0, data.Length);
                 UploadPart(data, size);
 
                 CheckAck();
@@ -302,135 +276,76 @@ namespace Oxygen
 
         private void UploadPart(byte[] data, int size)
         {
-            using (MemoryStream stream = new MemoryStream())
-            {
-                using (BinaryWriter writer = new BinaryWriter(stream))
-                {
-                    writer.Write("ASSET_SVR");
-                    writer.Write("UPLOAD_ASSET_PART");
-
-                    writer.Write(size);
-                    writer.Write(data, 0, size);
-
-                    Send(stream.ToArray());
-                }
-            }
+            Message msg = new Message("ASSET_SVR", "UPLOAD_ASSET_PART");
+            msg.WriteInt(size);
+            msg.WriteBytes(data, size);
+            Send(msg.GetData());
         }
 
         public void Login(string apikey)
         {
-            using (MemoryStream stream = new MemoryStream())
-            {
-                using (BinaryWriter writer = new BinaryWriter(stream))
-                {
-                    writer.Write("LOGIN_SVR");
-                    writer.Write("LOGIN_API_KEY");
+            Message msg = new Message("LOGIN_SVR", "LOGIN_API_KEY");
+            msg.WriteString(apikey);
 
-                    writer.Write(apikey);
-
-                    Send(stream.ToArray());
-                }
-            }
+            Send(msg.GetData());
 
             CheckAck();
         }
 
         public void Login(string username, byte[] password)
         {
-            using (MemoryStream stream = new MemoryStream())
-            {
-                using (BinaryWriter writer = new BinaryWriter(stream))
-                {
-                    writer.Write("LOGIN_SVR");
-                    writer.Write("LOGIN");
+            Message msg = new Message("LOGIN_SVR", "LOGIN");
+            msg.WriteString(username);
+            msg.WriteInt(password.Length);
+            msg.WriteBytes(password);
 
-                    writer.Write(username);
-                    writer.Write(password.Length);
-                    writer.Write(password);
-
-                    Send(stream.ToArray());
-                }
-            }
+            Send(msg.GetData());
 
             CheckAck();
         }
 
         public void ResetPassword(byte[] password, byte[] newPassword)
         {
-            using (MemoryStream stream = new MemoryStream())
-            {
-                using (BinaryWriter writer = new BinaryWriter(stream))
-                {
-                    writer.Write("USER_SVR");
-                    writer.Write("RESET_PASSWORD");
+            Message msg = new Message("USER_SVR", "RESET_PASSWORD");
+            msg.WriteInt(password.Length);
+            msg.WriteBytes(password);
+            msg.WriteInt(newPassword.Length);
+            msg.WriteBytes(newPassword);
 
-                    writer.Write(password.Length);
-                    writer.Write(password);
-                    writer.Write(newPassword.Length);
-                    writer.Write(newPassword);
-
-                    Send(stream.ToArray());
-                }
-            }
+            Send(msg.GetData());
 
             CheckAck();
         }
 
         public void CreateNewUser(string username, byte[] password)
         {
-            using (MemoryStream stream = new MemoryStream())
-            {
-                using (BinaryWriter writer = new BinaryWriter(stream))
-                {
-                    writer.Write("USER_SVR");
-                    writer.Write("CREATE_USER");
-
-                    writer.Write(username);
-                    writer.Write(password.Length);
-                    writer.Write(password);
-
-                    Send(stream.ToArray());
-                }
-            }
+            Message msg = new Message("USER_SVR", "CREATE_USER");
+            msg.WriteString(username);
+            msg.WriteInt(password.Length);
+            msg.WriteBytes(password);
+            Send(msg.GetData());
 
             CheckAck();
         }
 
         public void DeleteUser(string username)
         {
-            using (MemoryStream stream = new MemoryStream())
-            {
-                using (BinaryWriter writer = new BinaryWriter(stream))
-                {
-                    writer.Write("USER_SVR");
-                    writer.Write("DELETE_USER");
-
-                    writer.Write(username);
-
-                    Send(stream.ToArray());
-                }
-            }
+            Message msg = new Message("USER_SVR", "DELETE_USER");
+            msg.WriteString(username);
+            Send(msg.GetData());
 
             CheckAck();
         }
 
         private IList<string> ListResource(string node, string messageName, string? resource = null)
         {
-            using (MemoryStream stream = new MemoryStream())
+            Message msg = new Message(node, messageName);
+            if (resource != null)
             {
-                using (BinaryWriter writer = new BinaryWriter(stream))
-                {
-                    writer.Write(node);
-                    writer.Write(messageName);
-
-                    if (resource != null)
-                    {
-                        writer.Write(resource);
-                    }
-
-                    Send(stream.ToArray());
-                }
+                msg.WriteString(resource);
             }
+
+            Send(msg.GetData());
 
             Message response = Read();
             List<string> resources = new List<string>();
@@ -467,64 +382,39 @@ namespace Oxygen
 
         public void RevokeAPIKeys(string username)
         {
-            using (MemoryStream stream = new MemoryStream())
-            {
-                using (BinaryWriter writer = new BinaryWriter(stream))
-                {
-                    writer.Write("LOGIN_SVR");
-                    writer.Write("REVOKE_API_KEY");
-
-                    writer.Write(username);
-
-                    Send(stream.ToArray());
-                }
-            }
+            Message msg = new Message("LOGIN_SVR", "REVOKE_API_KEY");
+            msg.WriteString(username);
+            Send(msg.GetData());
 
             CheckAck();
         }
 
         public void SetPermission(string username, string nodeName, string messageName, string permission)
         {
-            using (MemoryStream stream = new MemoryStream())
+            Message msg = new Message("USER_SVR", "SET_PERMISSION");
+            msg.WriteString(username);
+
+            int value = 0;
+            switch (permission)
             {
-                using (BinaryWriter writer = new BinaryWriter(stream))
-                {
-                    writer.Write("USER_SVR");
-                    writer.Write("SET_PERMISSION");
-
-                    writer.Write(username);
-
-                    int value = 0;
-                    switch (permission)
-                    {
-                        case "allow": value = 0; break;
-                        case "deny": value = 1; break;
-                        case "default": value = 2; break;
-                    }
-
-                    writer.Write(value);
-                    writer.Write(nodeName);
-                    writer.Write(messageName);
-
-                    Send(stream.ToArray());
-                }
+                case "allow": value = 0; break;
+                case "deny": value = 1; break;
+                case "default": value = 2; break;
             }
+
+            msg.WriteInt(value);
+            msg.WriteString(nodeName);
+            msg.WriteString(messageName);
+
+            Send(msg.GetData());
 
             CheckAck();
         }
 
         public string CreateAPIKey()
         {
-            using (MemoryStream stream = new MemoryStream())
-            {
-                using (BinaryWriter writer = new BinaryWriter(stream))
-                {
-                    writer.Write("LOGIN_SVR");
-                    writer.Write("CREATE_API_KEY");
-
-                    Send(stream.ToArray());
-                }
-            }
+            Message msg = new Message("LOGIN_SVR", "CREATE_API_KEY");
+            Send(msg.GetData());
 
             Message response = Read();
             string apiKey = string.Empty;
@@ -546,35 +436,20 @@ namespace Oxygen
 
         public void RestoreAsset(string assetName, int revision)
         {
-            using (MemoryStream stream = new MemoryStream())
-            {
-                using (BinaryWriter writer = new BinaryWriter(stream))
-                {
-                    writer.Write("ASSET_SVR");
-                    writer.Write("ASSET_RESTORE");
-                    writer.Write(assetName);
-                    writer.Write(revision);
-
-                    Send(stream.ToArray());
-                }
-            }
+            Message msg = new Message("ASSET_SVR", "ASSET_RESTORE");
+            msg.WriteString(assetName);
+            msg.WriteInt(revision);
+            
+            Send(msg.GetData());
 
             CheckAck();
         }
 
         public string GetAssetHistory(string assetName)
         {
-            using (MemoryStream stream = new MemoryStream())
-            {
-                using (BinaryWriter writer = new BinaryWriter(stream))
-                {
-                    writer.Write("ASSET_SVR");
-                    writer.Write("ASSET_HISTORY");
-                    writer.Write(assetName);
-
-                    Send(stream.ToArray());
-                }
-            }
+            Message msg = new Message("ASSET_SVR", "ASSET_HISTORY");
+            msg.WriteString(assetName);
+            Send(msg.GetData());
 
             Message response = Read();
             string summary = string.Empty;

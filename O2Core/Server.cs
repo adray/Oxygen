@@ -39,8 +39,14 @@ namespace Oxygen
             this.waitHandle = waitHandle;
         }
 
+        /// <summary>
+        /// Sends a message, safe to be called from any thread. 
+        /// </summary>
+        /// <param name="msg">The message to send.</param>
         public void Send(Message msg)
         {
+            Logger.Instance.Log(">> {0}/{1}", msg.NodeName, msg.MessageName);
+
             lock (msgLock)
             {
                 this.msgs.Enqueue(msg);
@@ -48,6 +54,11 @@ namespace Oxygen
 
             // Sets the wait handle for Read thread to consume the message queue.
             waitHandle.Set();
+        }
+
+        public void RemoveProperty(string name)
+        {
+            properies.Remove(name);
         }
 
         public void SetProperty(string name, object value)
@@ -278,10 +289,13 @@ namespace Oxygen
 
                             //Log(bufferString);
 
-                            Message msg = new Message(buffer);
+                            byte[] copy = new byte[len];
+                            Array.Copy(buffer, copy, len);
+
+                            Message msg = new Message(copy);
 
                             string name = msg.NodeName;
-                            Log($"Message: {name}/{msg.MessageName}");
+                            Log($"Message: {name}/{msg.MessageName} {len} bytes");
 
                             QueueEvent(new MessageRecievedEvent(cli.Client, name, msg, cli.MsgHandle));
                         }

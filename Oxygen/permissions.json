@@ -101,6 +101,36 @@
       "Message": "ASSET_RESTORE",
       "Text": "Permission to restore an asset from previous version.",
       "Default": "Deny"
+    },
+    {
+      "Node": "LEVEL_SVR",
+      "Message": "LOAD_LEVEL",
+      "Text": "Permission to load a level on the server.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "LEVEL_SVR",
+      "Message": "NEW_LEVEL",
+      "Text": "Permission to create a new level on the server.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "LEVEL_SVR",
+      "Message": "ADD_OBJECT",
+      "Text": "Permission to add an object to the level.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "LEVEL_SVR",
+      "Message": "UPDATE_OBJECT",
+      "Text": "Permission to update an object to the level.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "LEVEL_SVR",
+      "Message": "OBJECT_STREAM",
+      "Text": "Permission to open a stream for the objects from the level.",
+      "Default": "Deny"
     }
   ]
 }

@@ -1,4 +1,6 @@
-﻿namespace Oxygen
+﻿using System.Text;
+
+namespace Oxygen
 {
     public class Message : IDisposable
     {
@@ -23,8 +25,8 @@
 
             this.stream = new MemoryStream();
             this.writer = new BinaryWriter(this.stream);
-            this.writer.Write(nodeName);
-            this.writer.Write(messageName);
+            this.WriteString(nodeName);
+            this.WriteString(messageName);
         }
 
         public byte[] GetData()
@@ -44,7 +46,9 @@
                 throw new InvalidOperationException();
             }
 
-            this.writer.Write(value);
+            byte[] bytes = Encoding.UTF8.GetBytes(value);
+            this.writer.Write(bytes.Length);
+            this.writer.Write(bytes);
         }
 
         public void WriteInt(int value)
@@ -77,6 +81,16 @@
             this.writer.Write(bytes);
         }
 
+        public void WriteBytes(byte[] bytes, int size)
+        {
+            if (this.writer == null)
+            {
+                throw new InvalidOperationException();
+            }
+
+            this.writer.Write(bytes, 0, size);
+        }
+
         public string ReadString()
         {
             if (this.reader == null)
@@ -84,7 +98,10 @@
                 throw new InvalidOperationException();
             }
 
-            return reader.ReadString();
+            int numBytes = reader.ReadInt32();
+            byte[] bytes = reader.ReadBytes(numBytes);
+
+            return Encoding.UTF8.GetString(bytes);
         }
 
         public int ReadInt()

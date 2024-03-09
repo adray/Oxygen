@@ -18,6 +18,13 @@ namespace Oxygen
         public override void OnClientDisconnected(Client client)
         {
             base.OnClientDisconnected(client);
+
+            Level? level = client.GetProperty("LEVEL") as Level;
+            if (level != null)
+            {
+                level.RemoveClient(client);
+                client.RemoveProperty("LEVEL");
+            }
         }
 
         public override void OnRecieveMessage(Client client, Message msg)
@@ -60,33 +67,50 @@ namespace Oxygen
                     }
                 }
             }
-            else if (messageName == "ADD_OBJECT")
+            else if (messageName == "CLOSE_LEVEL")
             {
-                LevelObject obj = new LevelObject();
-
-                string objectType = msg.ReadString();
-
-                double posX = msg.ReadDouble();
-                double posY = msg.ReadDouble();
-                double posZ = msg.ReadDouble();
-                double scaleX = msg.ReadDouble();
-                double scaleY = msg.ReadDouble();
-                double scaleZ = msg.ReadDouble();
-                double rotationX = msg.ReadDouble();
-                double rotationY = msg.ReadDouble();
-                double rotationZ = msg.ReadDouble();
-
-                Transform transform = new Transform();
-                transform.SetPos(posX, posY, posZ);
-                transform.SetScale(scaleX, scaleY, scaleZ);
-                transform.SetRotation(rotationX, rotationY, rotationZ);
-
-                obj.Transform = transform;
-
                 Level? level = client.GetProperty("LEVEL") as Level;
                 if (level != null)
                 {
-                    level.AddObject(obj);
+                    level.RemoveClient(client);
+                    client.RemoveProperty("LEVEL");
+                }
+            }
+            else if (messageName == "OBJECT_STREAM")
+            {
+                Level? level = client.GetProperty("LEVEL") as Level;
+                if (level != null)
+                {
+                    level.AddClient(client);
+                }
+            }
+            else if (messageName == "NEW_LEVEL")
+            {
+                string levelName = msg.ReadString();
+                if (!levels.ContainsKey(levelName))
+                {
+                    levels.Add(levelName, new Level());
+                    SendAck(client, messageName);
+                }
+                else
+                {
+                    SendNack(client, 200, "Level already exists.", messageName);
+                }
+            }
+            else if (messageName == "ADD_OBJECT")
+            {
+                Level? level = client.GetProperty("LEVEL") as Level;
+                if (level != null)
+                {
+                    level.AddObject(msg);
+                }
+            }
+            else if (messageName == "UPDATE_OBJECT")
+            {
+                Level? level = client.GetProperty("LEVEL") as Level;
+                if (level != null)
+                {
+                    level.UpdateObject(msg);
                 }
             }
             else

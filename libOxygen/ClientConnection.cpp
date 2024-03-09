@@ -1,0 +1,329 @@
+﻿#include "ClientConnection.h"
+#include "Message.h"
+#include "Subscriber.h"
+
+#include <WinSock2.h>
+#include <ws2tcpip.h>
+#include <sstream>
+#include <thread>
+#include <functional>
+#include <queue>
+#include <mutex>
+#include <condition_variable>
+#include <iostream>
+
+#pragma comment(lib, "Ws2_32.lib")
+
+using namespace std;
+using namespace Oxygen;
+
+namespace Oxygen
+{
+    template<typename T>
+    class ReaderWriterQueue
+    {
+    public:
+        inline void Enqueue(const T& item)
+        {
+            std::unique_lock<decltype(_lock)>(_lock);
+            _queue.push(item);
+        }
+
+        inline T Dequeue()
+        {
+            std::unique_lock<decltype(_lock)>(_lock);
+            const T front = _queue.front();
+            _queue.pop();
+            return front;
+        }
+
+        inline size_t Size() { return _queue.size(); }
+
+    private:
+        std::queue<T> _queue;
+        std::mutex _lock;
+    };
+
+    //============================================================
+
+    class WaitHandle
+    {
+    public:
+
+        WaitHandle();
+
+        void WaitOne(std::unique_lock<std::mutex>& lock);
+        void Set();
+
+    private:
+        std::mutex mutex;
+        std::condition_variable condition;
+        bool writeData;
+    };
+
+    WaitHandle::WaitHandle() : writeData(false) {}
+
+    void WaitHandle::WaitOne(std::unique_lock<std::mutex>& lock)
+    {
+        std::unique_lock<std::mutex> temp(mutex);
+        lock.swap(temp);
+
+        // Acquire the lock and then release the lock when wait is called
+        // Then wait until can process data, when the lock is then reacquired
+        // Set the process flag and release the lock
+        condition.wait(lock, [this] { return writeData; });
+        writeData = false;
+    }
+
+    void WaitHandle::Set()
+    {
+        {
+            // acquire the lock, once held allow the queue to be processed
+            std::unique_lock<decltype(mutex)>lock(mutex);
+            writeData = true;
+        }
+
+        condition.notify_one();
+    }
+
+    //============================================================
+
+    class ClientConnectionImpl
+    {
+    public:
+        ClientConnectionImpl(const std::string& host, int port);
+
+        inline bool Connected() { return connected; }
+        void ReadThread();
+        void WriteThread();
+        void WriteMessage(const Message& msg);
+        void AddSubscriber(std::shared_ptr<Subscriber>& subscriber);
+        void RemoveSubscriber(std::shared_ptr<Subscriber>& subscriber);
+        void Process(bool wait);
+
+    private:
+        bool connected;
+        bool running;
+        SOCKET sock;
+        std::vector<std::shared_ptr<Subscriber>> subscribers;
+        std::unique_ptr<std::thread> write;
+        std::unique_ptr<std::thread> read;
+        ReaderWriterQueue<Message> writeQueue;
+        ReaderWriterQueue<Message> readQueue;
+        WaitHandle writeWaitHandle;
+        WaitHandle readWaitHandle;
+    };
+}
+
+ClientConnectionImpl::ClientConnectionImpl(const std::string& host, int port)
+    : running(true), sock(0L)
+{
+    connected = true;
+
+    WSADATA wsaData;
+    const int error = WSAStartup(MAKEWORD(2, 2), &wsaData);
+    if (error != 0)
+    {
+        connected = false;
+    }
+
+    if (connected)
+    {
+        sock = socket(AF_UNSPEC, SOCK_STREAM, IPPROTO_TCP);
+
+        if (sock == INVALID_SOCKET)
+        {
+            const int errorCode = WSAGetLastError();
+            connected = false;
+        }
+    }
+
+    PADDRINFOA addresses;
+    if (connected)
+    {
+        std::stringstream ss;
+        ss << port;
+
+        addrinfo hint;
+        std::memset(&hint, 0, sizeof(hint));
+        hint.ai_family = AF_UNSPEC;
+        hint.ai_socktype = SOCK_STREAM;
+
+        const int retval = getaddrinfo(host.c_str(), ss.str().c_str(), &hint, &addresses);
+        if (retval != 0)
+        {
+            connected = false;
+        }
+    }
+
+    if (connected)
+    {
+        connected = false;
+
+        addrinfo* info = addresses;
+        while (info)
+        {
+            sockaddr* addr = info->ai_addr;
+            size_t size = info->ai_addrlen;
+
+            const int retval = connect(sock, addr, (int)size);
+            if (retval == 0)
+            {
+                connected = true;
+                break;
+            }
+            
+            const int error = WSAGetLastError();
+            info = info->ai_next;
+        }
+    }
+
+    if (connected)
+    {
+        write.reset(new std::thread(&ClientConnectionImpl::WriteThread, this));
+        read.reset(new std::thread(&ClientConnectionImpl::ReadThread, this));
+    }
+}
+
+void ClientConnectionImpl::ReadThread()
+{
+    const int maxBytes = 2048;
+    unsigned char bytes[maxBytes];
+
+    while (running)
+    {
+        int consumed = recv(sock, (char*)bytes, 4, MSG_WAITALL);
+        if (consumed == -1)
+        {
+            // Disconnected
+            break;
+        }
+
+        const int totalBytes =
+            bytes[0] |
+            (bytes[1] << 8) |
+            (bytes[2] << 16) |
+            (bytes[3] << 24);
+
+        consumed = recv(sock, (char*)bytes, totalBytes, MSG_WAITALL);
+
+        if (consumed == -1)
+        {
+            // Disconnected
+            break;
+        }
+
+        Message msg(bytes, totalBytes);
+        readQueue.Enqueue(msg);
+        readWaitHandle.Set();
+    }
+}
+
+void ClientConnectionImpl::WriteThread()
+{
+    while (running)
+    {
+        std::unique_lock<std::mutex>lock;
+        writeWaitHandle.WaitOne(lock);
+
+        while (writeQueue.Size() > 0)
+        {
+            const Message& msg = writeQueue.Dequeue();
+
+            const unsigned char* buffer = msg.data();
+            const size_t size = msg.size();
+
+            const int error = send(sock, (char*)buffer, (int)size, 0);
+        }
+    }
+}
+
+void ClientConnectionImpl::WriteMessage(const Message& msg)
+{
+    writeQueue.Enqueue(msg);
+    writeWaitHandle.Set();
+}
+
+void ClientConnectionImpl::AddSubscriber(std::shared_ptr<Subscriber>& subscriber)
+{
+    WriteMessage(subscriber->Request());
+
+    subscribers.push_back(subscriber);
+}
+
+void ClientConnectionImpl::RemoveSubscriber(std::shared_ptr<Subscriber>& subscriber)
+{
+    const auto& it = std::find(subscribers.begin(), subscribers.end(), subscriber);
+    if (it != subscribers.end())
+    {
+        subscribers.erase(it);
+    }
+}
+
+void ClientConnectionImpl::Process(bool wait)
+{
+    std::unique_lock<std::mutex> lock;
+    if (wait)
+    {
+        readWaitHandle.WaitOne(lock);
+    }
+
+    while (readQueue.Size() > 0)
+    {
+        const Message& msg = readQueue.Dequeue();
+
+        // Add to a list as NewMessage can add/remove a subscriber..
+        std::vector<std::shared_ptr<Subscriber>> activate;
+        for (auto& sub : subscribers)
+        {
+            if (sub->Request().NodeName() == msg.NodeName() &&
+                sub->Request().MessageName() == msg.MessageName())
+            {
+                activate.push_back(sub);
+            }
+        }
+
+        for (auto& sub : activate)
+        {
+            sub->NewMessage(msg);
+        }
+    }
+}
+
+// ==========================================================================
+
+ClientConnection::ClientConnection(const std::string& host, int port)
+{
+    impl = new ClientConnectionImpl(host, port);
+}
+
+bool ClientConnection::IsConnected()
+{
+    return impl->Connected();
+}
+
+void ClientConnection::WriteMessage(const Message& msg)
+{
+    impl->WriteMessage(msg);
+}
+
+void ClientConnection::AddSubscriber(std::shared_ptr<Subscriber>& subscriber)
+{
+    impl->AddSubscriber(subscriber);
+}
+
+void ClientConnection::RemoveSubscriber(std::shared_ptr<Subscriber>& subscriber)
+{
+    impl->RemoveSubscriber(subscriber);
+}
+
+void ClientConnection::Process(bool wait)
+{
+    impl->Process(wait);
+}
+
+ClientConnection::~ClientConnection()
+{
+    delete[] impl;
+    impl = nullptr;
+}

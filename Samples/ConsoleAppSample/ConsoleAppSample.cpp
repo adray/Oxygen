@@ -57,7 +57,7 @@ void OnLoggedIn(Oxygen::ClientConnection* conn)
     conn->AddSubscriber(sub);
 }
 
-int main()
+int main(int numArgs, char** args)
 {
     Oxygen::ClientConnection* conn = new Oxygen::ClientConnection("localhost", Oxygen::DEFAULT_PORT);
 
@@ -66,7 +66,7 @@ int main()
         std::cout << "Connected" << std::endl;
 
         Oxygen::Message msg("LOGIN_SVR", "LOGIN_API_KEY");
-        msg.WriteString("JRg78ZTwvUO/TxC1P4/VqA==");
+        msg.WriteString(args[1]);
         msg.Prepare();
 
         std::shared_ptr<Oxygen::Subscriber> sub(new Oxygen::Subscriber(msg));

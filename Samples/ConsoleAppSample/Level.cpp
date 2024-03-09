@@ -73,6 +73,9 @@ void Level::OpenLevel(Oxygen::ClientConnection* conn)
 
     pos[0] = 10.0;
     UpdateObject(conn, 0, pos);
+
+    pos[1] = 30.0;
+    UpdateObject(conn, 0, pos);
 }
 
 void Level::DecompressMessage(Oxygen::Message& msg)
@@ -90,6 +93,7 @@ void Level::DecompressMessage(Oxygen::Message& msg)
     delete[] data;
 
     Oxygen::Message decompressedMessage(newData.data(), newData.size());
+    state[id] = newData;
 
     const int msgType = decompressedMessage.ReadInt32();
     std::cout << "ID " << decompressedMessage.ReadInt32() << std::endl;

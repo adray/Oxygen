@@ -13,6 +13,7 @@ namespace Oxygen
         public LevelServer()
             : base("LEVEL_SVR")
         {
+            Level.LoadLevels();
         }
 
         public override void OnClientDisconnected(Client client)
@@ -46,6 +47,12 @@ namespace Oxygen
             string messageName = msg.MessageName;
             if (messageName == "LOAD_LEVEL")
             {
+                Level? existingLevel = client.GetProperty("LEVEL") as Level;
+                if (existingLevel != null)
+                {
+                    existingLevel.RemoveClient(client);
+                }
+
                 string levelName = msg.ReadString();
                 if (levels.TryGetValue(levelName, out Level? level) && level != null)
                 {
@@ -54,10 +61,11 @@ namespace Oxygen
                 }
                 else
                 {
-                    level = LoadLevelFromDisk(levelName);
+                    level = Level.LoadFromFile(levelName);
 
                     if (level != null)
                     {
+                        levels.Add(levelName, level);
                         client.SetProperty("LEVEL", level);
                         SendAck(client, messageName);
                     }
@@ -74,6 +82,10 @@ namespace Oxygen
                 {
                     level.RemoveClient(client);
                     client.RemoveProperty("LEVEL");
+                    if (!level.Running)
+                    {
+                        levels.Remove(level.Name);
+                    }
                 }
             }
             else if (messageName == "OBJECT_STREAM")
@@ -89,13 +101,24 @@ namespace Oxygen
                 string levelName = msg.ReadString();
                 if (!levels.ContainsKey(levelName))
                 {
-                    levels.Add(levelName, new Level());
+                    levels.Add(levelName, Level.NewLevel(levelName));
                     SendAck(client, messageName);
                 }
                 else
                 {
                     SendNack(client, 200, "Level already exists.", messageName);
                 }
+            }
+            else if (messageName == "LIST_LEVELS")
+            {
+                Message response = new Message(this.Name, messageName);
+                response.WriteString("ACK");
+                response.WriteInt(Level.Levels.Count);
+                foreach (var level in Level.Levels)
+                {
+                    response.WriteString(level);
+                }
+                client.Send(response);
             }
             else if (messageName == "ADD_OBJECT")
             {
@@ -117,13 +140,6 @@ namespace Oxygen
             {
                 SendNack(client, 100, "Request failed.", messageName);
             }
-        }
-
-        private Level? LoadLevelFromDisk(string levelName)
-        {
-
-
-            return null;
         }
     }
 }

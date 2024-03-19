@@ -45,7 +45,7 @@ namespace Oxygen
         /// <param name="msg">The message to send.</param>
         public void Send(Message msg)
         {
-            Logger.Instance.Log(">> {0}/{1}", msg.NodeName, msg.MessageName);
+            Logger.Instance.Log(">> {0}/{1} {2} bytes", msg.NodeName, msg.MessageName, msg.Length);
 
             lock (msgLock)
             {
@@ -184,18 +184,6 @@ namespace Oxygen
         {
             bool success = true;
 
-            //NetworkStream? stream = null;
-
-            //try
-            //{
-            //    stream = cli.Connection.GetStream();
-            //}
-            //catch (Exception)
-            //{
-            //    success = false;
-            //    OnDisconnect(cli);
-            //}
-
             if (stream != null)
             {
                 while (cli.Running && index < size)
@@ -252,7 +240,7 @@ namespace Oxygen
             {
                 var stream = cli.Connection.GetStream();
 
-                byte[] buffer = new byte[2048];
+                byte[] buffer = new byte[2048 * 32];
                 while (cli.Running)
                 {
                     // Read header

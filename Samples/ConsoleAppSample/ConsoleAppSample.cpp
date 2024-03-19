@@ -31,9 +31,9 @@ void OnNewLevel(Oxygen::ClientConnection* conn)
     msg.Prepare();
 
     std::shared_ptr<Oxygen::Subscriber> sub(new Oxygen::Subscriber(msg));
-    sub->Signal([conn,&sub](Oxygen::Message& msg) {
+    sub->Signal([conn, sub2 = std::shared_ptr<Oxygen::Subscriber>(sub)](Oxygen::Message& msg) {
         std::cout << msg.NodeName() << " " << msg.MessageName() << std::endl;
-        conn->RemoveSubscriber(sub);
+        conn->RemoveSubscriber(sub2);
         if (ACK(msg))
         {
             OnLevelLoaded(conn);
@@ -48,9 +48,9 @@ void OnLoggedIn(Oxygen::ClientConnection* conn)
     msg2.WriteString("myLevel");
     msg2.Prepare();
     std::shared_ptr<Oxygen::Subscriber> sub(new Oxygen::Subscriber(msg2));
-    sub->Signal([conn,&sub](Oxygen::Message& msg) {
+    sub->Signal([conn, sub2 = std::shared_ptr<Oxygen::Subscriber>(sub)](Oxygen::Message& msg) {
         std::cout << msg.NodeName() << " " << msg.MessageName() << std::endl;
-        conn->RemoveSubscriber(sub);
+        conn->RemoveSubscriber(sub2);
         ACK(msg);
         OnNewLevel(conn);
         });
@@ -70,9 +70,9 @@ int main(int numArgs, char** args)
         msg.Prepare();
 
         std::shared_ptr<Oxygen::Subscriber> sub(new Oxygen::Subscriber(msg));
-        sub->Signal([conn,&sub](Oxygen::Message& msg) {
+        sub->Signal([conn, sub2 = std::shared_ptr<Oxygen::Subscriber>(sub)](Oxygen::Message& msg) {
             std::cout << msg.NodeName() << " " << msg.MessageName() << std::endl;
-            conn->RemoveSubscriber(sub);
+            conn->RemoveSubscriber(sub2);
             if (ACK(msg))
             {
                 OnLoggedIn(conn);

@@ -1,6 +1,7 @@
 ﻿#include "ClientConnection.h"
 #include "Message.h"
 #include "Subscriber.h"
+#include "Security.h"
 
 #include <WinSock2.h>
 #include <ws2tcpip.h>
@@ -96,9 +97,10 @@ namespace Oxygen
         inline bool Connected() { return connected; }
         void ReadThread();
         void WriteThread();
+        void HeartbeatThread();
         void WriteMessage(const Message& msg);
         void AddSubscriber(std::shared_ptr<Subscriber>& subscriber);
-        void RemoveSubscriber(std::shared_ptr<Subscriber>& subscriber);
+        void RemoveSubscriber(const std::shared_ptr<Subscriber>& subscriber);
         void Process(bool wait);
 
     private:
@@ -106,6 +108,7 @@ namespace Oxygen
         bool running;
         SOCKET sock;
         std::vector<std::shared_ptr<Subscriber>> subscribers;
+        std::unique_ptr<std::thread> heartbeat;
         std::unique_ptr<std::thread> write;
         std::unique_ptr<std::thread> read;
         ReaderWriterQueue<Message> writeQueue;
@@ -182,12 +185,27 @@ ClientConnectionImpl::ClientConnectionImpl(const std::string& host, int port)
     {
         write.reset(new std::thread(&ClientConnectionImpl::WriteThread, this));
         read.reset(new std::thread(&ClientConnectionImpl::ReadThread, this));
+        heartbeat.reset(new std::thread(&ClientConnectionImpl::HeartbeatThread, this));
+    }
+}
+
+void ClientConnectionImpl::HeartbeatThread()
+{
+    // Sends a heartbeat message to the server at a fixed interval.
+
+    while (running)
+    {
+        std::this_thread::sleep_for(std::chrono::seconds(30));
+
+        Message msg("HEARTBEAT", "");
+        msg.Prepare();
+        WriteMessage(msg);
     }
 }
 
 void ClientConnectionImpl::ReadThread()
 {
-    const int maxBytes = 2048;
+    const int maxBytes = 2048*32;
     unsigned char bytes[maxBytes];
 
     while (running)
@@ -251,7 +269,7 @@ void ClientConnectionImpl::AddSubscriber(std::shared_ptr<Subscriber>& subscriber
     subscribers.push_back(subscriber);
 }
 
-void ClientConnectionImpl::RemoveSubscriber(std::shared_ptr<Subscriber>& subscriber)
+void ClientConnectionImpl::RemoveSubscriber(const std::shared_ptr<Subscriber>& subscriber)
 {
     const auto& it = std::find(subscribers.begin(), subscribers.end(), subscriber);
     if (it != subscribers.end())
@@ -295,6 +313,7 @@ void ClientConnectionImpl::Process(bool wait)
 ClientConnection::ClientConnection(const std::string& host, int port)
 {
     impl = new ClientConnectionImpl(host, port);
+    security = new Security();
 }
 
 bool ClientConnection::IsConnected()
@@ -312,7 +331,7 @@ void ClientConnection::AddSubscriber(std::shared_ptr<Subscriber>& subscriber)
     impl->AddSubscriber(subscriber);
 }
 
-void ClientConnection::RemoveSubscriber(std::shared_ptr<Subscriber>& subscriber)
+void ClientConnection::RemoveSubscriber(const std::shared_ptr<Subscriber>& subscriber)
 {
     impl->RemoveSubscriber(subscriber);
 }
@@ -322,8 +341,23 @@ void ClientConnection::Process(bool wait)
     impl->Process(wait);
 }
 
+void ClientConnection::HashPassword(const std::string& password, Message& msg)
+{
+    unsigned char* hash;
+    unsigned int size;
+    security->SHA256(password, &hash, &size);
+
+    msg.WriteBytes(size, hash);
+
+    delete[] hash;
+}
+
 ClientConnection::~ClientConnection()
 {
-    delete[] impl;
+    delete impl;
     impl = nullptr;
+
+    delete security;
+    security = nullptr;
 }
+

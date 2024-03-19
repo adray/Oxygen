@@ -8,8 +8,10 @@ endif()
 
 project ("libOxygen")
 
+include_directories(${LIBCRYPTO_HEADERS})
+
 # Add source to this project's executable.
-add_library (libOxygen "ClientConnection.cpp" "ClientConnection.h" "Message.h" "Message.cpp" "Subscriber.cpp" "Subscriber.h" "DeltaCompress.cpp" "DeltaCompress.h")
+add_library (libOxygen "ClientConnection.cpp" "ClientConnection.h" "Message.h" "Message.cpp" "Subscriber.cpp" "Subscriber.h" "DeltaCompress.cpp" "DeltaCompress.h" "Security.cpp" "Security.h")
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET libOxygen PROPERTY CXX_STANDARD 20)

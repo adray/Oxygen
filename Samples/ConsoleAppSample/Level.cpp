@@ -32,7 +32,6 @@ void Level::OnObjectAdded(Oxygen::Message& msg)
     std::cout << "RotX " << msg.ReadDouble() << std::endl;
     std::cout << "RotY " << msg.ReadDouble() << std::endl;
     std::cout << "RotZ " << msg.ReadDouble() << std::endl;
-    std::cout << "Model ID " << msg.ReadInt32() << std::endl;
 
     const auto& data = msg.data();
     std::vector<unsigned char> initialData(data, data + msg.size());
@@ -106,7 +105,6 @@ void Level::DecompressMessage(Oxygen::Message& msg)
     std::cout << "RotX " << decompressedMessage.ReadDouble() << std::endl;
     std::cout << "RotY " << decompressedMessage.ReadDouble() << std::endl;
     std::cout << "RotZ " << decompressedMessage.ReadDouble() << std::endl;
-    std::cout << "Model ID " << decompressedMessage.ReadInt32() << std::endl;
 }
 
 void Level::UpdateObject(Oxygen::ClientConnection* conn, int id, double* pos)
@@ -122,14 +120,13 @@ void Level::UpdateObject(Oxygen::ClientConnection* conn, int id, double* pos)
     msg.WriteDouble(0.0); // rotation x
     msg.WriteDouble(0.0); // rotation y
     msg.WriteDouble(0.0); // rotation z
-    //msg.WriteInt32(0);    // model ID
     msg.Prepare();
 
     std::shared_ptr<Oxygen::Subscriber> sub(new Oxygen::Subscriber(msg));
-    sub->Signal([conn, &sub](Oxygen::Message& msg) {
+    sub->Signal([conn, sub2 = std::shared_ptr<Oxygen::Subscriber>(sub)](Oxygen::Message& msg) {
         std::cout << msg.NodeName() << " " << msg.MessageName() << std::endl;
         ACK(msg);
-        conn->RemoveSubscriber(sub);
+        conn->RemoveSubscriber(sub2);
         });
     conn->AddSubscriber(sub);
 }
@@ -137,7 +134,6 @@ void Level::UpdateObject(Oxygen::ClientConnection* conn, int id, double* pos)
 void Level::AddObject(Oxygen::ClientConnection* conn, double* pos)
 {
     Oxygen::Message msg("LEVEL_SVR", "ADD_OBJECT");
-    msg.WriteString("MODEL");
     msg.WriteDouble(pos[0]); // pos x
     msg.WriteDouble(pos[1]); // pos y
     msg.WriteDouble(pos[2]); // pos z
@@ -147,14 +143,13 @@ void Level::AddObject(Oxygen::ClientConnection* conn, double* pos)
     msg.WriteDouble(0.0); // rotation x
     msg.WriteDouble(0.0); // rotation y
     msg.WriteDouble(0.0); // rotation z
-    msg.WriteInt32(0);    // model ID
     msg.Prepare();
 
     std::shared_ptr<Oxygen::Subscriber> sub(new Oxygen::Subscriber(msg));
-    sub->Signal([conn, &sub](Oxygen::Message& msg) {
+    sub->Signal([conn, sub2 = std::shared_ptr<Oxygen::Subscriber>(sub)](Oxygen::Message& msg) {
         std::cout << msg.NodeName() << " " << msg.MessageName() << std::endl;
         ACK(msg);
-        conn->RemoveSubscriber(sub);
+        conn->RemoveSubscriber(sub2);
         });
     conn->AddSubscriber(sub);
 }

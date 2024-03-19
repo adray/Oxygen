@@ -51,7 +51,7 @@ void Message::WriteString(const std::string& str)
     }
 }
 
-void Message::WriteBytes(int numBytes, unsigned char* bytes)
+void Message::WriteBytes(int numBytes, const unsigned char* bytes)
 {
     _data.push_back(numBytes & 0xFF);
     _data.push_back((numBytes >> 8) & 0xFF);

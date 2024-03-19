@@ -11,7 +11,7 @@ namespace Oxygen
         Message(const std::string& nodeName, const std::string& messageName);
         Message(const Message& msg);
         void WriteString(const std::string& str);
-        void WriteBytes(int numBytes, unsigned char* bytes);
+        void WriteBytes(int numBytes, const unsigned char* bytes);
         void WriteInt32(int value);
         void WriteDouble(double value);
         const std::string ReadString();

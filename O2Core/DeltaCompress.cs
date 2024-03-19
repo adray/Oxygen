@@ -24,6 +24,11 @@ namespace Oxygen
     {
         public static byte[] Compress(byte[] initialData, byte[] newData)
         {
+            if (initialData.Length != newData.Length)
+            {
+                throw new InvalidOperationException("For now intial data and new data must be the same length");
+            }
+
             // First calculate deltas.
             byte[] delta = new byte[Math.Max(newData.Length, initialData.Length)];
             for (int i = 0; i < newData.Length; i++)
@@ -44,7 +49,7 @@ namespace Oxygen
             using (MemoryStream ms = new MemoryStream())
             {
                 byte value = delta[0];
-                byte count = 1;
+                short count = 1;
                 for (int i = 1; i < delta.Length; i++)
                 {
                     if (delta[i] == value)
@@ -54,7 +59,8 @@ namespace Oxygen
                     else
                     {
                         ms.WriteByte(value);
-                        ms.WriteByte(count);
+                        ms.WriteByte((byte)(count & 0xFF));
+                        ms.WriteByte((byte)((count >> 8) & 0xFF));
 
                         value = delta[i];
                         count = 1;
@@ -62,7 +68,8 @@ namespace Oxygen
                 }
 
                 ms.WriteByte(value);
-                ms.WriteByte(count);
+                ms.WriteByte((byte)(count & 0xFF));
+                ms.WriteByte((byte)((count >> 8) & 0xFF));
 
                 return ms.ToArray();
             }
@@ -74,10 +81,13 @@ namespace Oxygen
             // Decode the run length encoding.
             using (MemoryStream ms = new MemoryStream())
             {
-                for (int i =0; i < delta.Length; i+=2)
+                for (int i =0; i < delta.Length; i+=3)
                 {
                     int value = delta[i];
-                    int count = delta[i + 1];
+                    int countLo = delta[i + 1];
+                    int countHi = delta[i + 2];
+
+                    int count = countLo | (countHi << 8);
 
                     for (int j = 0; j < count; j++)
                     {

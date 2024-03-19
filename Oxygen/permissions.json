@@ -116,6 +116,12 @@
     },
     {
       "Node": "LEVEL_SVR",
+      "Message": "LIST_LEVELS",
+      "Text": "Permission to list the levels on the server.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "LEVEL_SVR",
       "Message": "ADD_OBJECT",
       "Text": "Permission to add an object to the level.",
       "Default": "Deny"

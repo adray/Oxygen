@@ -13,7 +13,8 @@ namespace Oxygen
 
         public Message(byte[] data)
         {
-            this.reader = new BinaryReader(new MemoryStream(data));
+            this.stream = new MemoryStream(data);
+            this.reader = new BinaryReader(stream);
             this.NodeName = this.ReadString();
             this.MessageName = this.ReadString();
         }
@@ -27,6 +28,32 @@ namespace Oxygen
             this.writer = new BinaryWriter(this.stream);
             this.WriteString(nodeName);
             this.WriteString(messageName);
+        }
+
+        public long Length
+        {
+            get
+            {
+                if (this.stream == null)
+                {
+                    throw new InvalidOperationException();
+                }
+
+                return this.stream.Length;
+            }
+        }
+
+        public long Position
+        {
+            get
+            {
+                if (this.stream == null)
+                {
+                    throw new InvalidOperationException();
+                }
+
+                return this.stream.Position;
+            }
         }
 
         public byte[] GetData()

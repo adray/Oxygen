@@ -12,10 +12,13 @@ void Oxygen::Decompress(unsigned char* initialData, int numInitialBytes, unsigne
 {
     // Decode the run length encoding.
     
-    for (int i = 0; i < numDeltaBytes; i += 2)
+    for (int i = 0; i < numDeltaBytes; i += 3)
     {
         int value = delta[i];
-        int count = delta[i + 1];
+        int countLo = delta[i + 1];
+        int countHi = delta[i + 2];
+
+        int count = countLo | (countHi << 8);
 
         for (int j = 0; j < count; j++)
         {

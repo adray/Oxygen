@@ -23,7 +23,7 @@ namespace DE
         void JoinLevel(const std::string& name, Level& level);
         void ListLevels(std::vector<std::string>& levels);
         void CreateTilemap(int width, int height);
-        void UpdateTilemap(Tilemap& tilemap);
+        void UpdateTilemap(Tilemap& tilemap, const std::vector<unsigned char>& stateData);
         bool Connected();
         void Process();
     private:

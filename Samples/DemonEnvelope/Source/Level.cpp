@@ -90,8 +90,15 @@ void Level::OnUpdateObject(Oxygen::Message& msg)
 
         if (name == "TILEMAP")
         {
-            const auto& test = _tilemaps.rbegin();
-            test->Deserialize(decompressedMessage);
+            for (int i = 0; i < _tilemaps.size(); i++)
+            {
+                if (_tilemaps[i].ID() == id)
+                {
+                    const auto& test = _tilemaps.rbegin();
+                    test->Deserialize(decompressedMessage);
+                    break;
+                }
+            }
         }
     }
 }

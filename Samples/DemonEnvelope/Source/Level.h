@@ -17,6 +17,7 @@ namespace DE
         inline std::shared_ptr<Tileset> TileSet() { return tileset; }
         int TileMapHitTest(int x, int y) const;
         Tilemap& GetTilemap(int idx) { return _tilemaps[idx]; }
+        std::vector<unsigned char>& GetState(int idx) { return state[idx]; }
 
     private:
         std::vector<Tilemap> _tilemaps;

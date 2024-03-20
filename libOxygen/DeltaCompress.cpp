@@ -3,9 +3,58 @@
 using namespace Oxygen;
 
 
-unsigned char* Oxygen::Compress(unsigned char* initialData, int numInitialBytes, unsigned char* newData, int numNewDataBytes)
+int Oxygen::Compress(const unsigned char* initialData, int numInitialBytes, const unsigned char* newData, int numNewDataBytes, unsigned char** deltaData)
 {
-    return nullptr;
+    if (numInitialBytes != numNewDataBytes)
+    {
+        return 0;
+    }
+
+    // First calculate deltas.
+    std::vector<unsigned char> delta(std::max(numInitialBytes, numNewDataBytes));
+    for (int i = 0; i < numNewDataBytes; i++)
+    {
+        delta[i] = (unsigned char)(initialData[i] - newData[i]);
+    }
+
+    if (numNewDataBytes > numInitialBytes)
+    {
+        std::memcpy(delta.data() + numInitialBytes, newData + numInitialBytes, numNewDataBytes - numInitialBytes);
+    }
+    else if (numInitialBytes > numNewDataBytes)
+    {
+        std::memcpy(delta.data() + numNewDataBytes, initialData + numNewDataBytes, numInitialBytes - numNewDataBytes);
+    }
+
+    // Then run length encode the data.
+    std::vector<unsigned char> stream;
+    unsigned char value = delta[0];
+    int count = 1;
+    for (int i = 1; i < delta.size(); i++)
+    {
+        if (delta[i] == value)
+        {
+            count++;
+        }
+        else
+        {
+            stream.push_back(value);
+            stream.push_back((unsigned char)(count & 0xFF));
+            stream.push_back((unsigned char)((count >> 8) & 0xFF));
+
+            value = delta[i];
+            count = 1;
+        }
+    }
+
+    stream.push_back(value);
+    stream.push_back((unsigned char)(count & 0xFF));
+    stream.push_back((unsigned char)((count >> 8) & 0xFF));
+
+    *deltaData = new unsigned char[stream.size()];
+    std::memcpy(*deltaData, stream.data(), stream.size());
+
+    return int(stream.size());
 }
 
 void Oxygen::Decompress(unsigned char* initialData, int numInitialBytes, unsigned char* delta, int numDeltaBytes, std::vector<unsigned char>& newData)

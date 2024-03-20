@@ -16,8 +16,7 @@ void GameApplication::OnStart()
     auto device = IslanderCreateDevice();
     IslanderSetPreferredRenderer(device, (int)ISLANDER_RENDERER_TYPE_D3D11);
     IslanderFontDescription defaultFont;
-    //defaultFont.filedef = const_cast<char*>("../../../Resources/Font/Aleo/Aleo-Regular.ttf");
-    defaultFont.filedef = const_cast<char*>("G:/Users/Adam/Documents/Visual Studio 2015/Projects/Zen/Oxygen/Samples/DemonEnvelope/Assets/Font/Aleo/Aleo-Regular.ttf");
+    defaultFont.filedef = const_cast<char*>("../../../../Assets/Font/Aleo/Aleo-Regular.ttf");
     defaultFont.name = const_cast<char*>("Aleo-Regular");
     IslanderInitializeDevice(device, window, defaultFont);
     //IslanderInitializeGPUPerformanceCounters(device);

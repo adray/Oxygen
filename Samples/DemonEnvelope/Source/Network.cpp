@@ -2,6 +2,7 @@
 #include "ClientConnection.h"
 #include "Subscriber.h"
 #include "Level.h"
+#include "DeltaCompress.h"
 #include <iostream>
 
 using namespace DE;
@@ -183,9 +184,14 @@ void Network::CreateTilemap(int width, int height)
     conn->AddSubscriber(sub);
 }
 
-void Network::UpdateTilemap(Tilemap& tilemap)
+constexpr int NEW_OBJECT = 0;
+constexpr int UPDATE_OBJECT = 1;
+constexpr int DELETE_OBJECT = 2;
+
+void Network::UpdateTilemap(Tilemap& tilemap, const std::vector<unsigned char>& stateData)
 {
-    Oxygen::Message msg("LEVEL_SVR", "UPDATE_OBJECT");
+    Oxygen::Message msg("LEVEL_SVR", "OBJECT_STREAM");
+    msg.WriteInt32(NEW_OBJECT);
     msg.WriteInt32(tilemap.ID());
     msg.WriteDouble(0.0); // Pos X
     msg.WriteDouble(0.0); // Pos Y
@@ -198,20 +204,30 @@ void Network::UpdateTilemap(Tilemap& tilemap)
     msg.WriteDouble(0.0); // Rot Z
     msg.WriteInt32(1);    // custom
     msg.WriteString("TILEMAP");
-
     tilemap.Serialize(msg);
-
     msg.Prepare();
-    std::shared_ptr<Oxygen::Subscriber> sub = std::shared_ptr<Oxygen::Subscriber>(new Oxygen::Subscriber(msg));
-    sub->Signal([this, sub2 = std::shared_ptr<Oxygen::Subscriber>(sub)](Oxygen::Message& response) {
-        if (response.ReadString() == "NACK")
-        {
-            std::cout << response.ReadInt32() << " " << response.ReadString() << std::endl;
-        }
 
-        conn->RemoveSubscriber(sub2);
-        });
-    conn->AddSubscriber(sub);
+    unsigned char* newData;
+    int numBytes = Oxygen::Compress(stateData.data(), stateData.size(), msg.data()+4, msg.size()-4, &newData);
+    if (numBytes > 0)
+    {
+        Oxygen::Message msg2("LEVEL_SVR", "UPDATE_OBJECT");
+        msg2.WriteInt32(tilemap.ID());
+        msg2.WriteBytes(numBytes, newData);
+        delete[] newData;
+
+        msg2.Prepare();
+        std::shared_ptr<Oxygen::Subscriber> sub = std::shared_ptr<Oxygen::Subscriber>(new Oxygen::Subscriber(msg2));
+        sub->Signal([this, sub2 = std::shared_ptr<Oxygen::Subscriber>(sub)](Oxygen::Message& response) {
+            if (response.ReadString() == "NACK")
+            {
+                std::cout << response.ReadInt32() << " " << response.ReadString() << std::endl;
+            }
+
+            conn->RemoveSubscriber(sub2);
+            });
+        conn->AddSubscriber(sub);
+    }
 }
 
 bool Network::Connected()

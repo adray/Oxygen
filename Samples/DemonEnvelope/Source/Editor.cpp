@@ -45,7 +45,7 @@ void Editor::Run(float delta, ISLANDER_WINDOW window)
                 if (cell >= 0)
                 {
                     map.Set(cell, palette);
-                    network->UpdateTilemap(map);
+                    network->UpdateTilemap(map, level.GetState(map.ID()));
                 }
             }
         }

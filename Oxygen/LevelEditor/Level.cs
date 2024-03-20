@@ -59,6 +59,7 @@ namespace Oxygen
         private readonly List<LevelObject> objects = new List<LevelObject>();
         private readonly Dictionary<int, LevelObject> objectMap = new Dictionary<int, LevelObject>();
         private readonly Dictionary<Client, LevelObjectStream> streams = new Dictionary<Client, LevelObjectStream>();
+        private Dictionary<int, byte[]> state = new Dictionary<int, byte[]>();
         private readonly object streamLock = new object();
         private readonly EventWaitHandle streamEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
         private int nextObjectID;
@@ -175,6 +176,11 @@ namespace Oxygen
                     objects.Add(obj);
                     objectMap.Add(obj.ID, obj);
 
+                    Message packed = new Message("LEVEL_SVR", "OBJECT_STREAM");
+                    packed.WriteInt(0/*NEW_OBJECT*/);
+                    obj.Serialize(packed);
+                    state[obj.ID] = packed.GetData();
+
                     nextObjectID = Math.Max(obj.ID + 1, nextObjectID);
                 }
             }
@@ -253,6 +259,9 @@ namespace Oxygen
             objects.Add(obj);
             objectMap.Add(obj.ID, obj);
 
+            byte[] bytes = msg.GetData();
+            state.Add(obj.ID, bytes);
+
             lock (this.streamLock)
             {
                 foreach (var stream in this.streams)
@@ -269,7 +278,15 @@ namespace Oxygen
             int id = msg.ReadInt();
 
             var obj = objectMap[id];
-            obj.Deserialize(msg);
+
+            byte[] initialData = state[id];
+            byte[] decomprssedData = DeltaCompress.Decompress(initialData, msg.ReadByteArray());
+            Message msg2 = new Message(decomprssedData);
+            msg2.ReadInt(); // type
+            msg2.ReadInt(); // id
+            obj.Deserialize(msg2);
+
+            state[id] = decomprssedData;
 
             lock (this.streamLock)
             {

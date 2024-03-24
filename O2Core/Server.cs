@@ -283,7 +283,7 @@ namespace Oxygen
                             Message msg = new Message(copy);
 
                             string name = msg.NodeName;
-                            Log($"Message: {name}/{msg.MessageName} {len} bytes");
+                            Logger.Instance.Log($"<< {name}/{msg.MessageName} {len} bytes");
 
                             QueueEvent(new MessageRecievedEvent(cli.Client, name, msg, cli.MsgHandle));
                         }

@@ -54,6 +54,7 @@ namespace Oxygen
         WaitHandle();
 
         void WaitOne(std::unique_lock<std::mutex>& lock);
+        void WaitOne(std::unique_lock<std::mutex>& lock, int timeout);
         void Set();
 
     private:
@@ -63,6 +64,19 @@ namespace Oxygen
     };
 
     WaitHandle::WaitHandle() : writeData(false) {}
+
+    void WaitHandle::WaitOne(std::unique_lock<std::mutex>& lock, int timeout)
+    {
+        std::unique_lock<std::mutex> temp(mutex);
+        lock.swap(temp);
+
+        // Acquire the lock and then release the lock when wait is called
+        // Then wait until can process data, when the lock is then reacquired
+        // Set the process flag and release the lock
+        //condition.wait(lock, [this] { return writeData; });
+        condition.wait_for(lock, std::chrono::seconds(timeout), [this] { return writeData; });
+        writeData = false;
+    }
 
     void WaitHandle::WaitOne(std::unique_lock<std::mutex>& lock)
     {
@@ -102,6 +116,7 @@ namespace Oxygen
         void AddSubscriber(std::shared_ptr<Subscriber>& subscriber);
         void RemoveSubscriber(const std::shared_ptr<Subscriber>& subscriber);
         void Process(bool wait);
+        ~ClientConnectionImpl();
 
     private:
         bool connected;
@@ -115,6 +130,7 @@ namespace Oxygen
         ReaderWriterQueue<Message> readQueue;
         WaitHandle writeWaitHandle;
         WaitHandle readWaitHandle;
+        WaitHandle heartbeatHandle;
     };
 }
 
@@ -195,7 +211,9 @@ void ClientConnectionImpl::HeartbeatThread()
 
     while (running)
     {
-        std::this_thread::sleep_for(std::chrono::seconds(30));
+        //std::this_thread::sleep_for(std::chrono::seconds(30));
+        std::unique_lock<std::mutex>lock;
+        heartbeatHandle.WaitOne(lock, 30);
 
         Message msg("HEARTBEAT", "");
         msg.Prepare();
@@ -306,6 +324,18 @@ void ClientConnectionImpl::Process(bool wait)
             sub->NewMessage(msg);
         }
     }
+}
+
+ClientConnectionImpl::~ClientConnectionImpl()
+{
+    running = false;
+    closesocket(sock);
+    heartbeatHandle.Set();
+    writeWaitHandle.Set();
+
+    write->join();
+    heartbeat->join();
+    read->join();
 }
 
 // ==========================================================================

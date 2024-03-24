@@ -1,6 +1,8 @@
 #include "Tilemap.h"
 #include "Message.h"
 
+#include <iostream>
+
 using namespace DE;
 
 Tilemap::Tilemap()
@@ -19,6 +21,8 @@ Tilemap::Tilemap(int id)
     _tileHeight(0),
     _width(0),
     _height(0),
+    _scrollX(0),
+    _scrollY(0),
     _mesh(nullptr),
     _tiles(nullptr)
 {
@@ -37,17 +41,22 @@ Tilemap::~Tilemap()
     delete[] _vertexData;
     delete[] _indexData;
     delete _constant;
+    delete[] _tiles;
+
+    _vertexData = nullptr;
+    _indexData = nullptr;
+    _constant = nullptr;
+    _tiles = nullptr;
 }
 
 void Tilemap::Update()
 {
-    // Just load the first section for now
     int tile = 0;
     for (int i = 0; i < _viewheight; i++)
     {
         for (int j = 0; j < _viewwidth; j++)
         {
-            int tileID = _tiles[i * _width + j];
+            int tileID = _tiles[(i + _scrollY) * _width + (j + _scrollX)];
 
             Islander::component_texture texture;
             _tileset->GetTile(tileID, texture);
@@ -165,10 +174,13 @@ void Tilemap::CreateMesh(ISLANDER_POLYGON_LIBRARY lib, const int viewwidth, cons
 
 int Tilemap::HitTest(int x, int y) const
 {
-    if (x >= 0 && x <= 640 && y >= 0 && y <= 360)
+    const int displayWidth = _viewwidth * _tileWidth * 4; /*640.0f*/
+    const int displayHeight = _viewheight * _tileHeight * 4;/*360*/
+
+    if (x >= 0 && x <= displayWidth && y >= 0 && y <= displayHeight)
     {
-        const int px = _viewwidth * (x / 640.0f);
-        const int py = _viewheight * (y / 360.0f);
+        const int px = _viewwidth * (x / float(displayWidth)) + _scrollX;
+        const int py = _viewheight * (y / float(displayHeight)) + _scrollY;
 
         return px + py * _width;
     }
@@ -179,6 +191,12 @@ int Tilemap::HitTest(int x, int y) const
 void Tilemap::Set(int cell, int tile)
 {
     _tiles[cell] = tile;
+}
+
+void Tilemap::SetScrollPos(int x, int y)
+{
+    _scrollX = std::max(0, std::min(_width-_viewwidth, x));
+    _scrollY = std::max(0, std::min(_height-_viewheight, y));
 }
 
 void Tilemap::Serialize(Oxygen::Message& msg)
@@ -197,4 +215,15 @@ void Tilemap::Deserialize(Oxygen::Message& msg)
     int numBytes = msg.ReadInt32();
     _tiles = new int[numBytes / sizeof(int)];
     msg.ReadBytes(numBytes, (unsigned char*)_tiles);
+}
+
+void Tilemap::Clear()
+{
+    _id = -1;
+    _width = 0;
+    _height = 0;
+    _scrollX = 0;
+    _scrollY = 0;
+    delete[] _tiles;
+    _tiles = nullptr;
 }

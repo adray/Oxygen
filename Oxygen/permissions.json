@@ -110,6 +110,12 @@
     },
     {
       "Node": "LEVEL_SVR",
+      "Message": "CLOSE_LEVEL",
+      "Text": "Permission to close a level on the server.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "LEVEL_SVR",
       "Message": "NEW_LEVEL",
       "Text": "Permission to create a new level on the server.",
       "Default": "Deny"

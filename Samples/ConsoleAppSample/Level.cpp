@@ -87,11 +87,11 @@ void Level::DecompressMessage(Oxygen::Message& msg)
 
     std::vector<unsigned char> newData;
     std::vector<unsigned char> initialData = state[id];
-    Oxygen::Decompress(initialData.data(), initialData.size(), data, numBytes, newData);
+    Oxygen::Decompress(initialData.data(), int(initialData.size()), data, numBytes, newData);
 
     delete[] data;
 
-    Oxygen::Message decompressedMessage(newData.data(), newData.size());
+    Oxygen::Message decompressedMessage(newData.data(), int(newData.size()));
     state[id] = newData;
 
     const int msgType = decompressedMessage.ReadInt32();

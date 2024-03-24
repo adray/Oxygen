@@ -12,6 +12,8 @@ void GameApplication::OnStart()
     auto window = IslanderCreateWindow();
     //IslanderSetWindowSize(window, (int)userConfig.ScreenWidth, (int)userConfig.ScreenHeight);
     IslanderSetWindowSize(window, 1366, 768);
+    IslanderSetWindowStyle(window, ISLANDER_WINDOW_STYLE_BORDER);
+    IslanderSetWindowText(window, "Demon Envelope");
 
     auto device = IslanderCreateDevice();
     IslanderSetPreferredRenderer(device, (int)ISLANDER_RENDERER_TYPE_D3D11);
@@ -67,7 +69,7 @@ void GameApplication::OnStart()
 
         IslanderImguiNewFrame(device, &context);
         ImGui::NewFrame();
-        editor.Draw(1 / 60.0f, device, &context);
+        editor.Draw(1 / 60.0f, device, window, &context);
 
         // Render here
         render->RenderFrame(device, editor.GetLevel());

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -22,37 +23,35 @@ namespace Oxygen
     /// </example>
     public static class DeltaCompress
     {
-        public static byte[] Compress(byte[] initialData, byte[] newData)
-        {
-            if (initialData.Length != newData.Length)
-            {
-                throw new InvalidOperationException("For now intial data and new data must be the same length");
-            }
+        private const byte UNCOMPRESSED_BLOCK = 0;
+        private const byte DELTA_COMPRESSED_BLOCK = 1;
 
-            // First calculate deltas.
-            byte[] delta = new byte[Math.Max(newData.Length, initialData.Length)];
+        private static byte[] CalculateDeltas(byte[] initialData, byte[] newData, int length, int initialDataOffset, int newDataOffset)
+        {
+            byte[] delta = new byte[length];
             for (int i = 0; i < newData.Length; i++)
             {
-                delta[i] = (byte)(initialData[i] - newData[i]);
+                delta[i] = (byte)(initialData[i + initialDataOffset] - newData[i + newDataOffset]);
             }
 
-            if (newData.Length > initialData.Length)
-            {
-                Array.Copy(newData, initialData.Length, delta, initialData.Length, newData.Length - initialData.Length);
-            }
-            else if (initialData.Length > newData.Length)
-            {
-                Array.Copy(initialData, newData.Length, delta, newData.Length, initialData.Length - newData.Length);
-            }
+            return delta;
+        }
 
-            // Then run length encode the data.
-            using (MemoryStream ms = new MemoryStream())
+        private static void WriteBlock(MemoryStream ms, byte[] data, byte flags, int offset, int length)
+        {
+            ms.WriteByte(flags);
+
+            if (flags == DELTA_COMPRESSED_BLOCK)
             {
-                byte value = delta[0];
+                ms.WriteByte((byte)(data.Length & 0xFF));
+                ms.WriteByte((byte)((data.Length >> 8) & 0xFF));
+
+                // Then run length encode the data.
+                byte value = data[0];
                 short count = 1;
-                for (int i = 1; i < delta.Length; i++)
+                for (int i = 1; i < data.Length; i++)
                 {
-                    if (delta[i] == value)
+                    if (data[i] == value)
                     {
                         count++;
                     }
@@ -62,7 +61,7 @@ namespace Oxygen
                         ms.WriteByte((byte)(count & 0xFF));
                         ms.WriteByte((byte)((count >> 8) & 0xFF));
 
-                        value = delta[i];
+                        value = data[i];
                         count = 1;
                     }
                 }
@@ -70,41 +69,172 @@ namespace Oxygen
                 ms.WriteByte(value);
                 ms.WriteByte((byte)(count & 0xFF));
                 ms.WriteByte((byte)((count >> 8) & 0xFF));
+            }
+            else if (flags == UNCOMPRESSED_BLOCK)
+            {
+                ms.WriteByte((byte)(length & 0xFF));
+                ms.WriteByte((byte)((length >> 8) & 0xFF));
+                ms.Write(data, offset, length);
+            }
+        }
+
+        public static byte[] Compress(byte[] initialData, byte[] newData)
+        {
+            using (MemoryStream ms = new MemoryStream())
+            {
+                if (initialData.Length > newData.Length)
+                {
+                    //int offset = FindSubArray(initialData, newData);
+                    //if (offset > -1)
+                    //{
+                    //    WriteData(ms, initialData, newData, offset);
+                    //}
+                    //else
+                    {
+                        WriteBlock(ms, newData, UNCOMPRESSED_BLOCK, 0, newData.Length);
+                    }
+                }
+                else if (newData.Length > initialData.Length)
+                {
+                    int offset = FindSubArray(newData, initialData);
+                    if (offset > -1)
+                    {
+                        WriteData(ms, newData, initialData, offset);
+                    }
+                    else
+                    {
+                        WriteBlock(ms, newData, UNCOMPRESSED_BLOCK, 0, newData.Length);
+                    }
+                }
+                else
+                {
+                    byte[] delta;
+                    delta = CalculateDeltas(initialData, newData, initialData.Length, 0, 0);
+                    WriteBlock(ms, delta, DELTA_COMPRESSED_BLOCK, 0, initialData.Length);
+                }
 
                 return ms.ToArray();
             }
         }
 
-        public static byte[] Decompress(byte[] initialData, byte[] delta)
+        private static void WriteData(MemoryStream ms, byte[] longer, byte[] shorter, int offset)
         {
-            byte[] newData;
-            // Decode the run length encoding.
-            using (MemoryStream ms = new MemoryStream())
+            int length = shorter.Length;
+            byte[] delta = CalculateDeltas(longer, shorter, length, offset, 0);
+
+            if (offset > 0)
             {
-                for (int i =0; i < delta.Length; i+=3)
+                int uncompressedLength = offset;
+                WriteBlock(ms, longer, UNCOMPRESSED_BLOCK, 0, uncompressedLength);
+            }
+
+            WriteBlock(ms, delta, DELTA_COMPRESSED_BLOCK, offset, length);
+
+            if (offset + length < longer.Length)
+            {
+                int uncompressedLength = offset + length;
+                WriteBlock(ms, longer, UNCOMPRESSED_BLOCK, uncompressedLength, longer.Length - uncompressedLength);
+            }
+        }
+
+        private static void ReadBlock(MemoryStream ms, List<byte> newData, byte[] initialData, byte[] delta, ref int pos)
+        {
+            int flags = delta[pos++];
+            if (flags == UNCOMPRESSED_BLOCK)
+            {
+                int countLo = delta[pos++];
+                int countHi = delta[pos++];
+
+                int count = countLo | (countHi << 8);
+
+                for (int i = 0; i < count; i++)
                 {
-                    int value = delta[i];
-                    int countLo = delta[i + 1];
-                    int countHi = delta[i + 2];
+                    newData.Add(delta[pos++]);
+                }
+            }
+            else if (flags == DELTA_COMPRESSED_BLOCK)
+            {
+                int dataLength;
+                {
+                    int countLo = delta[pos++];
+                    int countHi = delta[pos++];
+
+                    dataLength = countLo | (countHi << 8);
+                }
+
+                // Decode the run length encoding.
+                int offset = newData.Count;
+                int end = newData.Count + dataLength;
+                while (newData.Count < end)
+                {
+                    int value = delta[pos++];
+                    int countLo = delta[pos++];
+                    int countHi = delta[pos++];
 
                     int count = countLo | (countHi << 8);
 
                     for (int j = 0; j < count; j++)
                     {
-                        ms.WriteByte((byte)value);
+                        newData.Add((byte)value);
                     }
                 }
 
-                newData = ms.ToArray();
+                // Decode the deltas.
+                for (int i = 0; i < initialData.Length; i++)
+                {
+                    newData[i + offset] = (byte)(initialData[i] - newData[i + offset]);
+                }
             }
+        }
 
-            // Decode the deltas.
-            for (int i = 0; i < newData.Length; i++)
+        public static byte[] Decompress(byte[] initialData, byte[] delta)
+        {
+            List<byte> newData = new List<byte>();
+            using (MemoryStream ms = new MemoryStream())
             {
-                newData[i] = (byte) (initialData[i] - newData[i]);
+                int pos = 0;
+                while (pos < delta.Length)
+                {
+                    ReadBlock(ms, newData, initialData, delta, ref pos);
+                }
             }
 
-            return newData;
+            return newData.ToArray();
+        }
+
+        /// <summary>
+        /// Searches for the shorter array in the longer array.
+        /// </summary>
+        /// <param name="longer">The longer array.</param>
+        /// <param name="shorter">The shorter array.</param>
+        /// <exception cref="ArgumentException">Throws if the parameters are invalid.</exception>
+        /// <returns>Returns the index of where the sub array is located, or -1 if the sub array could not be found.</returns>
+        private static int FindSubArray(byte[] longer, byte[] shorter)
+        {
+            if (longer.Length <= shorter.Length)
+            {
+                throw new ArgumentException($"Invalid arguments '{nameof(longer)}' should be a longer array than '{nameof(shorter)}'.");
+            }
+
+            for (int i = 0; i < longer.Length; i++)
+            {
+                bool success = true;
+                for (int j = 0; j < shorter.Length; j++)
+                {
+                    if (longer[i + j] != shorter[j])
+                    {
+                        success = false;
+                        break;
+                    }
+                }
+
+                if (success)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
         }
     }
 }

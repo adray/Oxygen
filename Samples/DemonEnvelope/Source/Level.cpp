@@ -44,11 +44,12 @@ void Level::OnNewObject(Oxygen::Message& msg)
 
         if (name == "TILEMAP")
         {
-            _tilemaps.push_back(Tilemap(id));
-            const auto& test = _tilemaps.rbegin();
-            test->CreateMesh(_lib, 10, 10, 16, 9);
-            test->SetTileSet(tileset);
-            test->Deserialize(msg);
+            _tilemaps.SetID(id);
+            _tilemaps.CreateMesh(_lib, 10, 10, 16, 9);
+            _tilemaps.SetTileSet(tileset);
+            _tilemaps.Deserialize(msg);
+
+            std::cout << "Tilemap num tiles: " << _tilemaps.NumTiles() << std::endl;
         }
     }
 }
@@ -90,14 +91,11 @@ void Level::OnUpdateObject(Oxygen::Message& msg)
 
         if (name == "TILEMAP")
         {
-            for (int i = 0; i < _tilemaps.size(); i++)
+            if (_tilemaps.ID() == id)
             {
-                if (_tilemaps[i].ID() == id)
-                {
-                    const auto& test = _tilemaps.rbegin();
-                    test->Deserialize(decompressedMessage);
-                    break;
-                }
+                _tilemaps.Deserialize(decompressedMessage);
+
+                std::cout << "Tilemap num tiles: " << _tilemaps.NumTiles() << std::endl;
             }
         }
     }
@@ -113,37 +111,38 @@ void Level::Render(IslanderRenderable* renderables, int* cur_index, const int ti
     IslanderRenderable* renderable = &renderables[*cur_index];
     std::memset(renderable, 0, sizeof(IslanderRenderable));
 
-    for (int i = 0; i < _tilemaps.size(); i++)
+    if (_tilemaps.ID() >= 0)
     {
-        auto& tilemap = _tilemaps[i];
-
         renderable->mesh.pixelShader = tilemappixelShader;
         renderable->mesh.vertexShader = tilemapvertexShader;
         renderable->mesh.geometryShader = -1;
-        renderable->mesh.polydata = tilemap.GetMesh();
+        renderable->mesh.polydata = _tilemaps.GetMesh();
         renderable->mesh.parentEntity = -1;
-        renderable->mesh.material.slot_data[0] = tilemap.GetTileset()->GetTexture();
+        renderable->mesh.material.slot_data[0] = _tilemaps.GetTileset()->GetTexture();
         renderable->mesh.material.slot_flags[0] = ISLANDER_RENDERABLE_MATERIAL_SLOT_CUSTOM;
 
-        Tilemap::ConstantBuffer* buffer = tilemap.GetConstantBuffer();
+        Tilemap::ConstantBuffer* buffer = _tilemaps.GetConstantBuffer();
         renderable->mesh.constantBufferData = buffer;
         renderable->mesh.constantBufferDataSize = sizeof(Tilemap::ConstantBuffer);
 
-        tilemap.Update();
+        _tilemaps.Update();
 
         (*cur_index)++;
     }
 }
 
-int Level::TileMapHitTest(int x, int y) const
+bool Level::TileMapHitTest(int x, int y) const
 {
-    for (int i = 0; i < _tilemaps.size(); i++)
+    if (_tilemaps.HitTest(x, y) >= 0)
     {
-        if (_tilemaps[i].HitTest(x, y) >= 0)
-        {
-            return i;
-        }
+        return true;
     }
 
-    return -1;
+    return false;
 }
+
+void Level::Reset()
+{
+    _tilemaps.Clear();
+}
+

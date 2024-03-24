@@ -15,12 +15,13 @@ namespace DE
         void OnUpdateObject(Oxygen::Message& msg);
         void OnDeleteObject(Oxygen::Message& msg);
         inline std::shared_ptr<Tileset> TileSet() { return tileset; }
-        int TileMapHitTest(int x, int y) const;
-        Tilemap& GetTilemap(int idx) { return _tilemaps[idx]; }
+        bool TileMapHitTest(int x, int y) const;
+        Tilemap& GetTilemap() { return _tilemaps; }
         std::vector<unsigned char>& GetState(int idx) { return state[idx]; }
+        void Reset();
 
     private:
-        std::vector<Tilemap> _tilemaps;
+        Tilemap _tilemaps;
         std::shared_ptr<Tileset> tileset;
         ISLANDER_POLYGON_LIBRARY _lib;
 

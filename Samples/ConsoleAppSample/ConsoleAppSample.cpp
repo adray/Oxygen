@@ -4,6 +4,7 @@
 #include "Message.h"
 #include "Subscriber.h"
 #include "Level.h"
+#include "DeltaCompress.h"
 
 static bool ACK(Oxygen::Message& msg)
 {
@@ -59,33 +60,36 @@ void OnLoggedIn(Oxygen::ClientConnection* conn)
 
 int main(int numArgs, char** args)
 {
-    Oxygen::ClientConnection* conn = new Oxygen::ClientConnection("localhost", Oxygen::DEFAULT_PORT);
-
-    if (conn->IsConnected())
+    if (numArgs == 2)
     {
-        std::cout << "Connected" << std::endl;
+        Oxygen::ClientConnection* conn = new Oxygen::ClientConnection("localhost", Oxygen::DEFAULT_PORT);
 
-        Oxygen::Message msg("LOGIN_SVR", "LOGIN_API_KEY");
-        msg.WriteString(args[1]);
-        msg.Prepare();
+        if (conn->IsConnected())
+        {
+            std::cout << "Connected" << std::endl;
 
-        std::shared_ptr<Oxygen::Subscriber> sub(new Oxygen::Subscriber(msg));
-        sub->Signal([conn, sub2 = std::shared_ptr<Oxygen::Subscriber>(sub)](Oxygen::Message& msg) {
-            std::cout << msg.NodeName() << " " << msg.MessageName() << std::endl;
-            conn->RemoveSubscriber(sub2);
-            if (ACK(msg))
-            {
-                OnLoggedIn(conn);
-            }
-            });
-        conn->AddSubscriber(sub);
+            Oxygen::Message msg("LOGIN_SVR", "LOGIN_API_KEY");
+            msg.WriteString(args[1]);
+            msg.Prepare();
 
+            std::shared_ptr<Oxygen::Subscriber> sub(new Oxygen::Subscriber(msg));
+            sub->Signal([conn, sub2 = std::shared_ptr<Oxygen::Subscriber>(sub)](Oxygen::Message& msg) {
+                std::cout << msg.NodeName() << " " << msg.MessageName() << std::endl;
+                conn->RemoveSubscriber(sub2);
+                if (ACK(msg))
+                {
+                    OnLoggedIn(conn);
+                }
+                });
+            conn->AddSubscriber(sub);
+
+        }
+
+        while (true)
+        {
+            conn->Process(true);
+        }
+
+        std::getchar();
     }
-    
-    while (true)
-    {
-        conn->Process(true);
-    }
-
-    std::getchar();
 }

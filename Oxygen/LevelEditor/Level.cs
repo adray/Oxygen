@@ -189,11 +189,13 @@ namespace Oxygen
         private void Shutdown()
         {
             running = false;
+            streamEvent.Set(); // flush streaming thread
             SaveLevel();
         }
 
         private void StreamingThread()
         {
+            Console.WriteLine("Streaming {0} Thread started", Name);
             while (running)
             {
                 streamEvent.WaitOne();
@@ -206,6 +208,7 @@ namespace Oxygen
                     }
                 }
             }
+            Console.WriteLine("Streaming {0} Thread ended", Name);
         }
 
         private void StartStream(Client client)
@@ -229,8 +232,11 @@ namespace Oxygen
 
         public void AddClient(Client client)
         {
-            connected.Add(client);
-            StartStream(client);
+            if (!connected.Contains(client))
+            {
+                connected.Add(client);
+                StartStream(client);
+            }
         }
 
         public void RemoveClient(Client client)
@@ -259,7 +265,10 @@ namespace Oxygen
             objects.Add(obj);
             objectMap.Add(obj.ID, obj);
 
-            byte[] bytes = msg.GetData();
+            Message msg2 = new Message("LEVEL_SVR", "OBJECT_STREAM");
+            msg2.WriteInt(1/*NEW_OBJECT*/);
+            obj.Serialize(msg2);
+            byte[] bytes = msg2.GetData();
             state.Add(obj.ID, bytes);
 
             lock (this.streamLock)

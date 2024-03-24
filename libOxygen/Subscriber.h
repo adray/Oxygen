@@ -14,6 +14,9 @@ namespace Oxygen
         inline const Message& Request() { return _request; };
         void Signal(const std::function<void (Message&)>& callback);
         void NewMessage(const Message& msg);
+        virtual void OnNewMessage(const Message& msg);
+
+        virtual ~Subscriber();
 
     private:
         Message _request;

@@ -65,16 +65,15 @@ namespace O2
 
         static ClientConnection StartClient()
         {
-            ClientConnection cli = new ClientConnection("localhost", 9888);
+            string hostname = Environment.GetEnvironmentVariable("OXYGEN_HOST") ?? "localhost";
+            if (!int.TryParse(Environment.GetEnvironmentVariable("OXYGEN_PORT"), out int port))
+            {
+                port = 9888;
+            }
+
+            ClientConnection cli = new ClientConnection(hostname, port);
             return cli;
         }
-
-        //static Client StartThreadedClient()
-        //{
-        //    Client cli = new Client("localhost", 9888);
-        //    cli.RunClientThread();
-        //    return cli;
-        //}
 
         static string? UserNamePrompt()
         {

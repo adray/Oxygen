@@ -23,8 +23,17 @@ namespace Oxygen
             Level? level = client.GetProperty("LEVEL") as Level;
             if (level != null)
             {
-                level.RemoveClient(client);
-                client.RemoveProperty("LEVEL");
+                CloseLevel(client, level);
+            }
+        }
+
+        private void CloseLevel(Client client, Level level)
+        {
+            level.RemoveClient(client);
+            client.RemoveProperty("LEVEL");
+            if (!level.Running)
+            {
+                levels.Remove(level.Name);
             }
         }
 
@@ -51,6 +60,7 @@ namespace Oxygen
                 if (existingLevel != null)
                 {
                     existingLevel.RemoveClient(client);
+                    client.RemoveProperty("LEVEL");
                 }
 
                 string levelName = msg.ReadString();
@@ -80,12 +90,12 @@ namespace Oxygen
                 Level? level = client.GetProperty("LEVEL") as Level;
                 if (level != null)
                 {
-                    level.RemoveClient(client);
-                    client.RemoveProperty("LEVEL");
-                    if (!level.Running)
-                    {
-                        levels.Remove(level.Name);
-                    }
+                    CloseLevel(client, level);
+                    SendAck(client, messageName);
+                }
+                else
+                {
+                    SendNack(client, 200, "No level open to close.", messageName);
                 }
             }
             else if (messageName == "OBJECT_STREAM")

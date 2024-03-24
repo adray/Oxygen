@@ -45,12 +45,16 @@ void Network::Login(const std::string& username, const std::string& password)
 
     std::shared_ptr<Oxygen::Subscriber> sub = std::shared_ptr<Oxygen::Subscriber>(new Oxygen::Subscriber(request));
     sub->Signal([this, sub2 = std::shared_ptr<Oxygen::Subscriber>(sub)](Oxygen::Message& msg) {
+        conn->RemoveSubscriber(sub2);
         if (msg.ReadString() == "NACK")
         {
             std::cout << msg.ReadInt32() << " " << msg.ReadString() << std::endl;
+            disconnect = true;
         }
-
-        conn->RemoveSubscriber(sub2);
+        else
+        {
+            loggedIn = true;
+        }
         });
     conn->AddSubscriber(sub);
 }
@@ -97,6 +101,29 @@ void Network::JoinLevel(const std::string& name, Level& level)
     conn->AddSubscriber(sub);
 }
 
+void Network::CloseLevel()
+{
+    conn->RemoveSubscriber(levelSub);
+    levelSub.reset();
+
+    Oxygen::Message request("LEVEL_SVR", "CLOSE_LEVEL");
+    request.Prepare();
+
+    std::shared_ptr<Oxygen::Subscriber> sub = std::shared_ptr<Oxygen::Subscriber>(new Oxygen::Subscriber(request));
+    sub->Signal([this, sub2 = std::shared_ptr<Oxygen::Subscriber>(sub)](Oxygen::Message& msg) {
+        if (msg.ReadString() == "NACK")
+        {
+            std::cout << msg.ReadInt32() << " " << msg.ReadString() << std::endl;
+        }
+        else
+        {
+            
+        }
+        conn->RemoveSubscriber(sub2);
+        });
+    conn->AddSubscriber(sub);
+}
+
 void Network::ListLevels(std::vector<std::string>& levels)
 {
     Oxygen::Message request("LEVEL_SVR", "LIST_LEVELS");
@@ -128,11 +155,11 @@ void Network::OnLevelLoaded(Level& level)
     Oxygen::Message request("LEVEL_SVR", "OBJECT_STREAM");
     request.Prepare();
 
-    std::shared_ptr<Oxygen::Subscriber> sub = std::shared_ptr<Oxygen::Subscriber>(new Oxygen::Subscriber(request));
-    sub->Signal([this, &level, sub2 = std::shared_ptr<Oxygen::Subscriber>(sub)](Oxygen::Message& msg) {
+    levelSub = std::shared_ptr<Oxygen::Subscriber>(new Oxygen::Subscriber(request));
+    levelSub->Signal([this, &level, sub2 = std::shared_ptr<Oxygen::Subscriber>(levelSub)](Oxygen::Message& msg) {
         OnObjectStreamed(level, msg);
         });
-    conn->AddSubscriber(sub);
+    conn->AddSubscriber(levelSub);
 }
 
 void Network::OnObjectStreamed(Level& level, Oxygen::Message& msg)
@@ -237,6 +264,14 @@ bool Network::Connected()
 
 void Network::Process()
 {
+    if (disconnect)
+    {
+        delete conn;
+        conn = nullptr;
+        disconnect = false;
+        loggedIn = false;
+    }
+
     if (conn)
     {
         conn->Process(false);

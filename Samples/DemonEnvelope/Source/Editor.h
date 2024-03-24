@@ -13,7 +13,7 @@ namespace DE
     public:
         void Start(ISLANDER_POLYGON_LIBRARY lib, ISLANDER_DEVICE device);
         void Run(float delta, ISLANDER_WINDOW window);
-        void Draw(float delta, ISLANDER_DEVICE device, IslanderImguiContext* cxt);
+        void Draw(float delta, ISLANDER_DEVICE device, ISLANDER_WINDOW window, IslanderImguiContext* cxt);
         inline Level& GetLevel() { return level; }
 
     private:
@@ -21,6 +21,7 @@ namespace DE
         std::vector<std::string> assets;
         std::vector<std::string> levels;
         Level level;
+        char selectedLevelName[256];
         char levelName[256];
         char username[256];
         char password[256];

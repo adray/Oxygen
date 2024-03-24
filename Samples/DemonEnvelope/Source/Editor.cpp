@@ -8,6 +8,7 @@ using namespace DE;
 
 void Editor::Start(ISLANDER_POLYGON_LIBRARY lib, ISLANDER_DEVICE device)
 {
+    level = std::shared_ptr<Level>(new Level());
     network = std::shared_ptr<DE::Network>(new DE::Network());
 
     std::memset(username, 0, sizeof(username));
@@ -17,7 +18,7 @@ void Editor::Start(ISLANDER_POLYGON_LIBRARY lib, ISLANDER_DEVICE device)
     
     std::strcpy(hostname, "localhost");
 
-    level.Setup(lib, device);
+    level->Setup(lib, device);
 }
 
 void Editor::Run(float delta, ISLANDER_WINDOW window)
@@ -38,15 +39,16 @@ void Editor::Run(float delta, ISLANDER_WINDOW window)
 
         if (palette > -1)
         {
-            const int tilemap = level.TileMapHitTest(posX - width / 2, posY - height / 2);
+            const int tilemap = level->TileMapHitTest(posX - width / 2, posY - height / 2);
             if (tilemap >= 0)
             {
-                auto& map = level.GetTilemap();
+                auto& map = level->GetTilemap();
                 const int cell = map.HitTest(posX - width / 2, posY - height / 2);
                 if (cell >= 0)
                 {
                     map.Set(cell, palette);
-                    network->UpdateTilemap(map, level.GetState(map.ID()));
+
+                    network->UpdateTilemap(map, level);
                 }
             }
         }
@@ -54,25 +56,25 @@ void Editor::Run(float delta, ISLANDER_WINDOW window)
     
     if (IslanderIsKeyDown(window, Islander::KEY_RIGHT))
     {
-        auto& map = level.GetTilemap();
+        auto& map = level->GetTilemap();
         map.SetScrollPos(map.ScrollX() + 5, map.ScrollY());
         IslanderSetKeyUp(window, Islander::KEY_RIGHT);
     }
     else if (IslanderIsKeyDown(window, Islander::KEY_LEFT))
     {
-        auto& map = level.GetTilemap();
+        auto& map = level->GetTilemap();
         map.SetScrollPos(map.ScrollX() - 5, map.ScrollY());
         IslanderSetKeyUp(window, Islander::KEY_LEFT);
     }
     else if (IslanderIsKeyDown(window, Islander::KEY_UP))
     {
-        auto& map = level.GetTilemap();
+        auto& map = level->GetTilemap();
         map.SetScrollPos(map.ScrollX(), map.ScrollY() - 5);
         IslanderSetKeyUp(window, Islander::KEY_UP);
     }
     else if (IslanderIsKeyDown(window, Islander::KEY_DOWN))
     {
-        auto& map = level.GetTilemap();
+        auto& map = level->GetTilemap();
         map.SetScrollPos(map.ScrollX(), map.ScrollY() + 5);
         IslanderSetKeyUp(window, Islander::KEY_DOWN);
     }
@@ -162,7 +164,7 @@ void Editor::Draw(float delta, ISLANDER_DEVICE device, ISLANDER_WINDOW window, I
                 if (ImGui::Button("Join"))
                 {
                     network->CloseLevel();
-                    level.Reset();
+                    level->Reset();
                     std::memset(levelName, 0, sizeof(levelName));
                     network->JoinLevel(selectedLevelName, level);
                 }
@@ -172,12 +174,12 @@ void Editor::Draw(float delta, ISLANDER_DEVICE device, ISLANDER_WINDOW window, I
 
         if (ImGui::Begin("Tiles"))
         {
-            auto& tilemap = level.GetTilemap();
+            auto& tilemap = level->GetTilemap();
             if (tilemap.ID() >= 0)
             {
                 ImGui::Text("Tilemap pos [%i,%i]", tilemap.ScrollX(), tilemap.ScrollY());
 
-                std::shared_ptr<Tileset> tileset = level.TileSet();
+                std::shared_ptr<Tileset> tileset = level->TileSet();
                 for (int i = 0; i < tileset->NumTiles(); i++)
                 {
                     Islander::component_texture texture;
@@ -199,7 +201,7 @@ void Editor::Draw(float delta, ISLANDER_DEVICE device, ISLANDER_WINDOW window, I
 
                 if (ImGui::Button("Create TileMap"))
                 {
-                    network->CreateTilemap(width, height);
+                    network->CreateTilemap(level, width, height);
                 }
             }
         }

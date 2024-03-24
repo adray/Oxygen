@@ -15,7 +15,10 @@ void Subscriber::Signal(const std::function<void(Message&)>& callback)
 
 void Subscriber::NewMessage(const Message& msg)
 {
-    OnNewMessage(msg);
+    {
+        Message clone(msg);
+        OnNewMessage(clone);
+    }
 
     for (auto& callback : _callback)
     {
@@ -24,7 +27,7 @@ void Subscriber::NewMessage(const Message& msg)
     }
 }
 
-void Subscriber::OnNewMessage(const Message& msg)
+void Subscriber::OnNewMessage(Message& msg)
 {
     // By default this does nothing.
 }

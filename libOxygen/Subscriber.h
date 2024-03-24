@@ -11,12 +11,15 @@ namespace Oxygen
 
         Subscriber(const Message& msg);
 
-        inline const Message& Request() { return _request; };
+        inline const Message& Request() const { return _request; };
         void Signal(const std::function<void (Message&)>& callback);
         void NewMessage(const Message& msg);
-        virtual void OnNewMessage(const Message& msg);
+        virtual void OnNewMessage(Message& msg);
 
         virtual ~Subscriber();
+    
+    protected:
+        inline Message& _Request() { return _request; };
 
     private:
         Message _request;

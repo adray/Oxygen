@@ -59,7 +59,7 @@ void Network::Login(const std::string& username, const std::string& password)
     conn->AddSubscriber(sub);
 }
 
-void Network::CreateLevel(const std::string& name, Level& level)
+void Network::CreateLevel(const std::string& name, std::shared_ptr<Level>& level)
 {
     Oxygen::Message request("LEVEL_SVR", "NEW_LEVEL");
     request.WriteString(name);
@@ -80,7 +80,7 @@ void Network::CreateLevel(const std::string& name, Level& level)
     conn->AddSubscriber(sub);
 }
 
-void Network::JoinLevel(const std::string& name, Level& level)
+void Network::JoinLevel(const std::string& name, std::shared_ptr<Level>& level)
 {
     Oxygen::Message request("LEVEL_SVR", "LOAD_LEVEL");
     request.WriteString(name);
@@ -148,57 +148,30 @@ void Network::ListLevels(std::vector<std::string>& levels)
     conn->AddSubscriber(sub);
 }
 
-void Network::OnLevelLoaded(Level& level)
+void Network::OnLevelLoaded(std::shared_ptr<Level>& level)
 {
-    level.Loaded();
+    level->Loaded();
 
-    Oxygen::Message request("LEVEL_SVR", "OBJECT_STREAM");
-    request.Prepare();
-
-    levelSub = std::shared_ptr<Oxygen::Subscriber>(new Oxygen::Subscriber(request));
-    levelSub->Signal([this, &level, sub2 = std::shared_ptr<Oxygen::Subscriber>(levelSub)](Oxygen::Message& msg) {
-        OnObjectStreamed(level, msg);
-        });
-    conn->AddSubscriber(levelSub);
+    conn->AddSubscriber(level);
 }
 
-void Network::OnObjectStreamed(Level& level, Oxygen::Message& msg)
+void Network::CreateTilemap(std::shared_ptr<Oxygen::ObjectStream> stream, int width, int height)
 {
-    const int type = msg.ReadInt32();
-    switch (type)
-    {
-    case 0: // ADD
-        level.OnNewObject(msg);
-        break;
-    case 1: // UPDATE
-        level.OnUpdateObject(msg);
-        break;
-    case 2: // DELETE
-        level.OnDeleteObject(msg);
-        break;
-    }
-}
+    Oxygen::Object obj = {};
+    obj.scale[0] = 1.0;
+    obj.scale[1] = 1.0;
+    obj.scale[2] = 1.0;
+    obj.hasCustomData = 1;
 
-void Network::CreateTilemap(int width, int height)
-{
-    Oxygen::Message msg("LEVEL_SVR", "ADD_OBJECT");
-    msg.WriteDouble(0.0); // Pos X
-    msg.WriteDouble(0.0); // Pos Y
-    msg.WriteDouble(0.0); // Pos Z
-    msg.WriteDouble(1.0); // Scale X
-    msg.WriteDouble(1.0); // Scale Y
-    msg.WriteDouble(1.0); // Scale Z
-    msg.WriteDouble(0.0); // Rot X
-    msg.WriteDouble(0.0); // Rot Y
-    msg.WriteDouble(0.0); // Rot Z
-    msg.WriteInt32(1);    // custom
+    Oxygen::Message msg = stream->BuildAddMessage(obj);
     msg.WriteString("TILEMAP");
 
     Tilemap tilemap;
     tilemap.Load(width, height);
     tilemap.Serialize(msg);
 
-    msg.Prepare();
+    stream->PrepareAddMessage(&msg, obj);
+    
     std::shared_ptr<Oxygen::Subscriber> sub = std::shared_ptr<Oxygen::Subscriber>(new Oxygen::Subscriber(msg));
     sub->Signal([this, sub2 = std::shared_ptr<Oxygen::Subscriber>(sub)](Oxygen::Message& response) {
             if (response.ReadString() == "NACK")
@@ -211,50 +184,31 @@ void Network::CreateTilemap(int width, int height)
     conn->AddSubscriber(sub);
 }
 
-constexpr int NEW_OBJECT = 0;
-constexpr int UPDATE_OBJECT = 1;
-constexpr int DELETE_OBJECT = 2;
-
-void Network::UpdateTilemap(Tilemap& tilemap, const std::vector<unsigned char>& stateData)
+void Network::UpdateTilemap(Tilemap& tilemap, std::shared_ptr<Oxygen::ObjectStream> stream)
 {
-    Oxygen::Message msg("LEVEL_SVR", "OBJECT_STREAM");
-    msg.WriteInt32(NEW_OBJECT);
-    msg.WriteInt32(tilemap.ID());
-    msg.WriteDouble(0.0); // Pos X
-    msg.WriteDouble(0.0); // Pos Y
-    msg.WriteDouble(0.0); // Pos Z
-    msg.WriteDouble(1.0); // Scale X
-    msg.WriteDouble(1.0); // Scale Y
-    msg.WriteDouble(1.0); // Scale Z
-    msg.WriteDouble(0.0); // Rot X
-    msg.WriteDouble(0.0); // Rot Y
-    msg.WriteDouble(0.0); // Rot Z
-    msg.WriteInt32(1);    // custom
+    Oxygen::Object obj = {};
+    obj.id = tilemap.ID();
+    obj.scale[0] = 1.0;
+    obj.scale[1] = 1.0;
+    obj.scale[2] = 1.0;
+    obj.hasCustomData = true;
+
+    Oxygen::Message msg = stream->BuildUpdateMessage(obj);
     msg.WriteString("TILEMAP");
     tilemap.Serialize(msg);
-    msg.Prepare();
 
-    unsigned char* newData;
-    int numBytes = Oxygen::Compress(stateData.data(), stateData.size(), msg.data()+4, msg.size()-4, &newData);
-    if (numBytes > 0)
-    {
-        Oxygen::Message msg2("LEVEL_SVR", "UPDATE_OBJECT");
-        msg2.WriteInt32(tilemap.ID());
-        msg2.WriteBytes(numBytes, newData);
-        delete[] newData;
+    stream->PrepareUpdateMessage(&msg, obj);
 
-        msg2.Prepare();
-        std::shared_ptr<Oxygen::Subscriber> sub = std::shared_ptr<Oxygen::Subscriber>(new Oxygen::Subscriber(msg2));
-        sub->Signal([this, sub2 = std::shared_ptr<Oxygen::Subscriber>(sub)](Oxygen::Message& response) {
-            if (response.ReadString() == "NACK")
-            {
-                std::cout << response.ReadInt32() << " " << response.ReadString() << std::endl;
-            }
+    std::shared_ptr<Oxygen::Subscriber> sub = std::shared_ptr<Oxygen::Subscriber>(new Oxygen::Subscriber(msg));
+    sub->Signal([this, sub2 = std::shared_ptr<Oxygen::Subscriber>(sub)](Oxygen::Message& response) {
+        if (response.ReadString() == "NACK")
+        {
+            std::cout << response.ReadInt32() << " " << response.ReadString() << std::endl;
+        }
 
-            conn->RemoveSubscriber(sub2);
-            });
-        conn->AddSubscriber(sub);
-    }
+        conn->RemoveSubscriber(sub2);
+        });
+    conn->AddSubscriber(sub);
 }
 
 bool Network::Connected()

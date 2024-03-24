@@ -42,7 +42,7 @@ void Render::CreateConstantBuffers(ISLANDER_DEVICE device, ISLANDER_WINDOW windo
     constantData.screenHeight = IslanderWindowHeight(window);
 }
 
-void Render::RenderFrame(ISLANDER_DEVICE device, Level& level)
+void Render::RenderFrame(ISLANDER_DEVICE device, std::shared_ptr<Level>& level)
 {
     IslanderRenderablePass passes[1];
     passes->camera = nullptr;
@@ -51,7 +51,7 @@ void Render::RenderFrame(ISLANDER_DEVICE device, Level& level)
 
     IslanderSetPassConstantData(passlist, 0, &constantData, sizeof(constantData));
 
-    level.Render(renderable, &passes->renderableCount, tilemapShader.pixelShader, tilemapShader.vertexShader);
+    level->Render(renderable, &passes->renderableCount, tilemapShader.pixelShader, tilemapShader.vertexShader);
 
     IslanderSetPassList(device, passlist);
     IslanderRenderScene3D(device, passes, 1, renderable);

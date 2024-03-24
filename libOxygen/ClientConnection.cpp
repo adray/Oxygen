@@ -356,12 +356,12 @@ void ClientConnection::WriteMessage(const Message& msg)
     impl->WriteMessage(msg);
 }
 
-void ClientConnection::AddSubscriber(std::shared_ptr<Subscriber>& subscriber)
+void ClientConnection::AddSubscriber(std::shared_ptr<Subscriber> subscriber)
 {
     impl->AddSubscriber(subscriber);
 }
 
-void ClientConnection::RemoveSubscriber(const std::shared_ptr<Subscriber>& subscriber)
+void ClientConnection::RemoveSubscriber(const std::shared_ptr<Subscriber> subscriber)
 {
     impl->RemoveSubscriber(subscriber);
 }

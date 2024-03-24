@@ -131,7 +131,7 @@ Message ObjectStream::BuildAddMessage(const Object& obj)
     msg.WriteDouble(obj.rot[0]); // Rot X
     msg.WriteDouble(obj.rot[1]); // Rot Y
     msg.WriteDouble(obj.rot[2]); // Rot Z
-    msg.WriteInt32(obj.hasCustomData);    // custom
+    msg.WriteInt32(obj.hasCustomData ? 1 : 0);    // custom
     return msg;
 }
 

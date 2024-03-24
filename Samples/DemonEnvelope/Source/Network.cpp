@@ -153,6 +153,7 @@ void Network::OnLevelLoaded(std::shared_ptr<Level>& level)
     level->Loaded();
 
     conn->AddSubscriber(level);
+    levelSub = level;
 }
 
 void Network::CreateTilemap(std::shared_ptr<Oxygen::ObjectStream> stream, int width, int height)

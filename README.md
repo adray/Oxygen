@@ -10,7 +10,7 @@ Asset server and multi-user level editor
 # Components
 * Oxygen.exe - The oxygen server component
 * O2.exe - The oxygen command line tool
-* libOxygen - A C++ static library to communicate with the Oxygen server to embed within engines or games
+* libOxygen - A C++ static library to communicate with the Oxygen server to embed within engines or games. This has a dependancy on LibCrypto (OpenSll).
 
 # Initial setup
 For initial setup run 'Oxygen.exe setup' or 'dotnet Oxygen.dll setup'. You will then be prompted to create a root user. Once initial setup is complete, run 'Oxygen.exe' or 'dotnet Oxygen.dll' to start the server. To test the root user has been created correctly, run 'O2.exe login' or 'dotnet O2.dll login' and enter the username/password and check the login is successful.

@@ -143,6 +143,12 @@
       "Message": "OBJECT_STREAM",
       "Text": "Permission to open a stream for the objects from the level.",
       "Default": "Deny"
+    },
+    {
+      "Node": "LEVEL_SVR",
+      "Message": "EVENT_STREAM",
+      "Text": "Permission to open a stream for the events from the level.",
+      "Default": "Deny"
     }
   ]
 }

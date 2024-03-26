@@ -26,17 +26,18 @@ namespace DE
         void JoinLevel(const std::string& name, std::shared_ptr<Level>& level);
         void CloseLevel();
         void ListLevels(std::vector<std::string>& levels);
-        void CreateTilemap(std::shared_ptr<Oxygen::ObjectStream> stream, int width, int height);
-        void UpdateTilemap(Tilemap& tilemap, std::shared_ptr<Oxygen::ObjectStream> stream);
+        void CreateTilemap(int width, int height);
+        void UpdateTilemap(Tilemap& tilemap);
         bool Connected();
         inline bool LoggedIn() const { return loggedIn; }
         void Process();
+        void ObjectStreamClosed();
     private:
 
         void OnLevelLoaded(std::shared_ptr<Level>& level);
 
         Oxygen::ClientConnection* conn;
-        std::shared_ptr<Oxygen::Subscriber> levelSub;
+        std::shared_ptr<Oxygen::ObjectStream> levelSub;
         bool disconnect = false;
         bool loggedIn = false;
     };

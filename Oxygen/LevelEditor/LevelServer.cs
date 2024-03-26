@@ -103,7 +103,7 @@ namespace Oxygen
                 Level? level = client.GetProperty("LEVEL") as Level;
                 if (level != null)
                 {
-                    level.AddClient(client);
+                    level.AddStream(client, Level.Stream.Object);
                 }
             }
             else if (messageName == "NEW_LEVEL")
@@ -144,6 +144,14 @@ namespace Oxygen
                 if (level != null)
                 {
                     level.UpdateObject(msg);
+                }
+            }
+            else if (messageName == "EVENT_STREAM")
+            {
+                Level? level = client.GetProperty("LEVEL") as Level;
+                if (level != null)
+                {
+                    level.AddStream(client, Level.Stream.Event);
                 }
             }
             else

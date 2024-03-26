@@ -36,7 +36,7 @@ add_executable (DemonEnvelope
  "Network.h"
  "GameApplication.cpp"
  "GameApplication.h"
- "Editor.h" "Editor.cpp" "Render.h" "Render.cpp" "Level.cpp" "Level.h" "Tilemap.cpp" "Tilemap.h" "Tileset.cpp" "Tileset.h")
+ "Editor.h" "Editor.cpp" "Render.h" "Render.cpp" "Level.cpp" "Level.h" "Tilemap.cpp" "Tilemap.h" "Tileset.cpp" "Tileset.h" "ObjectStream.cpp" "ObjectStream.h")
 target_link_libraries(DemonEnvelope debug ${OXYGEN_LIBS}\\x64-debug\\libOxygen.lib)
 target_link_libraries(DemonEnvelope debug ${LIBCRYPTO}\\libcrypto_static.lib)
 

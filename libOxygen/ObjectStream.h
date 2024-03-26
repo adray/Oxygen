@@ -22,6 +22,7 @@ namespace Oxygen
         virtual void OnNewObject(const Object& ev, Message& msg);
         virtual void OnUpdateObject(const Object& ev, Message& msg);
         virtual void OnDeleteObject(int id);
+        virtual void OnStreamEnded();
 
         Message BuildAddMessage(const Object& obj);
         void PrepareAddMessage(Message* msg, const Object& obj);

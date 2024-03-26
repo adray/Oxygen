@@ -88,6 +88,16 @@ namespace Oxygen
             this.writer.Write(value);
         }
 
+        public void WriteInt64(long value)
+        {
+            if (this.writer == null)
+            {
+                throw new InvalidOperationException();
+            }
+
+            this.writer.Write(value);
+        }
+
         public void WriteDouble(double value)
         {
             if (this.writer == null)

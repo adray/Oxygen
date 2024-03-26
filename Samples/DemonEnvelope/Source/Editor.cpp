@@ -48,7 +48,7 @@ void Editor::Run(float delta, ISLANDER_WINDOW window)
                 {
                     map.Set(cell, palette);
 
-                    network->UpdateTilemap(map, level);
+                    network->UpdateTilemap(map);
                 }
             }
         }
@@ -201,7 +201,7 @@ void Editor::Draw(float delta, ISLANDER_DEVICE device, ISLANDER_WINDOW window, I
 
                 if (ImGui::Button("Create TileMap"))
                 {
-                    network->CreateTilemap(level, width, height);
+                    network->CreateTilemap(width, height);
                 }
             }
         }

@@ -4,6 +4,7 @@
 constexpr int NEW_OBJECT = 0;
 constexpr int UPDATE_OBJECT = 1;
 constexpr int DELETE_OBJECT = 2;
+constexpr int END_STREAM = 255;
 
 using namespace Oxygen;
 
@@ -27,6 +28,10 @@ void ObjectStream::OnNewMessage(Message& msg)
         break;
     case DELETE_OBJECT: // DELETE
         DeleteObject(msg);
+        break;
+    case END_STREAM: // END
+        state.clear();
+        OnStreamEnded();
         break;
     }
 }
@@ -115,6 +120,11 @@ void ObjectStream::OnUpdateObject(const Object& ev, Message& msg)
 }
 
 void ObjectStream::OnDeleteObject(int id)
+{
+
+}
+
+void ObjectStream::OnStreamEnded()
 {
 
 }

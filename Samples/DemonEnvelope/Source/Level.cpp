@@ -17,34 +17,10 @@ void Level::Loaded()
 {
 }
 
-void Level::OnNewObject(const Oxygen::Object& ev, Oxygen::Message& msg)
+void Level::CreateTilemap()
 {
-    const std::string name = msg.ReadString();
-
-    if (name == "TILEMAP")
-    {
-        _tilemaps.SetID(ev.id);
-        _tilemaps.CreateMesh(_lib, 10, 10, 16, 9);
-        _tilemaps.SetTileSet(tileset);
-        _tilemaps.Deserialize(msg);
-
-        std::cout << "Tilemap num tiles: " << _tilemaps.NumTiles() << std::endl;
-    }
-}
-
-void Level::OnUpdateObject(const Oxygen::Object& ev, Oxygen::Message& msg)
-{
-    const std::string name = msg.ReadString();
-
-    if (name == "TILEMAP")
-    {
-        if (_tilemaps.ID() == ev.id)
-        {
-            _tilemaps.Deserialize(msg);
-
-            std::cout << "Tilemap num tiles: " << _tilemaps.NumTiles() << std::endl;
-        }
-    }
+    _tilemaps.CreateMesh(_lib, 10, 10, 16, 9);
+    _tilemaps.SetTileSet(tileset);
 }
 
 void Level::Render(IslanderRenderable* renderables, int* cur_index, const int tilemappixelShader, const int tilemapvertexShader)

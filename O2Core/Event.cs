@@ -37,6 +37,7 @@ namespace Oxygen
         {
             base.HandleEvent(node);
 
+            this.Client.Disconnect();
             node.OnClientDisconnected(Client);
         }
     }

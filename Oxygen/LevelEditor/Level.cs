@@ -5,6 +5,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using static Oxygen.Level;
 
 namespace Oxygen
 {
@@ -52,21 +53,28 @@ namespace Oxygen
         public readonly double[] Rotation => rotation;
     }
 
-    internal class Level
+    internal partial class Level
     {
+        public enum Stream
+        {
+            Object,
+            Event
+        }
+
         private readonly string levelName;
         private readonly List<Client> connected = new List<Client>();
         private readonly List<LevelObject> objects = new List<LevelObject>();
         private readonly Dictionary<int, LevelObject> objectMap = new Dictionary<int, LevelObject>();
-        private readonly Dictionary<Client, LevelObjectStream> streams = new Dictionary<Client, LevelObjectStream>();
+        private readonly ObjectStream objectStream = new ObjectStream();
+        private readonly EventStream eventStream = new EventStream();
         private Dictionary<int, byte[]> state = new Dictionary<int, byte[]>();
-        private readonly object streamLock = new object();
         private readonly EventWaitHandle streamEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
         private int nextObjectID;
         private Thread streamThread;
         private bool running;
         private static string LevelPath = @"Levels\";
         private static List<string> levels = new List<string>();
+        private const int END_STREAM = 255;
 
         private Level(string levelName)
         {
@@ -200,18 +208,12 @@ namespace Oxygen
             {
                 streamEvent.WaitOne();
 
-                lock (this.streamLock)
-                {
-                    foreach (var stream in streams)
-                    {
-                        stream.Value.StreamData();
-                    }
-                }
+                objectStream.StreamData();
             }
             Console.WriteLine("Streaming {0} Thread ended", Name);
         }
 
-        private void StartStream(Client client)
+        private void StartObjectStream(Client client)
         {
             LevelObjectStream stream = new LevelObjectStream(client);
 
@@ -222,12 +224,43 @@ namespace Oxygen
 
             // We don't need to lock until we share the resource
             // by adding it to the streams.
-            lock (this.streamLock)
+            if (objectStream.Add(client, stream))
             {
-                streams.Add(client, stream);
+                streamEvent.Set();
+            }
+        }
+
+        private void StopObjectStream(Client client)
+        {
+            objectStream.Remove(client);
+
+            Message msg = new Message("LEVEL_SVR", "OBJECT_STREAM");
+            msg.WriteInt(END_STREAM);
+            client.Send(msg);
+        }
+
+        private void StartEventStream(Client client)
+        {
+            LevelEventStream stream = new LevelEventStream(client);
+
+            foreach (var user in this.connected)
+            {
+                stream.UserConnected(user.ID, (string?)user.GetProperty("USER_NAME"));
             }
 
-            streamEvent.Set();
+            if (eventStream.AddStream(client, stream))
+            {
+                streamEvent.Set();
+            }
+        }
+
+        private void StopEventStream(Client client)
+        {
+            eventStream.RemoveStream(client);
+
+            Message msg = new Message("LEVEL_SVR", "EVENT_STREAM");
+            msg.WriteInt(END_STREAM);
+            client.Send(msg);
         }
 
         public void AddClient(Client client)
@@ -235,22 +268,49 @@ namespace Oxygen
             if (!connected.Contains(client))
             {
                 connected.Add(client);
-                StartStream(client);
+
+                eventStream.UserConnected(client.ID, (string?)client.GetProperty("USER_NAME"));
             }
         }
 
         public void RemoveClient(Client client)
         {
+            eventStream.UserDisconnected(client.ID, (string?)client.GetProperty("USER_NAME"));
+
             connected.Remove(client);
 
-            lock (this.streamLock)
-            {
-                streams.Remove(client);
-            }
+            StopEventStream(client);
+            StopObjectStream(client);
 
             if (connected.Count == 0)
             {
                 this.Shutdown();
+            }
+        }
+
+        public void AddStream(Client client, Stream stream)
+        {
+            switch (stream)
+            {
+                case Stream.Object:
+                    StartObjectStream(client);
+                    break;
+                case Stream.Event:
+                    StartEventStream(client);
+                    break;
+            }
+        }
+
+        public void RemoveStream(Client client, Stream stream)
+        {
+            switch (stream)
+            {
+                case Stream.Object:
+                    StopObjectStream(client);
+                    break;
+                case Stream.Event:
+                    StopEventStream(client);
+                    break;
             }
         }
 
@@ -271,13 +331,7 @@ namespace Oxygen
             byte[] bytes = msg2.GetData();
             state.Add(obj.ID, bytes);
 
-            lock (this.streamLock)
-            {
-                foreach (var stream in this.streams)
-                {
-                    stream.Value.AddObject(obj);
-                }
-            }
+            objectStream.AddObject(obj);
 
             streamEvent.Set();
         }
@@ -297,13 +351,7 @@ namespace Oxygen
 
             state[id] = decomprssedData;
 
-            lock (this.streamLock)
-            {
-                foreach (var stream in this.streams)
-                {
-                    stream.Value.UpdateObject(obj);
-                }
-            }
+            objectStream.UpdateObject(obj);
 
             streamEvent.Set();
         }
@@ -315,13 +363,7 @@ namespace Oxygen
                 objects.Remove(obj);
                 objectMap.Remove(id);
 
-                lock (this.streamLock)
-                {
-                    foreach (var stream in this.streams)
-                    {
-                        stream.Value.RemoveObject(id);
-                    }
-                }
+                objectStream.RemoveObject(id);
 
                 streamEvent.Set();
             }

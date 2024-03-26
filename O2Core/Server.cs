@@ -31,12 +31,26 @@ namespace Oxygen
         private readonly object msgLock = new object();
         private readonly Queue<Message> msgs;
         private readonly Dictionary<string, object> properies = new Dictionary<string, object>();
+        private readonly long id;
+        private bool connected;
 
-        public Client(Queue<Message> msgs, object msgLock, EventWaitHandle waitHandle)
+        public Client(Queue<Message> msgs, object msgLock, EventWaitHandle waitHandle, long id)
         {
             this.msgs = msgs;
             this.msgLock = msgLock;
             this.waitHandle = waitHandle;
+            this.id = id;
+            this.connected = true;
+        }
+
+        public long ID => this.id;
+
+        /// <summary>
+        /// Callable on the event queue thread.
+        /// </summary>
+        internal void Disconnect()
+        {
+            this.connected = false;
         }
 
         /// <summary>
@@ -45,15 +59,18 @@ namespace Oxygen
         /// <param name="msg">The message to send.</param>
         public void Send(Message msg)
         {
-            Logger.Instance.Log(">> {0}/{1} {2} bytes", msg.NodeName, msg.MessageName, msg.Length);
-
-            lock (msgLock)
+            if (this.connected)
             {
-                this.msgs.Enqueue(msg);
-            }
+                Logger.Instance.Log(">> {0}/{1} {2} bytes", msg.NodeName, msg.MessageName, msg.Length);
 
-            // Sets the wait handle for Read thread to consume the message queue.
-            waitHandle.Set();
+                lock (msgLock)
+                {
+                    this.msgs.Enqueue(msg);
+                }
+
+                // Sets the wait handle for Read thread to consume the message queue.
+                waitHandle.Set();
+            }
         }
 
         public void RemoveProperty(string name)
@@ -351,6 +368,7 @@ namespace Oxygen
                 throw new ServerException("Failed to start the TcpListener.", ex);
             }
 
+            long clientID = 0;
             while (this.running)
             {
                 TcpClient client = listener.AcceptTcpClient();
@@ -358,7 +376,7 @@ namespace Oxygen
                 var handle = new EventWaitHandle(false, EventResetMode.AutoReset);
                 var msgLock = new object();
                 ClientConnection cli = new ClientConnection(client,
-                    new Client(msgs, msgLock, handle),
+                    new Client(msgs, msgLock, handle, clientID++),
                     handle,
                     msgLock,
                     msgs)

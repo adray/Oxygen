@@ -101,11 +101,14 @@ void Network::JoinLevel(const std::string& name, std::shared_ptr<Level>& level)
     conn->AddSubscriber(sub);
 }
 
-void Network::CloseLevel()
+void Network::ObjectStreamClosed()
 {
     conn->RemoveSubscriber(levelSub);
     levelSub.reset();
+}
 
+void Network::CloseLevel()
+{
     Oxygen::Message request("LEVEL_SVR", "CLOSE_LEVEL");
     request.Prepare();
 
@@ -152,11 +155,12 @@ void Network::OnLevelLoaded(std::shared_ptr<Level>& level)
 {
     level->Loaded();
 
-    conn->AddSubscriber(level);
-    levelSub = level;
+    levelSub = std::shared_ptr<Oxygen::ObjectStream>(new ObjectStream(level, *this));
+    conn->AddSubscriber(levelSub);
+    std::cout << "Opening Object Stream" << std::endl;
 }
 
-void Network::CreateTilemap(std::shared_ptr<Oxygen::ObjectStream> stream, int width, int height)
+void Network::CreateTilemap(int width, int height)
 {
     Oxygen::Object obj = {};
     obj.scale[0] = 1.0;
@@ -164,14 +168,14 @@ void Network::CreateTilemap(std::shared_ptr<Oxygen::ObjectStream> stream, int wi
     obj.scale[2] = 1.0;
     obj.hasCustomData = 1;
 
-    Oxygen::Message msg = stream->BuildAddMessage(obj);
+    Oxygen::Message msg = levelSub->BuildAddMessage(obj);
     msg.WriteString("TILEMAP");
 
     Tilemap tilemap;
     tilemap.Load(width, height);
     tilemap.Serialize(msg);
 
-    stream->PrepareAddMessage(&msg, obj);
+    levelSub->PrepareAddMessage(&msg, obj);
     
     std::shared_ptr<Oxygen::Subscriber> sub = std::shared_ptr<Oxygen::Subscriber>(new Oxygen::Subscriber(msg));
     sub->Signal([this, sub2 = std::shared_ptr<Oxygen::Subscriber>(sub)](Oxygen::Message& response) {
@@ -185,7 +189,7 @@ void Network::CreateTilemap(std::shared_ptr<Oxygen::ObjectStream> stream, int wi
     conn->AddSubscriber(sub);
 }
 
-void Network::UpdateTilemap(Tilemap& tilemap, std::shared_ptr<Oxygen::ObjectStream> stream)
+void Network::UpdateTilemap(Tilemap& tilemap)
 {
     Oxygen::Object obj = {};
     obj.id = tilemap.ID();
@@ -194,11 +198,11 @@ void Network::UpdateTilemap(Tilemap& tilemap, std::shared_ptr<Oxygen::ObjectStre
     obj.scale[2] = 1.0;
     obj.hasCustomData = true;
 
-    Oxygen::Message msg = stream->BuildUpdateMessage(obj);
+    Oxygen::Message msg = levelSub->BuildUpdateMessage(obj);
     msg.WriteString("TILEMAP");
     tilemap.Serialize(msg);
 
-    stream->PrepareUpdateMessage(&msg, obj);
+    levelSub->PrepareUpdateMessage(&msg, obj);
 
     std::shared_ptr<Oxygen::Subscriber> sub = std::shared_ptr<Oxygen::Subscriber>(new Oxygen::Subscriber(msg));
     sub->Signal([this, sub2 = std::shared_ptr<Oxygen::Subscriber>(sub)](Oxygen::Message& response) {

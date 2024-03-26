@@ -9,6 +9,7 @@ namespace Oxygen
     class Message;
     class Subscriber;
     class ObjectStream;
+    class EventStream;
 }
 
 namespace DE
@@ -28,16 +29,20 @@ namespace DE
         void ListLevels(std::vector<std::string>& levels);
         void CreateTilemap(int width, int height);
         void UpdateTilemap(Tilemap& tilemap);
+        void UpdateCursor(int objectId, int subID);
         bool Connected();
         inline bool LoggedIn() const { return loggedIn; }
         void Process();
         void ObjectStreamClosed();
+
+        inline std::shared_ptr<Oxygen::EventStream> EventStream() const { return eventSub; }
     private:
 
         void OnLevelLoaded(std::shared_ptr<Level>& level);
 
         Oxygen::ClientConnection* conn;
         std::shared_ptr<Oxygen::ObjectStream> levelSub;
+        std::shared_ptr<Oxygen::EventStream> eventSub;
         bool disconnect = false;
         bool loggedIn = false;
     };

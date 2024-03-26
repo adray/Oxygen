@@ -34,6 +34,16 @@ void Render::LoadShaders(const std::string& dir, ISLANDER_DEVICE device)
 
     tilemapShader.vertexShader = IslanderLoadVertexShaderEx(device, (dir + std::string("/Tilemap.fx")).c_str(), "TilemapVertex", semantic, 3, nullptr);
     tilemapShader.pixelShader = IslanderLoadPixelShaderEx(device, (dir + std::string("/Tilemap.fx")).c_str(), "TilemapPixel", nullptr);
+
+    semantic[0]._desc = const_cast<char*>("POSITION");
+    semantic[0]._format = ISLANDER_SEMANTIC_FLOAT3;
+    semantic[0]._stream = 0;
+    semantic[1]._desc = const_cast<char*>("COLOR");
+    semantic[1]._format = ISLANDER_SEMANTIC_FLOAT4;
+    semantic[1]._stream = 0;
+
+    lineShader.vertexShader = IslanderLoadVertexShaderEx(device, (dir + std::string("/Crimson.fx")).c_str(), "CrimsonLineVertex", semantic, 2, nullptr);
+    lineShader.pixelShader = IslanderLoadPixelShaderEx(device, (dir + std::string("/Crimson.fx")).c_str(), "CrimsonLinePixel", nullptr);
 }
 
 void Render::CreateConstantBuffers(ISLANDER_DEVICE device, ISLANDER_WINDOW window)

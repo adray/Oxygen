@@ -209,6 +209,7 @@ namespace Oxygen
                 streamEvent.WaitOne();
 
                 objectStream.StreamData();
+                eventStream.StreamData();
             }
             Console.WriteLine("Streaming {0} Thread ended", Name);
         }
@@ -232,6 +233,7 @@ namespace Oxygen
 
         private void StopObjectStream(Client client)
         {
+            // TODO: send close stream only if it is open
             objectStream.Remove(client);
 
             Message msg = new Message("LEVEL_SVR", "OBJECT_STREAM");
@@ -256,6 +258,7 @@ namespace Oxygen
 
         private void StopEventStream(Client client)
         {
+            // TODO: send close stream only if it is open
             eventStream.RemoveStream(client);
 
             Message msg = new Message("LEVEL_SVR", "EVENT_STREAM");
@@ -270,12 +273,14 @@ namespace Oxygen
                 connected.Add(client);
 
                 eventStream.UserConnected(client.ID, (string?)client.GetProperty("USER_NAME"));
+                streamEvent.Set();
             }
         }
 
         public void RemoveClient(Client client)
         {
             eventStream.UserDisconnected(client.ID, (string?)client.GetProperty("USER_NAME"));
+            streamEvent.Set();
 
             connected.Remove(client);
 
@@ -367,6 +372,14 @@ namespace Oxygen
 
                 streamEvent.Set();
             }
+        }
+
+        public void MoveCursor(Client client, Message msg)
+        {
+            eventStream.MoveUserCursor(client.ID,
+                msg.ReadInt(),
+                msg.ReadInt());
+            streamEvent.Set();
         }
     }
 }

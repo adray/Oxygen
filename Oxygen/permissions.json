@@ -149,6 +149,12 @@
       "Message": "EVENT_STREAM",
       "Text": "Permission to open a stream for the events from the level.",
       "Default": "Deny"
+    },
+    {
+      "Node": "LEVEL_SVR",
+      "Message": "UPDATE_CURSOR",
+      "Text": "Permission to update the client cursor for the level.",
+      "Default": "Deny"
     }
   ]
 }

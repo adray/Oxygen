@@ -66,13 +66,13 @@ namespace Oxygen
             }
         }
 
-        public void MoveUserCursor(int id, int objectId)
+        public void MoveUserCursor(long id, int objectId, int subID)
         {
             lock (this.streamLock)
             {
                 foreach (var stream in this.eventStreams)
                 {
-                    stream.Value.MoveUserCursor(id, objectId);
+                    stream.Value.MoveUserCursor(id, objectId, subID);
                 }
             }
         }

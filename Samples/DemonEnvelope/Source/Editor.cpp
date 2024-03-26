@@ -2,6 +2,7 @@
 #include "Network.h"
 #include "imgui.h"
 #include "Window.h"
+#include <EventStream.h>
 #include <memory>
 
 using namespace DE;
@@ -31,16 +32,41 @@ void Editor::Run(float delta, ISLANDER_WINDOW window)
     const int width = IslanderWindowWidth(window);
     const int height = IslanderWindowHeight(window);
 
-    bool click = IslanderGetLeftMouseState(window) == Islander::MOUSE_INPUT_UP && left_down;
-    left_down = IslanderGetLeftMouseState(window) == Islander::MOUSE_INPUT_DOWN;
-    if (click)
+    if (network->LoggedIn())
     {
-        left_down = false;
-
-        if (palette > -1)
+        const int tilemap = level->TileMapHitTest(posX - width / 2, posY - height / 2);
+        if (tilemap >= 0)
         {
-            const int tilemap = level->TileMapHitTest(posX - width / 2, posY - height / 2);
-            if (tilemap >= 0)
+            auto& map = level->GetTilemap();
+            const int cell = map.HitTest(posX - width / 2, posY - height / 2);
+
+            if (cell != cursorTile)
+            {
+                cursorTile = cell;
+                update = true;
+            }
+        }
+
+        cursorTime += delta;
+        if (cursorTime >= 0.1f)
+        {
+            cursorTime = 0.0f;
+
+            if (update)
+            {
+                auto& map = level->GetTilemap();
+                network->UpdateCursor(map.ID(), cursorTile);
+                update = false;
+            }
+        }
+
+        bool click = IslanderGetLeftMouseState(window) == Islander::MOUSE_INPUT_UP && left_down;
+        left_down = IslanderGetLeftMouseState(window) == Islander::MOUSE_INPUT_DOWN;
+        if (click)
+        {
+            left_down = false;
+
+            if (palette > -1)
             {
                 auto& map = level->GetTilemap();
                 const int cell = map.HitTest(posX - width / 2, posY - height / 2);
@@ -52,36 +78,65 @@ void Editor::Run(float delta, ISLANDER_WINDOW window)
                 }
             }
         }
-    }
-    
-    if (IslanderIsKeyDown(window, Islander::KEY_RIGHT))
-    {
-        auto& map = level->GetTilemap();
-        map.SetScrollPos(map.ScrollX() + 5, map.ScrollY());
-        IslanderSetKeyUp(window, Islander::KEY_RIGHT);
-    }
-    else if (IslanderIsKeyDown(window, Islander::KEY_LEFT))
-    {
-        auto& map = level->GetTilemap();
-        map.SetScrollPos(map.ScrollX() - 5, map.ScrollY());
-        IslanderSetKeyUp(window, Islander::KEY_LEFT);
-    }
-    else if (IslanderIsKeyDown(window, Islander::KEY_UP))
-    {
-        auto& map = level->GetTilemap();
-        map.SetScrollPos(map.ScrollX(), map.ScrollY() - 5);
-        IslanderSetKeyUp(window, Islander::KEY_UP);
-    }
-    else if (IslanderIsKeyDown(window, Islander::KEY_DOWN))
-    {
-        auto& map = level->GetTilemap();
-        map.SetScrollPos(map.ScrollX(), map.ScrollY() + 5);
-        IslanderSetKeyUp(window, Islander::KEY_DOWN);
+
+        if (IslanderIsKeyDown(window, Islander::KEY_RIGHT))
+        {
+            auto& map = level->GetTilemap();
+            map.SetScrollPos(map.ScrollX() + 5, map.ScrollY());
+            IslanderSetKeyUp(window, Islander::KEY_RIGHT);
+        }
+        else if (IslanderIsKeyDown(window, Islander::KEY_LEFT))
+        {
+            auto& map = level->GetTilemap();
+            map.SetScrollPos(map.ScrollX() - 5, map.ScrollY());
+            IslanderSetKeyUp(window, Islander::KEY_LEFT);
+        }
+        else if (IslanderIsKeyDown(window, Islander::KEY_UP))
+        {
+            auto& map = level->GetTilemap();
+            map.SetScrollPos(map.ScrollX(), map.ScrollY() - 5);
+            IslanderSetKeyUp(window, Islander::KEY_UP);
+        }
+        else if (IslanderIsKeyDown(window, Islander::KEY_DOWN))
+        {
+            auto& map = level->GetTilemap();
+            map.SetScrollPos(map.ScrollX(), map.ScrollY() + 5);
+            IslanderSetKeyUp(window, Islander::KEY_DOWN);
+        }
     }
 }
 
-void Editor::Draw(float delta, ISLANDER_DEVICE device, ISLANDER_WINDOW window, IslanderImguiContext* cxt)
+void Editor::Draw(float delta, ISLANDER_DEVICE device, ISLANDER_WINDOW window, CRIMSON_HANDLE crimson, IslanderImguiContext* cxt)
 {
+    auto evStream = network->EventStream();
+    if (evStream.get())
+    {
+        const int width = IslanderWindowWidth(window);
+        const int height = IslanderWindowHeight(window);
+
+        for (const Oxygen::EventStream::User& user : evStream->Users())
+        {
+            auto& map = level->GetTilemap();
+            if (user.objectId == map.ID())
+            {
+                float px, py, sx, sy;
+                if (map.GetTileBounds(user.subId, &px, &py, &sx, &sy))
+                {
+                    px /= width;
+                    py /= height;
+                    sx /= width;
+                    sy /= height;
+
+                    CrimsonSetPos(crimson, px + 0.5f, py + 0.5f);
+
+                    float colour[4] = { 1.0f, 0.0f, 0.0f, 0.5f };
+                    float border[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+                    CrimsonFilledRect(crimson, sx, sy, colour, 1.0f, border);
+                }
+            }
+        }
+    }
+
     if (ImGui::Begin("Options"))
     {
         if (ImGui::Button("Bordered mode"))

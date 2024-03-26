@@ -92,18 +92,39 @@ int Message::ReadInt32()
         (d << 24);
 }
 
+std::int64_t Message::ReadInt64()
+{
+    std::int64_t a = *(_it++);
+    std::int64_t b = *(_it++);
+    std::int64_t c = *(_it++);
+    std::int64_t d = *(_it++);
+    std::int64_t e = *(_it++);
+    std::int64_t f = *(_it++);
+    std::int64_t g = *(_it++);
+    std::int64_t h = *(_it++);
+
+    return a |
+        (b << 8) |
+        (c << 16) |
+        (d << 24) |
+        (e << 32) |
+        (f << 40) |
+        (g << 48) |
+        (h << 56);
+}
+
 double Message::ReadDouble()
 {
-    int64_t a = *(_it++);
-    int64_t b = *(_it++);
-    int64_t c = *(_it++);
-    int64_t d = *(_it++);
-    int64_t e = *(_it++);
-    int64_t f = *(_it++);
-    int64_t g = *(_it++);
-    int64_t h = *(_it++);
+    std::int64_t a = *(_it++);
+    std::int64_t b = *(_it++);
+    std::int64_t c = *(_it++);
+    std::int64_t d = *(_it++);
+    std::int64_t e = *(_it++);
+    std::int64_t f = *(_it++);
+    std::int64_t g = *(_it++);
+    std::int64_t h = *(_it++);
 
-    const int64_t val = a |
+    const std::int64_t val = a |
         (b << 8) |
         (c << 16) |
         (d << 24) |
@@ -131,7 +152,7 @@ void Message::WriteInt32(int value)
 
 void Message::WriteDouble(double value)
 {
-    int64_t* val = reinterpret_cast<int64_t*>(&value);
+    std::int64_t* val = reinterpret_cast<std::int64_t*>(&value);
     _data.push_back(*val & 0xFF);
     _data.push_back((*val >> 8) & 0xFF);
     _data.push_back((*val >> 16) & 0xFF);

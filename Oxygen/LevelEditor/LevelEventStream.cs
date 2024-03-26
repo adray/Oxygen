@@ -38,12 +38,13 @@ namespace Oxygen
             events.Enqueue(message);
         }
 
-        public void MoveUserCursor(long id, int objectID)
+        public void MoveUserCursor(long id, int objectID, int subID)
         {
             Message message = new Message("LEVEL_SVR", "EVENT_STREAM");
             message.WriteInt(MOVE_USER_CURSOR);
             message.WriteInt64(id);
             message.WriteInt(objectID);
+            message.WriteInt(subID);
             events.Enqueue(message);
         }
 

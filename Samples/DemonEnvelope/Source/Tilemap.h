@@ -55,6 +55,8 @@ namespace DE
 
         inline int NumTiles() const { return _width * _height; }
 
+        bool GetTileBounds(int tile, float* px, float* py, float* sx, float* sy);
+
         void Clear();
 
         ~Tilemap();

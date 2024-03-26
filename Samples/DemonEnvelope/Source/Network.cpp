@@ -3,6 +3,8 @@
 #include "Subscriber.h"
 #include "Level.h"
 #include "DeltaCompress.h"
+#include "EventStream.h"
+#include "ObjectStream.h"
 #include <iostream>
 
 using namespace DE;
@@ -155,9 +157,13 @@ void Network::OnLevelLoaded(std::shared_ptr<Level>& level)
 {
     level->Loaded();
 
-    levelSub = std::shared_ptr<Oxygen::ObjectStream>(new ObjectStream(level, *this));
+    levelSub = std::shared_ptr<Oxygen::ObjectStream>(new DE::ObjectStream(level, *this));
     conn->AddSubscriber(levelSub);
     std::cout << "Opening Object Stream" << std::endl;
+
+    eventSub = std::shared_ptr<Oxygen::EventStream>(new DE::EventStream());
+    conn->AddSubscriber(eventSub);
+    std::cout << "Opening Event Stream" << std::endl;
 }
 
 void Network::CreateTilemap(int width, int height)
@@ -203,6 +209,25 @@ void Network::UpdateTilemap(Tilemap& tilemap)
     tilemap.Serialize(msg);
 
     levelSub->PrepareUpdateMessage(&msg, obj);
+
+    std::shared_ptr<Oxygen::Subscriber> sub = std::shared_ptr<Oxygen::Subscriber>(new Oxygen::Subscriber(msg));
+    sub->Signal([this, sub2 = std::shared_ptr<Oxygen::Subscriber>(sub)](Oxygen::Message& response) {
+        if (response.ReadString() == "NACK")
+        {
+            std::cout << response.ReadInt32() << " " << response.ReadString() << std::endl;
+        }
+
+        conn->RemoveSubscriber(sub2);
+        });
+    conn->AddSubscriber(sub);
+}
+
+void Network::UpdateCursor(int objectId, int subID)
+{
+    Oxygen::Message msg("LEVEL_SVR", "UPDATE_CURSOR");
+    msg.WriteInt32(objectId);
+    msg.WriteInt32(subID);
+    msg.Prepare();
 
     std::shared_ptr<Oxygen::Subscriber> sub = std::shared_ptr<Oxygen::Subscriber>(new Oxygen::Subscriber(msg));
     sub->Signal([this, sub2 = std::shared_ptr<Oxygen::Subscriber>(sub)](Oxygen::Message& response) {

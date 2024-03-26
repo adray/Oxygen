@@ -16,6 +16,7 @@ namespace Oxygen
         void WriteDouble(double value);
         const std::string ReadString();
         int ReadInt32();
+        std::int64_t ReadInt64();
         double ReadDouble();
         void ReadBytes(int numBytes, unsigned char* bytes);
         void Prepare();

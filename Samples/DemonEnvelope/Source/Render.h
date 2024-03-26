@@ -13,6 +13,10 @@ namespace DE
         void RenderFrame(ISLANDER_DEVICE device, std::shared_ptr<Level>& level);
         void LoadShaders(const std::string& dir, ISLANDER_DEVICE device);
         void CreateConstantBuffers(ISLANDER_DEVICE device, ISLANDER_WINDOW window);
+
+        inline int LineVertexShader() const { return lineShader.vertexShader; }
+        inline int LinePixelShader() const { return lineShader.pixelShader; }
+
     private:
         ISLANDER_PASS_LIST passlist;
         IslanderRenderable renderable[128];
@@ -32,5 +36,6 @@ namespace DE
         };
 
         Shader tilemapShader;
+        Shader lineShader;
     };
 };

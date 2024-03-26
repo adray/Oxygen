@@ -199,6 +199,26 @@ void Tilemap::SetScrollPos(int x, int y)
     _scrollY = std::max(0, std::min(_height-_viewheight, y));
 }
 
+bool Tilemap::GetTileBounds(int tile, float* px, float* py, float* sx, float* sy)
+{
+    int x = tile % _width;
+    int y = tile / float(_width);
+
+    x -= _scrollX;
+    y -= _scrollY;
+    if (x >= 0 && y >= 0 &&
+        x < _viewwidth && y < _viewheight)
+    {
+        *px = x * _tileWidth * 4;
+        *py = y * _tileHeight * 4;
+        *sx = _tileWidth * 4;
+        *sy = _tileHeight * 4;
+        return true;
+    }
+
+    return false;
+}
+
 void Tilemap::Serialize(Oxygen::Message& msg)
 {
     const int tileSize = _width * _height * sizeof(int);

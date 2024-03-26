@@ -23,6 +23,15 @@ void GameApplication::OnStart()
     IslanderInitializeDevice(device, window, defaultFont);
     //IslanderInitializeGPUPerformanceCounters(device);
 
+    CRIMSON_HANDLE crimson = CrimsonInitialize();
+    CrimsonWindow* cWin;
+    CrimsonGetWindow(crimson, &cWin);
+    cWin->width = IslanderWindowWidth(window);
+    cWin->height = IslanderWindowHeight(window);
+
+    CrimsonMouseInput* cInput;
+    CrimsonGetMouseInput(crimson, &cInput);
+
     ISLANDER_SOUND_PLAYER audioPlayer = IslanderCreateSoundPlayer(window);
     assert(IslanderIsSoundPlayerInitialized(audioPlayer));
     int soundEffectCategory = IslanderCreateSoundCategory(audioPlayer);
@@ -63,16 +72,25 @@ void GameApplication::OnStart()
     render->SetupPasses();
     render->SetupCamera();
 
+    IslanderUISettings settings = {};
+    settings.linePixelShader = render->LinePixelShader();
+    settings.lineVertexShader = render->LineVertexShader();
+    settings.filledRectPixelShader = render->LineVertexShader();
+    settings.filledRectVertexShader = render->LineVertexShader();
+    IslanderSetUISettings(device, &settings);
+
     while (IslanderPumpWindow(window))
     {
         editor.Run(1 / 60.0f, window);
 
+        CrimsonFrame(crimson);
         IslanderImguiNewFrame(device, &context);
         ImGui::NewFrame();
-        editor.Draw(1 / 60.0f, device, window, &context);
+        editor.Draw(1 / 60.0f, device, window, crimson, &context);
 
         // Render here
         render->RenderFrame(device, editor.GetLevel());
+        IslanderRenderUI(device, crimson);
 
         ImGui::Render();
         IslanderImguiRender(device, &context);

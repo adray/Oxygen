@@ -67,6 +67,7 @@ namespace Oxygen
                 if (levels.TryGetValue(levelName, out Level? level) && level != null)
                 {
                     client.SetProperty("LEVEL", level);
+                    level.AddClient(client);
                     SendAck(client, messageName);
                 }
                 else
@@ -76,6 +77,7 @@ namespace Oxygen
                     if (level != null)
                     {
                         levels.Add(levelName, level);
+                        level.AddClient(client);
                         client.SetProperty("LEVEL", level);
                         SendAck(client, messageName);
                     }
@@ -152,6 +154,14 @@ namespace Oxygen
                 if (level != null)
                 {
                     level.AddStream(client, Level.Stream.Event);
+                }
+            }
+            else if (messageName == "UPDATE_CURSOR")
+            {
+                Level? level = client.GetProperty("LEVEL") as Level;
+                if (level != null)
+                {
+                    level.MoveCursor(client, msg);
                 }
             }
             else

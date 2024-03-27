@@ -1,0 +1,37 @@
+﻿@page "/"
+
+@using Oxygen
+
+@code
+{
+    private ClientConnection clientConnection = new ClientConnection("localhost", 9888);
+
+    private bool LoggedIn { get; set; }
+    private string Username { get; set; }
+    private byte[] Password { get; set; }
+
+    private void Login()
+    {
+        try
+        {
+            clientConnection.Login(Username, Password);
+        }
+        catch (ClientException)
+        {
+            
+        }
+    }
+}
+
+<h1>Login</h1>
+
+<label for="username">Username:</label>
+<input type="text" id="username"  />
+<br />
+<label for="password">Password:</label>
+<input type="password" id="password" />
+<br />
+<input type="submit" value="Submit">
+
+<p role="status">Current count: @Username</p>
+<button class="btn btn-primary" @onclick="Login">Login</button>

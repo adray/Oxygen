@@ -49,6 +49,10 @@ namespace DE
 
         inline void SetID(int id) { _id = id; }
 
+        inline void SetVersion(int version) { _version = version; }
+
+        inline int Version() const { return _version; }
+
         inline int ScrollX() const { return _scrollX; }
 
         inline int ScrollY() const { return _scrollY; }
@@ -65,6 +69,7 @@ namespace DE
         void AddTile(int& vertexPos, int& indexPos, int& vertexID, int x, int y);
 
         int _id;
+        int _version;
         std::shared_ptr<Tileset> _tileset;
         ConstantBuffer* _constant;
         int* _tiles;

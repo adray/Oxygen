@@ -37,6 +37,7 @@ void ObjectStream::OnUpdateObject(const Oxygen::Object& ev, Oxygen::Message& msg
         auto& tilemap = _level->GetTilemap();
         if (tilemap.ID() == ev.id)
         {
+            tilemap.SetVersion(ev.version);
             tilemap.Deserialize(msg);
 
             std::cout << "Tilemap num tiles: " << tilemap.NumTiles() << std::endl;

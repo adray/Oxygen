@@ -58,6 +58,7 @@
             Message msg2 = new Message("LEVEL_SVR", "OBJECT_STREAM");
             msg2.WriteInt(UPDATE_OBJECT);
             msg2.WriteInt(obj.ID);
+            msg2.WriteInt(obj.Version);
             msg2.WriteInt(compressBytes.Length);
             msg2.WriteBytes(compressBytes);
 

@@ -5,10 +5,23 @@
         private Transform transform;
         private byte[]? customData;
         private int id;
+        private int version;
 
         public LevelObject()
         {
             this.transform = new Transform();
+        }
+
+        public int Version
+        {
+            get
+            {
+                return this.version;
+            }
+            set
+            {
+                this.version = value;
+            }
         }
 
         public int ID

@@ -199,6 +199,7 @@ void Network::UpdateTilemap(Tilemap& tilemap)
 {
     Oxygen::Object obj = {};
     obj.id = tilemap.ID();
+    obj.version = tilemap.Version();
     obj.scale[0] = 1.0;
     obj.scale[1] = 1.0;
     obj.scale[2] = 1.0;

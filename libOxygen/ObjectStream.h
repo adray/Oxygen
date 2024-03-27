@@ -6,6 +6,7 @@ namespace Oxygen
     struct Object
     {
         int id;
+        int version;
         double pos[3];
         double scale[3];
         double rot[3];

@@ -137,7 +137,11 @@ namespace Oxygen
                 Level? level = client.GetProperty("LEVEL") as Level;
                 if (level != null)
                 {
-                    level.AddObject(msg);
+                    level.AddObject(client, msg);
+                }
+                else
+                {
+                    SendNack(client, 100, "No level opened.", msg.MessageName);
                 }
             }
             else if (messageName == "UPDATE_OBJECT")
@@ -145,7 +149,11 @@ namespace Oxygen
                 Level? level = client.GetProperty("LEVEL") as Level;
                 if (level != null)
                 {
-                    level.UpdateObject(msg);
+                    level.UpdateObject(client, msg);
+                }
+                else
+                {
+                    SendNack(client, 100, "No level opened.", msg.MessageName);
                 }
             }
             else if (messageName == "EVENT_STREAM")
@@ -162,6 +170,11 @@ namespace Oxygen
                 if (level != null)
                 {
                     level.MoveCursor(client, msg);
+                    SendAck(client, msg.MessageName);
+                }
+                else
+                {
+                    SendNack(client, 100, "No level opened.", msg.MessageName);
                 }
             }
             else

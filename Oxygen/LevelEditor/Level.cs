@@ -319,7 +319,7 @@ namespace Oxygen
             }
         }
 
-        public void AddObject(Message msg)
+        public void AddObject(Client client, Message msg)
         {
             LevelObject obj = new LevelObject();
 
@@ -339,26 +339,47 @@ namespace Oxygen
             objectStream.AddObject(obj);
 
             streamEvent.Set();
+
+            Message response = new Message(msg.NodeName, msg.MessageName);
+            response.WriteString("ACK");
+            client.Send(response);
         }
         
-        public void UpdateObject(Message msg)
+        public void UpdateObject(Client client, Message msg)
         {
             int id = msg.ReadInt();
+            int version = msg.ReadInt();
 
             var obj = objectMap[id];
+            if (version == obj.Version)
+            {
+                obj.Version++;
 
-            byte[] initialData = state[id];
-            byte[] decomprssedData = DeltaCompress.Decompress(initialData, msg.ReadByteArray());
-            Message msg2 = new Message(decomprssedData);
-            msg2.ReadInt(); // type
-            msg2.ReadInt(); // id
-            obj.Deserialize(msg2);
+                byte[] initialData = state[id];
+                byte[] decomprssedData = DeltaCompress.Decompress(initialData, msg.ReadByteArray());
+                Message msg2 = new Message(decomprssedData);
+                msg2.ReadInt(); // type
+                msg2.ReadInt(); // id
+                obj.Deserialize(msg2);
 
-            state[id] = decomprssedData;
+                state[id] = decomprssedData;
 
-            objectStream.UpdateObject(obj);
+                objectStream.UpdateObject(obj);
 
-            streamEvent.Set();
+                streamEvent.Set();
+
+                Message response = new Message(msg.NodeName, msg.MessageName);
+                response.WriteString("ACK");
+                client.Send(response);
+            }
+            else
+            {
+                Message response = new Message(msg.NodeName, msg.MessageName);
+                response.WriteString("NACK");
+                response.WriteInt(100);
+                response.WriteString("Version number is out of date.");
+                client.Send(response);
+            }
         }
 
         public void RemoveObject(int id)

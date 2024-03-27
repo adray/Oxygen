@@ -67,6 +67,7 @@ void ObjectStream::NewObject(Message& msg)
 void ObjectStream::UpdateObject(Message& msg)
 {
     const int id = msg.ReadInt32();
+    const int version = msg.ReadInt32();
 
     const int numBytes = msg.ReadInt32();
     unsigned char* data = new unsigned char[numBytes];
@@ -84,6 +85,7 @@ void ObjectStream::UpdateObject(Message& msg)
     const int msgType = decompressedMessage.ReadInt32();
 
     Object ev = { };
+    ev.version = version;
     ev.id = decompressedMessage.ReadInt32();
     ev.pos[0] = decompressedMessage.ReadDouble();
     ev.pos[1] = decompressedMessage.ReadDouble();
@@ -180,6 +182,7 @@ void ObjectStream::PrepareUpdateMessage(Message* msg, const Object& obj)
     {
         Oxygen::Message msg2("LEVEL_SVR", "UPDATE_OBJECT");
         msg2.WriteInt32(obj.id);
+        msg2.WriteInt32(obj.version);
         msg2.WriteBytes(numBytes, newData);
         delete[] newData;
 

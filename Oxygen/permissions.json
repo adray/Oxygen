@@ -61,6 +61,12 @@
       "Default": "Deny"
     },
     {
+      "Node": "USER_SVR",
+      "Message": "ADD_USER_TO_GROUP",
+      "Text": "Permission to add a user to a user group.",
+      "Default": "Deny"
+    },
+    {
       "Node": "ASSET_SVR",
       "Message": "ASSET_LIST",
       "Text": "Permission to list the assets on the server.",

@@ -32,40 +32,7 @@ namespace Oxygen
             {
                 if (args[0] == "setup")
                 {
-                    Console.WriteLine("Performing initial setup");
-                    Console.WriteLine("Creating root user");
-                    Console.Write("Password: ");
-
-                    string password = string.Empty;
-                    for (; ; )
-                    {
-                        var keyInfo = Console.ReadKey(true);
-                        if (keyInfo.Key == ConsoleKey.Enter)
-                        {
-                            break;
-                        }
-                        else if (keyInfo.Key == ConsoleKey.Backspace)
-                        {
-                            password = password.Remove(password.Length - 1);
-                        }
-                        else
-                        {
-                            password += keyInfo.KeyChar;
-                        }
-                    }
-                    Console.WriteLine();
-
-                    Authorizer.LoadPermissions();
-                    Users users = new Users();
-                    User? user = users.CreateUser("root", password);
-
-                    if (user != null)
-                    {
-                        // Enable standard root features
-                        Authorizer.SetPermission(user, "USER_SVR", "SET_PERMISSION", Authorizer.PermissionAttribute.Allow);
-                        Authorizer.SetPermission(user, "USER_SVR", "CREATE_USER", Authorizer.PermissionAttribute.Allow);
-                        Authorizer.SetPermission(user, "USER_SVR", "DELETE_USER", Authorizer.PermissionAttribute.Allow);
-                    }
+                    Setup.Install();
                 }
             }
         }

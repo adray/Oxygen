@@ -12,6 +12,7 @@ namespace Oxygen
     {
         private readonly Dictionary<string, User> users = new Dictionary<string, User>();
         private readonly Dictionary<string, User> apiUsers = new Dictionary<string, User>();
+        private readonly Dictionary<string, UserGroup> userGroups = new Dictionary<string, UserGroup>();
         private int userId;
 
         private const string userFile = @"Data\users.data";
@@ -46,6 +47,8 @@ namespace Oxygen
                 {
                     using (BinaryReader reader = new BinaryReader(stream))
                     {
+                        Dictionary<int, User> usersById = new Dictionary<int, User>();
+
                         int numUsers = reader.ReadInt32();
                         for (int i = 0; i < numUsers; i++)
                         {
@@ -57,7 +60,29 @@ namespace Oxygen
 
                             userId = Math.Max(userId, id + 1);
 
-                            users.Add(username, new User(username, password, id));
+                            User user = new User(username, password, id);
+                            users.Add(username, user);
+                            usersById.Add(id, user);
+                        }
+
+                        if (stream.Position < stream.Length)
+                        {
+                            int numUserGroups = reader.ReadInt32();
+                            for (int i = 0; i < numUserGroups; i++)
+                            {
+                                string name = reader.ReadString();
+                                UserGroup userGroup = new UserGroup(name);
+                                numUsers = reader.ReadInt32();
+                                for (int j = 0; j < numUsers; j++)
+                                {
+                                    int id = reader.ReadInt32();
+                                    if (usersById.TryGetValue(id, out User? user) && user != null)
+                                    {
+                                        userGroup.AddUser(user);
+                                    }
+                                }
+                                userGroups.Add(name, userGroup);
+                            }
                         }
                     }
                 }
@@ -100,6 +125,18 @@ namespace Oxygen
                         writer.Write(user.Value.Name);
                         writer.Write(user.Value.Password.Length);
                         writer.Write(user.Value.Password);
+                    }
+
+                    writer.Write(userGroups.Count);
+                    foreach (var userGroup in userGroups)
+                    {
+                        writer.Write(userGroup.Value.Name);
+                        IList<User> users = userGroup.Value.Users;
+                        writer.Write(users.Count);
+                        foreach (var user in users)
+                        {
+                            writer.Write(user.Id);
+                        }
                     }
                 }
             }
@@ -159,13 +196,82 @@ namespace Oxygen
             return apiKey;
         }
 
+        public static IList<UserGroup> GetUserGroups(string username)
+        {
+            IList<UserGroup> groups = new List<UserGroup>();
+
+            foreach (var group in groups)
+            {
+                foreach (var user in group.Users)
+                {
+                    if (user.Name == username)
+                    {
+                        groups.Add(group);
+                        break;
+                    }
+                }
+            }
+
+            return groups;
+        }
+
+        public UserGroup? CreateUserGroup(string name)
+        {
+            UserGroup userGroup = new UserGroup(name);
+            userGroups.Add(name, userGroup);
+            Audit.Instance.Log("New user group created {0}.", name);
+            WriteUserData();
+            return userGroup;
+        }
+
+        public bool DeleteUserGroup(string name)
+        {
+            if (userGroups.Remove(name))
+            {
+                Audit.Instance.Log("User group {0} deleted", name);
+                WriteUserData();
+                return true;
+            }
+            return false;
+        }
+
+        public bool AddUserToGroup(string username, string userGroupName)
+        {
+            if (users.TryGetValue(username, out User? user) && user != null &&
+                userGroups.TryGetValue(userGroupName, out UserGroup? userGroup) && userGroup != null)
+            {
+                userGroup.AddUser(user);
+                Audit.Instance.Log("User {0} added to user group {1}.", username, userGroupName);
+                WriteUserData();
+                return true;
+            }
+            return false;
+        }
+
+        public bool RemoveUserToGroup(string username, string userGroupName)
+        {
+            if (users.TryGetValue(username, out User? user) && user != null &&
+                userGroups.TryGetValue(userGroupName, out UserGroup? userGroup) && userGroup != null)
+            {
+                userGroup.RemoveUser(user);
+                Audit.Instance.Log("User {0} removed from user group {1}", username, userGroup);
+                WriteUserData();
+                return true;
+            }
+            return false;
+        }
+
         public User? CreateUser(string name, byte[] password)
         {
             User user = new User(name, password, userId++);
-            users.Add(name, user);
-            Audit.Instance.Log("New user created {0}.", name);
-            WriteUserData();
-            return user;
+            if (!users.ContainsKey(name))
+            {
+                users.Add(name, user);
+                Audit.Instance.Log("New user created {0}.", name);
+                WriteUserData();
+                return user;
+            }
+            return null;
         }
 
         public User? CreateUser(string name, string password)

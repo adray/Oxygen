@@ -30,6 +30,9 @@ namespace O2
                     case "user":
                         UserCommand(args);
                         break;
+                    case "group":
+                        GroupCommand(args);
+                        break;
                     case "set-permission":
                         SetPermissionCommand(args);
                         break;
@@ -44,22 +47,23 @@ namespace O2
             else
             {
                 Console.WriteLine("Help");
-                Console.WriteLine("o2 login                                                 Tests login");
-                Console.WriteLine("o2 api-key create                                        Create an api key used to login");
-                Console.WriteLine("o2 api-key revoke username                               Revokes all api keys for the specified user");
-                Console.WriteLine("o2 user create                                           Create a new user");
-                Console.WriteLine("o2 user delete username                                  Deletes a user");
-                Console.WriteLine("o2 user list                                             Lists the users in the system");
-                Console.WriteLine("o2 user reset                                            Reset the users password");
-                Console.WriteLine("o2 asset patch                                           Downloads the latest version of each asset");
-                Console.WriteLine("o2 asset upload myAsset.png                              Uploads an asset of the file specified");
-                Console.WriteLine("o2 asset download myAsset.png                            Downloads an asset of the file specified");
-                Console.WriteLine("o2 asset list                                            Lists the assets stored on the server");
-                Console.WriteLine("o2 asset history myAsset.png                             Lists the revision history of the asset specified");
-                Console.WriteLine("o2 asset restore myAsset.png 10                          Restores the specified asset at the revision specified");
-                Console.WriteLine("o2 set-permission user LOGIN_SVR CREATE_API_KEY allow    Sets a permission for a particular operation");
-                Console.WriteLine("                                                         Options: Allow/Deny/Default");
-                Console.WriteLine("o2 get-permission user                                   Gets the permissions for the specified user");
+                Console.WriteLine("o2 login                                                         Tests login");
+                Console.WriteLine("o2 api-key create                                                Create an api key used to login");
+                Console.WriteLine("o2 api-key revoke <username>                                     Revokes all api keys for the specified user");
+                Console.WriteLine("o2 user create                                                   Create a new user");
+                Console.WriteLine("o2 user delete <username>                                        Deletes a user");
+                Console.WriteLine("o2 user list                                                     Lists the users in the system");
+                Console.WriteLine("o2 user reset                                                    Reset the users password");
+                Console.WriteLine("o2 group add <group> <username>                                  Adds a user to a user group");
+                Console.WriteLine("o2 asset patch                                                   Downloads the latest version of each asset");
+                Console.WriteLine("o2 asset upload <myAsset.png>                                    Uploads an asset of the file specified");
+                Console.WriteLine("o2 asset download <myAsset.png>                                  Downloads an asset of the file specified");
+                Console.WriteLine("o2 asset list                                                    Lists the assets stored on the server");
+                Console.WriteLine("o2 asset history <myAsset.png>                                   Lists the revision history of the asset specified");
+                Console.WriteLine("o2 asset restore <myAsset.png> <10>                              Restores the specified asset at the revision specified");
+                Console.WriteLine("o2 set-permission <user> <LOGIN_SVR> <CREATE_API_KEY> <allow>    Sets a permission for a particular operation");
+                Console.WriteLine("                                                                 Options: Allow/Deny/Default");
+                Console.WriteLine("o2 get-permission <user>                                         Gets the permissions for the specified user");
             }
         }
 
@@ -345,6 +349,40 @@ namespace O2
                     {
                         Console.WriteLine(ex.Message);
                     }
+                }
+            }
+        }
+
+        static void GroupCommand(string[] args)
+        {
+            if (args.Length > 1)
+            {
+                switch (args[1])
+                {
+                    case "add":
+                        AddUserToGroupCommand(args);
+                        break;
+                }
+            }
+        }
+
+        static void AddUserToGroupCommand(string[] args)
+        {
+            if (args.Length > 3)
+            {
+                string group = args[2];
+                string username = args[3];
+
+                ClientConnection cli = StartClient();
+
+                try
+                {
+                    LoginWithAPIKey(cli);
+                    cli.AddUserToGroup(username, group);
+                }
+                catch (ClientException ex)
+                {
+                    Console.WriteLine(ex.Message);
                 }
             }
         }

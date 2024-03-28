@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -28,6 +29,7 @@ namespace Oxygen
         private const string authorizationData = @"Data\auth.data";
         private static readonly Dictionary<string, Permission> permissions = new Dictionary<string, Permission>();
         private static readonly Dictionary<string, PermissionAttribute> userPermissions = new Dictionary<string, PermissionAttribute>();
+        private static readonly Dictionary<string, PermissionAttribute> groupPermissions = new Dictionary<string, PermissionAttribute>();
 
         public static void LoadAuthorizationData()
         {
@@ -50,6 +52,18 @@ namespace Oxygen
 
                             userPermissions.Add(key, permission);
                         }
+
+                        if (stream.Position < stream.Length)
+                        {
+                            numPermissions = reader.ReadInt32();
+                            for (int i = 0; i < numPermissions; i++)
+                            {
+                                string key = reader.ReadString();
+                                PermissionAttribute permission = (PermissionAttribute)reader.ReadInt32();
+
+                                groupPermissions.Add(key, permission);
+                            }
+                        }
                     }
                 }
             }
@@ -67,10 +81,37 @@ namespace Oxygen
                         writer.Write(permission.Key);
                         writer.Write((int)permission.Value);
                     }
+
+                    writer.Write(groupPermissions.Count);
+                    foreach (var permission in groupPermissions)
+                    {
+                        writer.Write(permission.Key);
+                        writer.Write((int)permission.Value);
+                    }
                 }
             }
         }
-        
+
+        public static bool SetPermission(UserGroup userGroup, string node, string message, PermissionAttribute permission)
+        {
+            if (permissions.TryGetValue(node + "." + message, out _))
+            {
+                string key = userGroup.Name + "." + node + "." + message;
+                groupPermissions[key] = permission;
+                SaveAuthorizationData();
+                return true;
+            }
+
+            return false;
+        }
+
+        public static void RemovePermission(UserGroup userGroup, string node, string message)
+        {
+            string key = userGroup.Name + "." + node + "." + message;
+            groupPermissions.Remove(key);
+            SaveAuthorizationData();
+        }
+
         public static bool SetPermission(User user, string node, string message, PermissionAttribute permission)
         {
             if (permissions.TryGetValue(node + "." + message, out _))
@@ -97,6 +138,15 @@ namespace Oxygen
             if (userPermissions.TryGetValue(key, out PermissionAttribute attribute))
             {
                 return attribute == PermissionAttribute.Allow ? true : false;
+            }
+
+            foreach (var group in Users.GetUserGroups(user.Name))
+            {
+                string groupKey = group.Name + "." + node + "." + message;
+                if (groupPermissions.TryGetValue(groupKey, out PermissionAttribute groupAttribute))
+                {
+                    return groupAttribute == PermissionAttribute.Allow ? true : false;
+                }
             }
 
             if (permissions.TryGetValue(node + "." + message, out Permission? permission))
@@ -157,11 +207,7 @@ namespace Oxygen
 
         private static void SendNack(Client client, int errorCode, string msg, Message message)
         {
-            Message response = new Message(message.NodeName, message.MessageName);
-            response.WriteString("NACK");
-            response.WriteInt(errorCode);
-            response.WriteString(msg);
-            client.Send(response);
+            client.Send(Response.Nack(message.NodeName, errorCode, msg, message.MessageName));
         }
 
         public static void LoadPermissions()

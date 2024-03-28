@@ -153,6 +153,20 @@ namespace Oxygen
 
                 client.Send(response);
             }
+            else if (msg.MessageName == "ADD_USER_TO_GROUP")
+            {
+                string username = msg.ReadString();
+                string userGroup = msg.ReadString();
+
+                if (Users.Instance.AddUserToGroup(username, userGroup))
+                {
+                    client.Send(Response.Ack(this, msg.MessageName));
+                }
+                else
+                {
+                    client.Send(Response.Nack(this, 200, "Could not add user to user group.", msg.MessageName));
+                }
+            }
             else
             {
                 SendNack(client, 100, $"Invalid request.", msg.MessageName);

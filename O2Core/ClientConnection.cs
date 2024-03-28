@@ -468,5 +468,15 @@ namespace Oxygen
 
             return summary;
         }
+
+        public void AddUserToGroup(string username, string group)
+        {
+            Message msg = new Message("USER_SVR", "ADD_USER_TO_GROUP");
+            msg.WriteString(username);
+            msg.WriteString(group);
+            Send(msg.GetData());
+
+            CheckAck();
+        }
     }
 }

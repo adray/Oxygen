@@ -97,6 +97,12 @@
       "Default": "Deny"
     },
     {
+      "Node": "USER_SVR",
+      "Message": "DELETE_USER_GROUP",
+      "Text": "Permission to delete a user group.",
+      "Default": "Deny"
+    },
+    {
       "Node": "ASSET_SVR",
       "Message": "ASSET_LIST",
       "Text": "Permission to list the assets on the server.",

@@ -422,6 +422,9 @@ namespace O2
                     case "create":
                         CreateUserGroup(args);
                         break;
+                    case "delete":
+                        DeleteUserGroup(args);
+                        break;
                 }
             }
             else
@@ -473,6 +476,31 @@ namespace O2
             catch (ClientException ex)
             {
                 Console.WriteLine(ex.Message);
+            }
+        }
+
+        static void DeleteUserGroup(string[] args)
+        {
+            if (args.Length > 2)
+            {
+                string group = args[2];
+
+                ClientConnection cli = StartClient();
+
+                try
+                {
+                    LoginWithAPIKey(cli);
+
+                    cli.DeleteUserGroup(group);
+                }
+                catch (ClientException ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
+            }
+            else
+            {
+                Console.WriteLine("Invalid command");
             }
         }
 

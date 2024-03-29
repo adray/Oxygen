@@ -224,11 +224,16 @@ namespace Oxygen
 
         public UserGroup? CreateUserGroup(string name)
         {
-            UserGroup userGroup = new UserGroup(name);
-            userGroups.Add(name, userGroup);
-            Audit.Instance.Log("New user group created {0}.", name);
-            WriteUserData();
-            return userGroup;
+            if (!userGroups.ContainsKey(name))
+            {
+                UserGroup userGroup = new UserGroup(name);
+                userGroups.Add(name, userGroup);
+                Audit.Instance.Log("New user group created {0}.", name);
+                WriteUserData();
+                return userGroup;
+            }
+
+            return null;
         }
 
         public bool DeleteUserGroup(string name)

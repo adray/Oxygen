@@ -74,6 +74,12 @@ namespace Oxygen
                         break;
                     }
 
+                case "DELETE_USER_GROUP":
+                    {
+                        DeleteUserGroup(client, msg);
+                        break;
+                    }
+
                 case "ADD_USER_TO_GROUP":
                     {
                         AddUserToGroup(client, msg);
@@ -101,6 +107,20 @@ namespace Oxygen
                 default:
                     SendNack(client, 100, $"Invalid request.", msg.MessageName);
                     break;
+            }
+        }
+
+        private void DeleteUserGroup(Client client, Message msg)
+        {
+            string name = msg.ReadString();
+
+            if (users.DeleteUserGroup(name))
+            {
+                SendAck(client, msg.MessageName);
+            }
+            else
+            {
+                SendNack(client, 100, "Unable to delete user group.", msg.MessageName);
             }
         }
 

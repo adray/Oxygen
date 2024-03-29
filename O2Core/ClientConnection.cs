@@ -556,5 +556,14 @@ namespace Oxygen
 
             CheckAck();
         }
+
+        public void DeleteUserGroup(string name)
+        {
+            Message msg = new Message("USER_SVR", "DELETE_USER_GROUP");
+            msg.WriteString(name);
+            Send(msg.GetData());
+
+            CheckAck();
+        }
     }
 }

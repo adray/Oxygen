@@ -260,7 +260,7 @@ namespace Oxygen
             }
         }
 
-        private void CheckAck()
+        private Message CheckAck()
         {
             Message response = Read();
 
@@ -272,6 +272,8 @@ namespace Oxygen
 
                 throw new ClientException(errorCode, errorMessage);
             }
+
+            return response;
         }
 
         private void UploadPart(byte[] data, int size)
@@ -477,6 +479,33 @@ namespace Oxygen
             Send(msg.GetData());
 
             CheckAck();
+        }
+
+        public void RemoveUserFromGroup(string username, string group)
+        {
+            Message msg = new Message("USER_SVR", "REMOVE_USER_FROM_GROUP");
+            msg.WriteString(username);
+            msg.WriteString(group);
+            Send(msg.GetData());
+
+            CheckAck();
+        }
+
+        public List<string> ListUserGroups()
+        {
+            Message msg = new Message("USER_SVR", "USER_GROUPS_LIST");
+            Send(msg.GetData());
+
+            Message response = CheckAck();
+
+            List<string> groups = new List<string>();
+            int numGroups = response.ReadInt();
+            for (int i = 0; i < numGroups; i++)
+            {
+                groups.Add(response.ReadString());
+            }
+
+            return groups;
         }
     }
 }

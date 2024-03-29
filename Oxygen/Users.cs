@@ -34,12 +34,17 @@ namespace Oxygen
             }
         }
 
-        public void LoadUsers()
+        private void CreateDataDir()
         {
             if (!Directory.Exists("Data"))
             {
                 Directory.CreateDirectory("Data");
             }
+        }
+
+        public void LoadUsers()
+        {
+            CreateDataDir();
 
             if (File.Exists(userFile))
             {
@@ -114,6 +119,8 @@ namespace Oxygen
 
         public void WriteUserData()
         {
+            CreateDataDir();
+
             using (FileStream stream = File.OpenWrite(userFile))
             {
                 using (BinaryWriter writer = new BinaryWriter(stream))
@@ -196,17 +203,17 @@ namespace Oxygen
             return apiKey;
         }
 
-        public static IList<UserGroup> GetUserGroups(string username)
+        public IList<UserGroup> GetUserGroups(string username)
         {
             IList<UserGroup> groups = new List<UserGroup>();
 
-            foreach (var group in groups)
+            foreach (var group in this.userGroups)
             {
-                foreach (var user in group.Users)
+                foreach (var user in group.Value.Users)
                 {
                     if (user.Name == username)
                     {
-                        groups.Add(group);
+                        groups.Add(group.Value);
                         break;
                     }
                 }
@@ -248,7 +255,7 @@ namespace Oxygen
             return false;
         }
 
-        public bool RemoveUserToGroup(string username, string userGroupName)
+        public bool RemoveUserFromGroup(string username, string userGroupName)
         {
             if (users.TryGetValue(username, out User? user) && user != null &&
                 userGroups.TryGetValue(userGroupName, out UserGroup? userGroup) && userGroup != null)
@@ -321,6 +328,19 @@ namespace Oxygen
                     users.Add(user.Value);
                 }
                 return users;
+            }
+        }
+
+        public IList<UserGroup> UserGroupsList
+        {
+            get
+            {
+                List<UserGroup> userGroups = new List<UserGroup>();
+                foreach (var group in this.userGroups)
+                {
+                    userGroups.Add(group.Value);
+                }
+                return userGroups;
             }
         }
     }

@@ -109,8 +109,18 @@ namespace Oxygen
             return null;
         }
 
+        private static void CreateLevelDir()
+        {
+            if (!Directory.Exists(LevelPath))
+            {
+                Directory.CreateDirectory(LevelPath);
+            }
+        }
+
         public static void LoadLevels()
         {
+            CreateLevelDir();
+
             string[] files = Directory.GetFiles(LevelPath);
             foreach (string file in files)
             {
@@ -122,10 +132,7 @@ namespace Oxygen
 
         private void SaveLevel()
         {
-            if (!Directory.Exists(LevelPath))
-            {
-                Directory.CreateDirectory(LevelPath);
-            }
+            CreateLevelDir();
 
             Message msg = new Message("LEVEL", "1");
             foreach (LevelObject obj in objects)

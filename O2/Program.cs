@@ -55,6 +55,8 @@ namespace O2
                 Console.WriteLine("o2 user list                                                     Lists the users in the system");
                 Console.WriteLine("o2 user reset                                                    Reset the users password");
                 Console.WriteLine("o2 group add <group> <username>                                  Adds a user to a user group");
+                Console.WriteLine("o2 group remove <group> <username>                               Remove a user from a user group");
+                Console.WriteLine("o2 group list                                                    Lists the users in a user group");
                 Console.WriteLine("o2 asset patch                                                   Downloads the latest version of each asset");
                 Console.WriteLine("o2 asset upload <myAsset.png>                                    Uploads an asset of the file specified");
                 Console.WriteLine("o2 asset download <myAsset.png>                                  Downloads an asset of the file specified");
@@ -332,7 +334,7 @@ namespace O2
 
         static void CreateNewUserCommand()
         {
-            Console.WriteLine("Create New User");
+            Console.WriteLine("Creating New User");
             string? username = UserNamePrompt();
             if (username != null)
             {
@@ -360,13 +362,39 @@ namespace O2
                 switch (args[1])
                 {
                     case "add":
-                        AddUserToGroupCommand(args);
+                        AddUserToGroupCommand(args, true);
+                        break;
+                    case "remove":
+                        AddUserToGroupCommand(args, false);
+                        break;
+                    case "list":
+                        ListUserGroups();
                         break;
                 }
             }
         }
 
-        static void AddUserToGroupCommand(string[] args)
+        static void ListUserGroups()
+        {
+            ClientConnection cli = StartClient();
+
+            try
+            {
+                LoginWithAPIKey(cli);
+
+                var groups = cli.ListUserGroups();
+                foreach (var group in groups)
+                {
+                    Console.WriteLine(group);
+                }
+            }
+            catch (ClientException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        static void AddUserToGroupCommand(string[] args, bool addOrRemove)
         {
             if (args.Length > 3)
             {
@@ -378,7 +406,15 @@ namespace O2
                 try
                 {
                     LoginWithAPIKey(cli);
-                    cli.AddUserToGroup(username, group);
+
+                    if (addOrRemove)
+                    {
+                        cli.AddUserToGroup(username, group);
+                    }
+                    else
+                    {
+                        cli.RemoveUserFromGroup(username, group);
+                    }
                 }
                 catch (ClientException ex)
                 {

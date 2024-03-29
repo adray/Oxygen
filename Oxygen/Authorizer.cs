@@ -31,12 +31,17 @@ namespace Oxygen
         private static readonly Dictionary<string, PermissionAttribute> userPermissions = new Dictionary<string, PermissionAttribute>();
         private static readonly Dictionary<string, PermissionAttribute> groupPermissions = new Dictionary<string, PermissionAttribute>();
 
-        public static void LoadAuthorizationData()
+        private static void CreateDataDir()
         {
             if (!Directory.Exists("Data"))
             {
                 Directory.CreateDirectory("Data");
             }
+        }
+
+        public static void LoadAuthorizationData()
+        {
+            CreateDataDir();
 
             if (File.Exists(authorizationData))
             {
@@ -71,6 +76,8 @@ namespace Oxygen
 
         private static void SaveAuthorizationData()
         {
+            CreateDataDir();
+
             using (FileStream stream = File.OpenWrite(authorizationData))
             {
                 using (BinaryWriter writer = new BinaryWriter(stream))
@@ -140,7 +147,7 @@ namespace Oxygen
                 return attribute == PermissionAttribute.Allow ? true : false;
             }
 
-            foreach (var group in Users.GetUserGroups(user.Name))
+            foreach (var group in Users.Instance.GetUserGroups(user.Name))
             {
                 string groupKey = group.Name + "." + node + "." + message;
                 if (groupPermissions.TryGetValue(groupKey, out PermissionAttribute groupAttribute))
@@ -168,6 +175,19 @@ namespace Oxygen
                     permissionList.Add($"{permission.Key} - {permission.Value}");
                 }
             }
+
+            IList<UserGroup> userGroups = Users.Instance.GetUserGroups(username);
+            foreach (var permission in groupPermissions)
+            {
+                foreach (var group in userGroups)
+                {
+                    if (permission.Key.StartsWith(group.Name + "."))
+                    {
+                        permissionList.Add($"{permission.Key} - {permission.Value}");
+                    }
+                }
+            }
+
             return permissionList;
         }
 

@@ -60,17 +60,13 @@ namespace Oxygen
 
         protected void SendNack(Client client, int errorCode, string msg, string messageName)
         {
-            Message response = new Message(this.name, messageName);
-            response.WriteString("NACK");
-            response.WriteInt(errorCode);
-            response.WriteString(msg);
+            Message response = Response.Nack(this, errorCode, msg, messageName);
             client.Send(response);
         }
 
         protected void SendAck(Client client, string messageName)
         {
-            Message response = new Message(this.name, messageName);
-            response.WriteString("ACK");
+            Message response = Response.Ack(this, messageName);
             client.Send(response);
         }
     }

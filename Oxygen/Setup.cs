@@ -79,9 +79,14 @@ namespace Oxygen
             users.AddUserToGroup(user.Name, admins.Name);
 
             // Enable standard root features
+            Authorizer.SetPermission(admins, "USER_SVR", "GET_PERMISSION", Authorizer.PermissionAttribute.Allow);
             Authorizer.SetPermission(admins, "USER_SVR", "SET_PERMISSION", Authorizer.PermissionAttribute.Allow);
+            Authorizer.SetPermission(admins, "USER_SVR", "CREATE_API_KEY", Authorizer.PermissionAttribute.Allow);
             Authorizer.SetPermission(admins, "USER_SVR", "CREATE_USER", Authorizer.PermissionAttribute.Allow);
             Authorizer.SetPermission(admins, "USER_SVR", "DELETE_USER", Authorizer.PermissionAttribute.Allow);
+            Authorizer.SetPermission(admins, "USER_SVR", "USER_LIST", Authorizer.PermissionAttribute.Allow);
+            Authorizer.SetPermission(admins, "USER_SVR", "ADD_USER_TO_GROUP", Authorizer.PermissionAttribute.Allow);
+            Authorizer.SetPermission(admins, "USER_SVR", "REMOVE_USER_FROM_GROUP", Authorizer.PermissionAttribute.Allow);
         }
     }
 }

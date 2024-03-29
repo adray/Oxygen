@@ -80,9 +80,41 @@ namespace Oxygen
                         break;
                     }
 
+                case "USER_GROUP_INFO":
+                    {
+                        UserGroupInfo(client, msg);
+                        break;
+                    }
+
                 default:
                     SendNack(client, 100, $"Invalid request.", msg.MessageName);
                     break;
+            }
+        }
+
+        private void UserGroupInfo(Client client, Message msg)
+        {
+            string name = msg.ReadString();
+
+            Message response = new Message(msg.NodeName, msg.MessageName);
+
+            var group = Users.Instance.GetUserGroup(name);
+
+            if (group != null)
+            {
+                response.WriteString("ACK");
+
+                response.WriteInt(group.Users.Count);
+                foreach (var user in group.Users)
+                {
+                    response.WriteString(user.Name);
+                }
+
+                client.Send(response);
+            }
+            else
+            {
+                this.SendNack(client, 100, "No such user group.", msg.MessageName);
             }
         }
 

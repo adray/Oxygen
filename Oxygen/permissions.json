@@ -79,6 +79,12 @@
       "Default": "Deny"
     },
     {
+      "Node": "USER_SVR",
+      "Message": "USER_GROUP_INFO",
+      "Text": "Permission to list the user in the groups.",
+      "Default": "Deny"
+    },
+    {
       "Node": "ASSET_SVR",
       "Message": "ASSET_LIST",
       "Text": "Permission to list the assets on the server.",

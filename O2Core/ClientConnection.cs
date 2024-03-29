@@ -507,5 +507,23 @@ namespace Oxygen
 
             return groups;
         }
+
+        public List<string> ListUsersInGroup(string group)
+        {
+            Message msg = new Message("USER_SVR", "USER_GROUP_INFO");
+            msg.WriteString(group);
+            Send(msg.GetData());
+
+            Message response = CheckAck();
+
+            List<string> users = new List<string>();
+            int numUsers = response.ReadInt();
+            for (int i = 0; i < numUsers; i++)
+            {
+                users.Add(response.ReadString());
+            }
+
+            return users;
+        }
     }
 }

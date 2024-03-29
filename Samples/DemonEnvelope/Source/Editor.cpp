@@ -117,7 +117,7 @@ void Editor::Draw(float delta, ISLANDER_DEVICE device, ISLANDER_WINDOW window, C
         for (const Oxygen::EventStream::User& user : evStream->Users())
         {
             auto& map = level->GetTilemap();
-            if (user.objectId == map.ID())
+            if (user.objectId == map.ID() && map.ID() >= 0)
             {
                 float px, py, sx, sy;
                 if (map.GetTileBounds(user.subId, &px, &py, &sx, &sy))

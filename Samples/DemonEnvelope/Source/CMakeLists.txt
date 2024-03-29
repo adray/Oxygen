@@ -40,6 +40,10 @@ add_executable (DemonEnvelope
 target_link_libraries(DemonEnvelope debug ${OXYGEN_LIBS}\\x64-debug\\libOxygen.lib)
 target_link_libraries(DemonEnvelope debug ${LIBCRYPTO}\\libcrypto_static.lib)
 
+target_link_libraries(DemonEnvelope optimized ${OXYGEN_LIBS}\\x64-release\\libOxygen.lib)
+target_link_libraries(DemonEnvelope optimized ${LIBCRYPTO}\\libcrypto_static.lib)
+
+
 target_link_libraries(DemonEnvelope debug ${ISLANDER_LIBS}\\Entity\\Debug\\Islander.Entity.lib)
 target_link_libraries(DemonEnvelope debug ${ISLANDER_LIBS}\\Common\\Debug\\islCommon.lib)
 target_link_libraries(DemonEnvelope debug ${ISLANDER_LIBS}\\Renderer\\Debug\\islRenderer.lib)

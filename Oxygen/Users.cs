@@ -245,7 +245,8 @@ namespace Oxygen
         public bool AddUserToGroup(string username, string userGroupName)
         {
             if (users.TryGetValue(username, out User? user) && user != null &&
-                userGroups.TryGetValue(userGroupName, out UserGroup? userGroup) && userGroup != null)
+                userGroups.TryGetValue(userGroupName, out UserGroup? userGroup) && userGroup != null &&
+                !userGroup.Users.Contains(user))
             {
                 userGroup.AddUser(user);
                 Audit.Instance.Log("User {0} added to user group {1}.", username, userGroupName);
@@ -261,7 +262,7 @@ namespace Oxygen
                 userGroups.TryGetValue(userGroupName, out UserGroup? userGroup) && userGroup != null)
             {
                 userGroup.RemoveUser(user);
-                Audit.Instance.Log("User {0} removed from user group {1}", username, userGroup);
+                Audit.Instance.Log("User {0} removed from user group {1}", username, userGroupName);
                 WriteUserData();
                 return true;
             }
@@ -316,6 +317,12 @@ namespace Oxygen
         {
             apiUsers.TryGetValue(apiKey, out User? user);
             return user;
+        }
+
+        public UserGroup? GetUserGroup(string name)
+        {
+            userGroups.TryGetValue(name, out UserGroup? group);
+            return group;
         }
 
         public IList<User> UserList

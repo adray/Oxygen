@@ -56,7 +56,8 @@ namespace O2
                 Console.WriteLine("o2 user reset                                                    Reset the users password");
                 Console.WriteLine("o2 group add <group> <username>                                  Adds a user to a user group");
                 Console.WriteLine("o2 group remove <group> <username>                               Remove a user from a user group");
-                Console.WriteLine("o2 group list                                                    Lists the users in a user group");
+                Console.WriteLine("o2 group list                                                    Lists the groups");
+                Console.WriteLine("o2 group info <group>                                            Lists the users in a user group");
                 Console.WriteLine("o2 asset patch                                                   Downloads the latest version of each asset");
                 Console.WriteLine("o2 asset upload <myAsset.png>                                    Uploads an asset of the file specified");
                 Console.WriteLine("o2 asset download <myAsset.png>                                  Downloads an asset of the file specified");
@@ -370,6 +371,31 @@ namespace O2
                     case "list":
                         ListUserGroups();
                         break;
+                    case "info":
+                        ListUsersInGroup(args);
+                        break;
+                }
+            }
+        }
+
+        static void ListUsersInGroup(string[] args)
+        {
+            if (args.Length > 2)
+            {
+                ClientConnection cli = StartClient();
+
+                try
+                {
+                    LoginWithAPIKey(cli);
+
+                    foreach (var user in cli.ListUsersInGroup(args[2]))
+                    {
+                        Console.WriteLine(user);
+                    }
+                }
+                catch (ClientException ex)
+                {
+                    Console.WriteLine(ex.Message);
                 }
             }
         }

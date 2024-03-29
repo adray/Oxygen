@@ -413,6 +413,28 @@ namespace Oxygen
             CheckAck();
         }
 
+        public void SetGroupPermission(string group, string nodeName, string messageName, string permission)
+        {
+            Message msg = new Message("USER_SVR", "SET_GROUP_PERMISSION");
+            msg.WriteString(group);
+
+            int value = 0;
+            switch (permission)
+            {
+                case "allow": value = 0; break;
+                case "deny": value = 1; break;
+                case "default": value = 2; break;
+            }
+
+            msg.WriteInt(value);
+            msg.WriteString(nodeName);
+            msg.WriteString(messageName);
+
+            Send(msg.GetData());
+
+            CheckAck();
+        }
+
         public string CreateAPIKey()
         {
             Message msg = new Message("LOGIN_SVR", "CREATE_API_KEY");
@@ -524,6 +546,15 @@ namespace Oxygen
             }
 
             return users;
+        }
+
+        public void CreateUserGroup(string name)
+        {
+            Message msg = new Message("USER_SVR", "CREATE_USER_GROUP");
+            msg.WriteString(name);
+            Send(msg.GetData());
+
+            CheckAck();
         }
     }
 }

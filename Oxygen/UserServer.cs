@@ -56,9 +56,21 @@ namespace Oxygen
                         break;
                     }
 
+                case "SET_GROUP_PERMISSION":
+                    {
+                        SetGroupPermission(client, msg);
+                        break;
+                    }
+
                 case "USER_LIST":
                     {
                         UserList(client, msg);
+                        break;
+                    }
+
+                case "CREATE_USER_GROUP":
+                    {
+                        CreateUserGroup(client, msg);
                         break;
                     }
 
@@ -92,16 +104,31 @@ namespace Oxygen
             }
         }
 
+        private void CreateUserGroup(Client client, Message msg)
+        {
+            string name = msg.ReadString();
+
+            UserGroup? group = users.CreateUserGroup(name);
+
+            if (group != null)
+            {
+                SendAck(client, msg.MessageName);
+            }
+            else
+            {
+                SendNack(client, 100, "Unable to create user group.", msg.MessageName);
+            }
+        }
+
         private void UserGroupInfo(Client client, Message msg)
         {
             string name = msg.ReadString();
 
-            Message response = new Message(msg.NodeName, msg.MessageName);
-
-            var group = Users.Instance.GetUserGroup(name);
+            var group = users.GetUserGroup(name);
 
             if (group != null)
             {
+                Message response = new Message(msg.NodeName, msg.MessageName);
                 response.WriteString("ACK");
 
                 response.WriteInt(group.Users.Count);
@@ -118,12 +145,12 @@ namespace Oxygen
             }
         }
 
-        private static void UserGroupsList(Client client, Message msg)
+        private void UserGroupsList(Client client, Message msg)
         {
             Message response = new Message(msg.NodeName, msg.MessageName);
             response.WriteString("ACK");
 
-            var groups = Users.Instance.UserGroupsList;
+            var groups = users.UserGroupsList;
 
             response.WriteInt(groups.Count);
             foreach (var group in groups)
@@ -139,7 +166,7 @@ namespace Oxygen
             string username = msg.ReadString();
             string userGroup = msg.ReadString();
 
-            if (Users.Instance.RemoveUserFromGroup(username, userGroup))
+            if (users.RemoveUserFromGroup(username, userGroup))
             {
                 SendAck(client, msg.MessageName);
             }
@@ -154,7 +181,7 @@ namespace Oxygen
             string username = msg.ReadString();
             string userGroup = msg.ReadString();
 
-            if (Users.Instance.AddUserToGroup(username, userGroup))
+            if (users.AddUserToGroup(username, userGroup))
             {
                 SendAck(client, msg.MessageName);
             }
@@ -164,14 +191,14 @@ namespace Oxygen
             }
         }
 
-        private static void UserList(Client client, Message msg)
+        private void UserList(Client client, Message msg)
         {
             Message response = new Message(msg.NodeName, msg.MessageName);
             response.WriteString("ACK");
 
-            var users = Users.Instance.UserList;
-            response.WriteInt(users.Count);
-            foreach (User user in users)
+            var userList = users.UserList;
+            response.WriteInt(userList.Count);
+            foreach (User user in userList)
             {
                 response.WriteString(user.Name);
             }
@@ -196,6 +223,37 @@ namespace Oxygen
             client.Send(response);
         }
 
+        private void SetGroupPermission(Client client, Message msg)
+        {
+            string groupName = msg.ReadString();
+            int flags = msg.ReadInt();
+            string node = msg.ReadString();
+            string messageName = msg.ReadString();
+
+            UserGroup? group = users.GetUserGroup(groupName);
+            
+            if (group != null)
+            {
+                if (flags == (int)Authorizer.PermissionAttribute.Default)
+                {
+                    Authorizer.RemovePermission(group, node, messageName);
+                }
+                else if (Authorizer.SetPermission(group, node, messageName, Authorizer.PermissionAttribute.Allow))
+                {
+                    Audit.Instance.Log("Permission {0}/{1} for user group {2} updated", node, messageName, groupName);
+                    SendAck(client, msg.MessageName);
+                }
+                else
+                {
+                    SendNack(client, 200, $"Unable to set permission.", msg.MessageName);
+                }
+            }
+            else
+            {
+                SendNack(client, 200, $"Cannot find user group {groupName}.", msg.MessageName);
+            }
+        }
+
         private void SetPermission(Client client, Message msg)
         {
             string userName = msg.ReadString();
@@ -203,7 +261,7 @@ namespace Oxygen
             string node = msg.ReadString();
             string messageName = msg.ReadString();
 
-            User? user = Users.Instance.GetUserByName(userName);
+            User? user = users.GetUserByName(userName);
 
             if (user != null)
             {
@@ -234,7 +292,7 @@ namespace Oxygen
             string? userName = client.GetProperty("USER_NAME") as string;
             if (userName != null)
             {
-                User? user = Users.Instance.GetUserByName(userName);
+                User? user = users.GetUserByName(userName);
 
                 if (user != null)
                 {

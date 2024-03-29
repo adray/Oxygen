@@ -85,8 +85,11 @@ namespace Oxygen
             Authorizer.SetPermission(admins, "USER_SVR", "CREATE_USER", Authorizer.PermissionAttribute.Allow);
             Authorizer.SetPermission(admins, "USER_SVR", "DELETE_USER", Authorizer.PermissionAttribute.Allow);
             Authorizer.SetPermission(admins, "USER_SVR", "USER_LIST", Authorizer.PermissionAttribute.Allow);
+            Authorizer.SetPermission(admins, "USER_SVR", "CREATE_USER_GROUP", Authorizer.PermissionAttribute.Allow);
             Authorizer.SetPermission(admins, "USER_SVR", "ADD_USER_TO_GROUP", Authorizer.PermissionAttribute.Allow);
             Authorizer.SetPermission(admins, "USER_SVR", "REMOVE_USER_FROM_GROUP", Authorizer.PermissionAttribute.Allow);
+            Authorizer.SetPermission(admins, "USER_SVR", "USER_GROUP_INFO", Authorizer.PermissionAttribute.Allow);
+            Authorizer.SetPermission(admins, "USER_SVR", "USER_GROUP_LIST", Authorizer.PermissionAttribute.Allow);
         }
     }
 }

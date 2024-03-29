@@ -39,6 +39,9 @@ namespace O2
                     case "get-permission":
                         GetPermissionCommand(args);
                         break;
+                    case "set-group-permission":
+                        SetGroupPermissionCommand(args);
+                        break;
                     default:
                         Console.WriteLine("Invalid command");
                         break;
@@ -54,6 +57,7 @@ namespace O2
                 Console.WriteLine("o2 user delete <username>                                        Deletes a user");
                 Console.WriteLine("o2 user list                                                     Lists the users in the system");
                 Console.WriteLine("o2 user reset                                                    Reset the users password");
+                Console.WriteLine("o2 group create <group>                                          Create a new user group");
                 Console.WriteLine("o2 group add <group> <username>                                  Adds a user to a user group");
                 Console.WriteLine("o2 group remove <group> <username>                               Remove a user from a user group");
                 Console.WriteLine("o2 group list                                                    Lists the groups");
@@ -67,6 +71,13 @@ namespace O2
                 Console.WriteLine("o2 set-permission <user> <LOGIN_SVR> <CREATE_API_KEY> <allow>    Sets a permission for a particular operation");
                 Console.WriteLine("                                                                 Options: Allow/Deny/Default");
                 Console.WriteLine("o2 get-permission <user>                                         Gets the permissions for the specified user");
+                Console.WriteLine("o2 set-group-permission <group> <LOGIN_SVR> <CREATE_API_KEY> <allow>  Sets the permissions for the specified user group");
+                Console.WriteLine("                                                                      Options: Allow/Deny/Default");
+                //Console.WriteLine("o2 build upload <name>");
+                //Console.WriteLine("o2 build download <name>");
+                //Console.WriteLine("o2 build list");
+                //Console.WriteLine("o2 crash upload <name>");
+                //Console.WriteLine("o2 crash download <name>");
             }
         }
 
@@ -272,6 +283,40 @@ namespace O2
             }
         }
 
+        static void SetGroupPermissionCommand(string[] args)
+        {
+            if (args.Length == 5)
+            {
+                string group = args[1];
+                string nodeName = args[2];
+                string messageName = args[3];
+                string permission = args[4].ToLower();
+
+                if (permission == "allow" || permission == "deny" || permission == "default")
+                {
+                    var client = StartClient();
+
+                    try
+                    {
+                        LoginWithAPIKey(client);
+                        client.SetGroupPermission(group, nodeName, messageName, permission);
+                    }
+                    catch (ClientException ex)
+                    {
+                        Console.WriteLine(ex.Message);
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Permission should be 'allow' or 'deny'");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Invalid command");
+            }
+        }
+
         static void GetPermissionCommand(string[] args)
         {
             if (args.Length == 2)
@@ -374,7 +419,14 @@ namespace O2
                     case "info":
                         ListUsersInGroup(args);
                         break;
+                    case "create":
+                        CreateUserGroup(args);
+                        break;
                 }
+            }
+            else
+            {
+                Console.WriteLine("Invalid command");
             }
         }
 
@@ -398,6 +450,10 @@ namespace O2
                     Console.WriteLine(ex.Message);
                 }
             }
+            else
+            {
+                Console.WriteLine("Invalid command");
+            }
         }
 
         static void ListUserGroups()
@@ -417,6 +473,31 @@ namespace O2
             catch (ClientException ex)
             {
                 Console.WriteLine(ex.Message);
+            }
+        }
+
+        static void CreateUserGroup(string[] args)
+        {
+            if (args.Length > 2)
+            {
+                string group = args[2];
+
+                ClientConnection cli = StartClient();
+
+                try
+                {
+                    LoginWithAPIKey(cli);
+
+                    cli.CreateUserGroup(group);
+                }
+                catch (ClientException ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
+            }
+            else
+            {
+                Console.WriteLine("Invalid command");
             }
         }
 
@@ -446,6 +527,10 @@ namespace O2
                 {
                     Console.WriteLine(ex.Message);
                 }
+            }
+            else
+            {
+                Console.WriteLine("Invalid command");
             }
         }
 

@@ -35,6 +35,14 @@ namespace Oxygen
             {
 
             }
+            else if (msg.MessageName == "UPLOAD_CRASH_DUMP")
+            {
+
+            }
+            else if (msg.MessageName == "DOWNLOAD_CRASH_DUMP")
+            {
+
+            }
         }
     }
 }

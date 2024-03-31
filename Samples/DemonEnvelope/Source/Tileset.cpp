@@ -1,4 +1,5 @@
 #include "Tileset.h"
+#include "ConfigReader.h"
 
 using namespace DE;
 
@@ -8,29 +9,29 @@ Tileset::Tileset()
 {
 }
 
-void Tileset::Load(ISLANDER_DEVICE device)
+void Tileset::Load(ISLANDER_DEVICE device, ConfigReader& cfg)
 {
-    std::string strs[] = {
-        "tile01",
-        "tile02",
-        "tile03"
-    };
-
-    for (int i = 0; i < 3; i++)
+    while (cfg.ReadNextRow())
     {
-        Islander::component_texture texture;
-        IslanderFindMaterialTexture(device, strs[i].c_str(), &texture);
-        tiles.push_back(texture);
+        const int id = std::strtol(cfg.Get("id").c_str(), 0, 10);
+        const std::string name = cfg.Get("name");
+        const int layer = std::strtol(cfg.Get("layer").c_str(), 0, 10);
 
-        if (i == 0)
+        Tileset_Tile tile = {};
+        IslanderFindMaterialTexture(device, name.c_str(), &tile._texture);
+        tile._layer = layer;
+        tile._id = id;
+        tiles.push_back(tile);
+
+        if (tiles.size() == 1)
         {
-            _texture = texture.index;
+            _texture = tile._texture.index;
         }
     }
 }
 
 
-void Tileset::GetTile(int id, Islander::component_texture& texture) const
+void Tileset::GetTile(int id, Tileset_Tile& texture) const
 {
     texture = tiles[id];
 }

@@ -63,7 +63,7 @@
 
             if (customData != null)
             {
-                stream.WriteInt(1);
+                stream.WriteInt(customData.Length);
                 stream.WriteBytes(customData);
             }
             else
@@ -94,18 +94,7 @@
             Transform.Rotation[1] = rotationY;
             Transform.Rotation[2] = rotationZ;
 
-            if (stream.ReadInt() == 1)
-            {
-                byte[] msgData = stream.GetData();
-                long length = stream.Length - stream.Position;
-
-                customData = new byte[length];
-                Array.Copy(msgData, stream.Position, customData, 0, length);
-            }
-            else
-            {
-                customData = null;
-            }
+            customData = stream.ReadByteArray();
         }
     }
 }

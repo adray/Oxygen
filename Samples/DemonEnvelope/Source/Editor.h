@@ -11,7 +11,7 @@ namespace DE
     class Editor
     {
     public:
-        void Start(ISLANDER_POLYGON_LIBRARY lib, ISLANDER_DEVICE device);
+        void Start(ISLANDER_POLYGON_LIBRARY lib, std::shared_ptr<Tileset> tileset_);
         void Run(float delta, ISLANDER_WINDOW window);
         void Draw(float delta, ISLANDER_DEVICE device, ISLANDER_WINDOW window, CRIMSON_HANDLE crimson, IslanderImguiContext* cxt);
         inline std::shared_ptr<Level>& GetLevel() { return level; }
@@ -27,6 +27,7 @@ namespace DE
         char password[256];
         char hostname[256];
         int palette = -1;
+        int palette_layer = 0;
         bool left_down = false;
         float cursorTime = 0;
         int cursorTile = -1;

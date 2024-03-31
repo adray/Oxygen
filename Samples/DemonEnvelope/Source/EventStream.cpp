@@ -1,7 +1,14 @@
 #include "EventStream.h"
+#include "Network.h"
 #include <iostream>
 
 using namespace DE;
+
+EventStream::EventStream(Network& network)
+    :
+    _network(network)
+{
+}
 
 void EventStream::OnUserConnected(std::int64_t id, const std::string& name)
 {
@@ -21,7 +28,7 @@ void EventStream::OnUserCursorMove(std::int64_t id, int objectId, int subId)
 void EventStream::OnStreamEnded()
 {
     std::cout << "Event stream closed" << std::endl;
-
+    _network.EventStreamClosed();
 }
 
 EventStream::~EventStream()

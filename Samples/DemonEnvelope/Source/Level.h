@@ -8,7 +8,7 @@ namespace DE
     class Level
     {
     public:
-        void Setup(ISLANDER_POLYGON_LIBRARY lib, ISLANDER_DEVICE device);
+        void Setup(ISLANDER_POLYGON_LIBRARY lib, std::shared_ptr<Tileset> tileset_);
         void Loaded();
         void Render(IslanderRenderable* renderables, int* cur_index, const int tilemappixelShader, const int tilemapvertexShader);
         void CreateTilemap();

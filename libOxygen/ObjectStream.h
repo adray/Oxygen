@@ -10,7 +10,7 @@ namespace Oxygen
         double pos[3];
         double scale[3];
         double rot[3];
-        bool hasCustomData;
+        int numCustomDataBytes;
     };
 
     class ObjectStream : public Subscriber
@@ -39,5 +39,6 @@ namespace Oxygen
         void DeleteObject(Message& msg);
 
         std::unordered_map<int, std::vector<unsigned char>> state;
+        int _customDataPos;
     };
 }

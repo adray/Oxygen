@@ -10,17 +10,99 @@ namespace Oxygen
 
 namespace DE
 {
-    class Tilemap
-    {   
+    struct Tilemap_ConstantBuffer
+    {
+        float tileUVs[400];
+        float tileColour[400];
+    };
+
+    class Tilemap_Mask
+    {
     public:
-        struct ConstantBuffer
-        {
-            float tileUVs[400];
-        };
+        Tilemap_Mask();
+
+        void Load(const int width, const int height);
+        void Set(int cell, int tile);
+        bool Get(int cell) const;
+        inline int Width() const { return _width; }
+        inline int Height() const { return _height; }
+
+        void Serialize(Oxygen::Message& msg) const;
+
+        void Deserialize(Oxygen::Message& msg);
+
+        inline int ID() const { return _id; }
+        inline void SetID(int id) { _id = id; }
+
+        inline void SetVersion(int version) { _version = version; }
+
+        inline int Version() const { return _version; }
+
+    private:
+        unsigned char* _mask;
+        int _numBytes;
+        int _width;
+        int _height;
+        int _version;
+        int _id;
+    };
+
+    class Tilemap_Layer
+    {
+    public:
+        Tilemap_Layer();
+
+        void SetTileSet(std::shared_ptr<Tileset>& tileset) { _tileset = tileset; }
+        std::shared_ptr<Tileset> GetTileset() { return _tileset; }
+        
+        void Load(const int layer, const int width, const int height);
+
+        void Set(int cell, int tile);
+
+        void Update(int scrollX, int scrollY, int viewwidth, int viewheight);
+
+        void Serialize(Oxygen::Message& msg) const;
+
+        void Deserialize(Oxygen::Message& msg);
+
+        inline int ID() const { return _id; }
+
+        inline void SetID(int id) { _id = id; }
+
+        inline void SetVersion(int version) { _version = version; }
+
+        inline int Version() const { return _version; }
+
+        inline Tilemap_ConstantBuffer* GetConstantBuffer() const { return _constant; }
+
+        inline int Layer() const { return _layer; }
+
+        inline bool Visible() const { return _visible; }
+
+        inline void SetVisible(bool visible) { _visible = visible; }
+
+        ~Tilemap_Layer();
+
+    private:
+        int* _tiles;
+        int _width;
+        int _height;
+        int _id;
+        int _layer;
+        int _version;
+        bool _visible;
+        std::shared_ptr<Tileset> _tileset;
+        Tilemap_ConstantBuffer* _constant;
+    };
+
+    class Tilemap
+    {
+    public:
 
         Tilemap();
-        Tilemap(int id);
         Tilemap(const Tilemap& tilemap);
+
+        void CreateLayers(int numLayers);
 
         void SetTileSet(std::shared_ptr<Tileset>& tileset) { _tileset = tileset; }
         std::shared_ptr<Tileset> GetTileset() { return _tileset; }
@@ -33,31 +115,21 @@ namespace DE
 
         inline ISLANDER_POLYGON_DATA GetMesh() { return _mesh; }
 
-        inline Tilemap::ConstantBuffer* GetConstantBuffer() { return _constant; }
+        void Set(int layer, int cell, int tile);
 
         int HitTest(int x, int y) const;
 
-        void Set(int cell, int tile);
-
         void SetScrollPos(int x, int y);
-
-        void Serialize(Oxygen::Message& msg);
-
-        void Deserialize(Oxygen::Message& msg);
-
-        inline int ID() const { return _id; }
-
-        inline void SetID(int id) { _id = id; }
-
-        inline void SetVersion(int version) { _version = version; }
-
-        inline int Version() const { return _version; }
 
         inline int ScrollX() const { return _scrollX; }
 
         inline int ScrollY() const { return _scrollY; }
 
         inline int NumTiles() const { return _width * _height; }
+
+        inline size_t NumLayers() const { return _layers.size(); }
+
+        inline Tilemap_Layer& GetLayer(int layer) { return _layers[layer]; }
 
         bool GetTileBounds(int tile, float* px, float* py, float* sx, float* sy);
 
@@ -68,11 +140,9 @@ namespace DE
     private:
         void AddTile(int& vertexPos, int& indexPos, int& vertexID, int x, int y);
 
-        int _id;
-        int _version;
+        std::vector<Tilemap_Layer> _layers;
+        std::unique_ptr<Tilemap_Mask> _collider;
         std::shared_ptr<Tileset> _tileset;
-        ConstantBuffer* _constant;
-        int* _tiles;
         unsigned char* _vertexData;
         int* _indexData;
         int _width;

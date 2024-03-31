@@ -181,13 +181,21 @@ namespace Oxygen
 
             if (bytes != null)
             {
+                //Console.WriteLine("DUMPING DATA MESSAGE");
+                //for (int i = 0; i < bytes.Length; i++)
+                //{
+                //    Console.Write(bytes[i]);
+                //    Console.Write(" ");
+                //}
+                //Console.WriteLine();
+
                 Message msg = new Message(bytes);
                 for (int i = 0; i < count; i++)
                 {
                     LevelObject obj = new LevelObject();
                     obj.ID = msg.ReadInt();
                     obj.Deserialize(msg);
-                    //obj.ModelID = msg.ReadInt();
+
                     objects.Add(obj);
                     objectMap.Add(obj.ID, obj);
 
@@ -347,9 +355,7 @@ namespace Oxygen
 
             streamEvent.Set();
 
-            Message response = new Message(msg.NodeName, msg.MessageName);
-            response.WriteString("ACK");
-            client.Send(response);
+            client.Send(Response.Ack(msg.NodeName, msg.MessageName));
         }
         
         public void UpdateObject(Client client, Message msg)
@@ -360,32 +366,25 @@ namespace Oxygen
             var obj = objectMap[id];
             if (version == obj.Version)
             {
-                obj.Version++;
-
                 byte[] initialData = state[id];
-                byte[] decomprssedData = DeltaCompress.Decompress(initialData, msg.ReadByteArray());
-                Message msg2 = new Message(decomprssedData);
+                byte[] decompressedData = DeltaCompress.Decompress(initialData, msg.ReadByteArray());
+                Message msg2 = new Message(decompressedData);
                 msg2.ReadInt(); // type
                 msg2.ReadInt(); // id
                 obj.Deserialize(msg2);
 
-                state[id] = decomprssedData;
+                obj.Version++;
+                state[id] = decompressedData;
 
                 objectStream.UpdateObject(obj);
 
                 streamEvent.Set();
 
-                Message response = new Message(msg.NodeName, msg.MessageName);
-                response.WriteString("ACK");
-                client.Send(response);
+                client.Send(Response.Ack(msg.NodeName, msg.MessageName));
             }
             else
             {
-                Message response = new Message(msg.NodeName, msg.MessageName);
-                response.WriteString("NACK");
-                response.WriteInt(100);
-                response.WriteString("Version number is out of date.");
-                client.Send(response);
+                client.Send(Response.Nack(msg.NodeName, 100, "Version number is out of date.", msg.MessageName));
             }
         }
 

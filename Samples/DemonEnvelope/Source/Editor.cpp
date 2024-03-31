@@ -7,7 +7,7 @@
 
 using namespace DE;
 
-void Editor::Start(ISLANDER_POLYGON_LIBRARY lib, ISLANDER_DEVICE device)
+void Editor::Start(ISLANDER_POLYGON_LIBRARY lib, std::shared_ptr<Tileset> tileset_)
 {
     level = std::shared_ptr<Level>(new Level());
     network = std::shared_ptr<DE::Network>(new DE::Network());
@@ -19,7 +19,7 @@ void Editor::Start(ISLANDER_POLYGON_LIBRARY lib, ISLANDER_DEVICE device)
     
     std::strcpy(hostname, "localhost");
 
-    level->Setup(lib, device);
+    level->Setup(lib, tileset_);
 }
 
 void Editor::Run(float delta, ISLANDER_WINDOW window)
@@ -32,7 +32,7 @@ void Editor::Run(float delta, ISLANDER_WINDOW window)
     const int width = IslanderWindowWidth(window);
     const int height = IslanderWindowHeight(window);
 
-    if (network->LoggedIn())
+    if (network->State() == Network_State::JoinedLevel)
     {
         const int tilemap = level->TileMapHitTest(posX - width / 2, posY - height / 2);
         if (tilemap >= 0)
@@ -55,7 +55,10 @@ void Editor::Run(float delta, ISLANDER_WINDOW window)
             if (update)
             {
                 auto& map = level->GetTilemap();
-                network->UpdateCursor(map.ID(), cursorTile);
+                if (map.NumLayers() > 0)
+                {
+                    network->UpdateCursor(map.GetLayer(0).ID(), cursorTile);
+                }
                 update = false;
             }
         }
@@ -70,11 +73,11 @@ void Editor::Run(float delta, ISLANDER_WINDOW window)
             {
                 auto& map = level->GetTilemap();
                 const int cell = map.HitTest(posX - width / 2, posY - height / 2);
-                if (cell >= 0)
+                if (cell >= 0 && map.NumLayers() > 0)
                 {
-                    map.Set(cell, palette);
+                    map.Set(palette_layer, cell, palette);
 
-                    network->UpdateTilemap(map);
+                    network->UpdateTilemap(map.GetLayer(palette_layer));
                 }
             }
         }
@@ -117,21 +120,25 @@ void Editor::Draw(float delta, ISLANDER_DEVICE device, ISLANDER_WINDOW window, C
         for (const Oxygen::EventStream::User& user : evStream->Users())
         {
             auto& map = level->GetTilemap();
-            if (user.objectId == map.ID() && map.ID() >= 0)
+            const int numlayers = map.NumLayers();
+            for (int i = 0; i < numlayers; i++)
             {
-                float px, py, sx, sy;
-                if (map.GetTileBounds(user.subId, &px, &py, &sx, &sy))
+                if (user.objectId == map.GetLayer(i).ID())
                 {
-                    px /= width;
-                    py /= height;
-                    sx /= width;
-                    sy /= height;
+                    float px, py, sx, sy;
+                    if (map.GetTileBounds(user.subId, &px, &py, &sx, &sy))
+                    {
+                        px /= width;
+                        py /= height;
+                        sx /= width;
+                        sy /= height;
 
-                    CrimsonSetPos(crimson, px + 0.5f, py + 0.5f);
+                        CrimsonSetPos(crimson, px + 0.5f, py + 0.5f);
 
-                    float colour[4] = { 1.0f, 0.0f, 0.0f, 0.5f };
-                    float border[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
-                    CrimsonFilledRect(crimson, sx, sy, colour, 1.0f, border);
+                        float colour[4] = { 1.0f, 0.0f, 0.0f, 0.5f };
+                        float border[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+                        CrimsonFilledRect(crimson, sx, sy, colour, 1.0f, border);
+                    }
                 }
             }
         }
@@ -153,7 +160,7 @@ void Editor::Draw(float delta, ISLANDER_DEVICE device, ISLANDER_WINDOW window, C
 
     if (ImGui::Begin("Network"))
     {
-        if (network->LoggedIn())
+        if (network->State() != Network_State::Disconnected)
         {
             ImGui::Text("Logged In");
         }
@@ -169,16 +176,22 @@ void Editor::Draw(float delta, ISLANDER_DEVICE device, ISLANDER_WINDOW window, C
                 network->Login(username, password);
                 std::memset(password, 0, sizeof(password));
 
-                network->GetAssets(assets);
-                network->ListLevels(levels);
+                if (network->LogSub())
+                {
+                    network->LogSub()->Signal([this](Oxygen::Message& msg)
+                        {
+                            network->GetAssets(assets);
+                            network->ListLevels(levels);
+                        });
+                }
             }
         }
     }
     ImGui::End();
 
-    if (network->LoggedIn())
+    if (network->Connected())
     {
-        if (ImGui::Begin("Asssts"))
+        if (ImGui::Begin("Assets"))
         {
             for (int i = 0; i < assets.size(); i++)
             {
@@ -221,7 +234,14 @@ void Editor::Draw(float delta, ISLANDER_DEVICE device, ISLANDER_WINDOW window, C
                     network->CloseLevel();
                     level->Reset();
                     std::memset(levelName, 0, sizeof(levelName));
-                    network->JoinLevel(selectedLevelName, level);
+
+                    if (network->CloseSub())
+                    {
+                        network->CloseSub()->Signal([this](Oxygen::Message& msg)
+                            {
+                                network->JoinLevel(selectedLevelName, level);
+                            });
+                    }
                 }
             }
         }
@@ -230,19 +250,35 @@ void Editor::Draw(float delta, ISLANDER_DEVICE device, ISLANDER_WINDOW window, C
         if (ImGui::Begin("Tiles"))
         {
             auto& tilemap = level->GetTilemap();
-            if (tilemap.ID() >= 0)
+            if (tilemap.NumLayers() > 0)
             {
                 ImGui::Text("Tilemap pos [%i,%i]", tilemap.ScrollX(), tilemap.ScrollY());
+
+                for (int i = 0; i < tilemap.NumLayers(); i++)
+                {
+                    ImGui::PushID(i);
+                    Tilemap_Layer& layer = tilemap.GetLayer(i);
+                    ImGui::Text("Layer %i", layer.Layer());
+                    ImGui::SameLine();
+
+                    bool visible = layer.Visible();
+                    if (ImGui::Checkbox("Visible", &visible))
+                    {
+                        layer.SetVisible(visible);
+                    }
+                    ImGui::PopID();
+                }
 
                 std::shared_ptr<Tileset> tileset = level->TileSet();
                 for (int i = 0; i < tileset->NumTiles(); i++)
                 {
-                    Islander::component_texture texture;
-                    tileset->GetTile(i, texture);
+                    Tileset_Tile tile;
+                    tileset->GetTile(i, tile);
 
-                    if (IslanderImguiImageButton(device, cxt, i, texture.index, texture.px, texture.py, texture.sx, texture.sy))
+                    if (IslanderImguiImageButton(device, cxt, i, tile._texture.index, tile._texture.px, tile._texture.py, tile._texture.sx, tile._texture.sy))
                     {
                         palette = i;
+                        palette_layer = tile._layer;
                     }
                     ImGui::SameLine();
                 }
@@ -256,7 +292,7 @@ void Editor::Draw(float delta, ISLANDER_DEVICE device, ISLANDER_WINDOW window, C
 
                 if (ImGui::Button("Create TileMap"))
                 {
-                    network->CreateTilemap(width, height);
+                    network->CreateTilemap(width, height, 2);
                 }
             }
         }

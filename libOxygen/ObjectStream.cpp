@@ -55,11 +55,7 @@ void ObjectStream::NewObject(Message& msg)
     std::vector<unsigned char> initialData(data, data + msg.size());
     state.insert(std::pair<int, std::vector<unsigned char>>(ev.id, initialData));
 
-    int hasCustomData = msg.ReadInt32();
-    if (hasCustomData)
-    {
-        ev.hasCustomData = true;
-    }
+    ev.numCustomDataBytes = msg.ReadInt32();
 
     OnNewObject(ev, msg);
 }
@@ -97,11 +93,7 @@ void ObjectStream::UpdateObject(Message& msg)
     ev.rot[1] = decompressedMessage.ReadDouble();
     ev.rot[2] = decompressedMessage.ReadDouble();
 
-    int hasCustomData = decompressedMessage.ReadInt32();
-    if (hasCustomData)
-    {
-        ev.hasCustomData = true;
-    }
+    ev.numCustomDataBytes = decompressedMessage.ReadInt32();
 
     OnUpdateObject(ev, decompressedMessage);
 }
@@ -143,12 +135,19 @@ Message ObjectStream::BuildAddMessage(const Object& obj)
     msg.WriteDouble(obj.rot[0]); // Rot X
     msg.WriteDouble(obj.rot[1]); // Rot Y
     msg.WriteDouble(obj.rot[2]); // Rot Z
-    msg.WriteInt32(obj.hasCustomData ? 1 : 0);    // custom
+    msg.WriteInt32(0);    // custom
+    _customDataPos = msg.size() - 4;
+
     return msg;
 }
 
 void ObjectStream::PrepareAddMessage(Message* msg, const Object& obj)
 {
+    const int pos = msg->size();
+    const int dataSize = pos - _customDataPos;
+    int* customData = (int*)(msg->data() + _customDataPos);
+    *customData = dataSize;
+
     msg->Prepare();
 }
 
@@ -167,13 +166,19 @@ Message ObjectStream::BuildUpdateMessage(const Object& obj)
     msg.WriteDouble(obj.rot[0]); // Rot X
     msg.WriteDouble(obj.rot[1]); // Rot Y
     msg.WriteDouble(obj.rot[2]); // Rot Z
-    msg.WriteInt32(obj.hasCustomData ? 1 : 0);    // custom
+    msg.WriteInt32(0);    // custom
+    _customDataPos = msg.size() - 4;
 
     return msg;
 }
 
 void ObjectStream::PrepareUpdateMessage(Message* msg, const Object& obj)
 {
+    const int pos = msg->size();
+    const int dataSize = pos - _customDataPos;
+    int* customData = (int*) (msg->data() + _customDataPos);
+    *customData = dataSize;
+
     std::vector<unsigned char>& stateData = state[obj.id];
 
     unsigned char* newData;

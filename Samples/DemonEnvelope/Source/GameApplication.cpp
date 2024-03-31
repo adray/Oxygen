@@ -4,6 +4,7 @@
 #include "imgui.h"
 #include "Editor.h"
 #include "Render.h"
+#include "ConfigReader.h"
 
 using namespace DE;
 
@@ -62,8 +63,12 @@ void GameApplication::OnStart()
     ISLANDER_RESOURCE resource = IslanderCreateResource(device, tilesetTexture, tilesetMaterial);
     IslanderLoadResource(device, resource);
 
+    std::shared_ptr<Tileset> tileset = std::shared_ptr<Tileset>(new Tileset());
+    ConfigReader tileCfg("../../../../Assets/tiles.cfg");
+    tileset->Load(device, tileCfg);
+
     Editor editor;
-    editor.Start(lib, device);
+    editor.Start(lib, tileset);
 
     Render* render = new Render();
 

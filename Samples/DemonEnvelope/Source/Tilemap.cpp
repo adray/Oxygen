@@ -5,14 +5,158 @@
 
 using namespace DE;
 
-Tilemap::Tilemap()
-    : Tilemap(-1)
+//======================
+// Tilemap_Collider
+//======================
+
+Tilemap_Mask::Tilemap_Mask()
+    :
+    _width(0),
+    _height(0),
+    _numBytes(0),
+    _mask(nullptr)
 {
 }
 
-Tilemap::Tilemap(int id)
+void Tilemap_Mask::Load(const int width, const int height)
+{
+    _width = width;
+    _height = height;
+
+    const int numTiles = _width * _height;
+    _numBytes = (numTiles / 8) * 8 + (numTiles % 8 > 0 ? 1 : 0);
+    
+    _mask = new unsigned char[_numBytes];
+}
+
+bool Tilemap_Mask::Get(int cell) const
+{
+    unsigned char value = _mask[cell / 8];
+    return ((value >> (cell % 8)) & 0x1) == 1;
+}
+
+void Tilemap_Mask::Set(int cell, int tile)
+{
+    _mask[cell / 8] |= tile << (cell % 8);
+}
+
+void Tilemap_Mask::Serialize(Oxygen::Message& msg) const
+{
+    const int tileSize = _width * _height * sizeof(int);
+
+    msg.WriteInt32(_width);
+    msg.WriteInt32(_height);
+    msg.WriteBytes(_numBytes, _mask);
+}
+
+void Tilemap_Mask::Deserialize(Oxygen::Message& msg)
+{
+    delete[] _mask;
+
+    _width = msg.ReadInt32();
+    _height = msg.ReadInt32();
+    int numBytes = msg.ReadInt32();
+    _mask = new unsigned char[numBytes];
+    msg.ReadBytes(numBytes, _mask);
+}
+
+//======================
+// Tilemap_Layer
+//======================
+
+Tilemap_Layer::Tilemap_Layer()
     :
-    _id(id),
+    _width(0),
+    _height(0),
+    _layer(0),
+    _tiles(nullptr),
+    _id(0),
+    _version(0),
+    _visible(true)
+{
+    _constant = new Tilemap_ConstantBuffer();
+}
+
+void Tilemap_Layer::Load(const int layer, const int width, const int height)
+{
+    _layer = layer;
+    _width = width;
+    _height = height;
+
+    const int numTiles = _width * _height;
+
+    _tiles = new int[numTiles];
+    std::memset(_tiles, 0, sizeof(int) * numTiles);
+}
+
+void Tilemap_Layer::Set(int cell, int tile)
+{
+    _tiles[cell] = tile;
+}
+
+void Tilemap_Layer::Update(int scrollX, int scrollY, int viewwidth, int viewheight)
+{
+    int tileIndex = 0;
+    for (int i = 0; i < viewheight; i++)
+    {
+        for (int j = 0; j < viewwidth; j++)
+        {
+            const int tileID = _tiles[(i + scrollY) * _width + (j + scrollX)];
+
+            Tileset_Tile tile;
+            _tileset->GetTile(tileID, tile);
+
+            const Islander::component_texture& texture = tile._texture;
+
+            _constant->tileUVs[tileIndex] = texture.px;
+            _constant->tileUVs[tileIndex +1] = texture.py;
+            _constant->tileUVs[tileIndex +2] = texture.sx;
+            _constant->tileUVs[tileIndex +3] = texture.sy;
+
+            _constant->tileColour[tileIndex] = _layer == tile._layer ? 1.0f : 0.0f;
+            _constant->tileColour[tileIndex +1] = _layer == tile._layer ? 1.0f : 0.0f;
+            _constant->tileColour[tileIndex +2] = _layer == tile._layer ? 1.0f : 0.0f;
+            _constant->tileColour[tileIndex +3] = _layer == tile._layer ? 1.0f : 0.0f;
+
+            tileIndex += 4;
+        }
+    }
+}
+
+void Tilemap_Layer::Serialize(Oxygen::Message& msg) const
+{
+    const int tileSize = _width * _height * sizeof(int);
+
+    msg.WriteInt32(_width);
+    msg.WriteInt32(_height);
+    msg.WriteBytes(tileSize, (unsigned char*)_tiles);
+}
+
+void Tilemap_Layer::Deserialize(Oxygen::Message& msg)
+{
+    delete[] _tiles;
+
+    _width = msg.ReadInt32();
+    _height = msg.ReadInt32();
+    int numBytes = msg.ReadInt32();
+    _tiles = new int[numBytes / sizeof(int)];
+    msg.ReadBytes(numBytes, (unsigned char*)_tiles);
+}
+
+Tilemap_Layer::~Tilemap_Layer()
+{
+    delete[] _tiles;
+    delete _constant;
+    _tiles = nullptr;
+    _constant = nullptr;
+}
+
+//======================
+// Tilemap
+//======================
+
+Tilemap::Tilemap()
+    :
     _vertexData(nullptr),
     _indexData(nullptr),
     _viewwidth(0),
@@ -23,49 +167,43 @@ Tilemap::Tilemap(int id)
     _height(0),
     _scrollX(0),
     _scrollY(0),
-    _mesh(nullptr),
-    _tiles(nullptr)
+    _mesh(nullptr)
 {
-    _constant = new ConstantBuffer();
 }
 
 Tilemap::Tilemap(const Tilemap& tilemap)
     :
-    Tilemap(tilemap.ID())
+    Tilemap()
 {
-    std::memcpy(_constant->tileUVs, tilemap._constant->tileUVs, sizeof(_constant->tileUVs));
+    //std::memcpy(_constant->tileUVs, tilemap._constant->tileUVs, sizeof(_constant->tileUVs));
 }
 
 Tilemap::~Tilemap()
 {
     delete[] _vertexData;
     delete[] _indexData;
-    delete _constant;
-    delete[] _tiles;
 
     _vertexData = nullptr;
     _indexData = nullptr;
-    _constant = nullptr;
-    _tiles = nullptr;
+}
+
+void Tilemap::CreateLayers(int numLayers)
+{
+    _layers.resize(numLayers);
+
+    int index = 0;
+    for (auto& layer : _layers)
+    {
+        layer.Load(index++, _width, _height);
+        layer.SetTileSet(_tileset);
+    }
 }
 
 void Tilemap::Update()
 {
-    int tile = 0;
-    for (int i = 0; i < _viewheight; i++)
+    for (auto& layer : _layers)
     {
-        for (int j = 0; j < _viewwidth; j++)
-        {
-            int tileID = _tiles[(i + _scrollY) * _width + (j + _scrollX)];
-
-            Islander::component_texture texture;
-            _tileset->GetTile(tileID, texture);
-
-            _constant->tileUVs[tile++] = texture.px;
-            _constant->tileUVs[tile++] = texture.py;
-            _constant->tileUVs[tile++] = texture.sx;
-            _constant->tileUVs[tile++] = texture.sy;
-        }
+        layer.Update(_scrollX, _scrollY, _viewwidth, _viewheight);
     }
 }
 
@@ -73,11 +211,6 @@ void Tilemap::Load(const int width, const int height)
 {
     _width = width;
     _height = height;
-
-    const int numTiles = _width * _height;
-
-    _tiles = new int[numTiles];
-    std::memset(_tiles, 0, sizeof(int) * numTiles);
 }
 
 void Tilemap::AddTile(int& vertexPos, int& indexPos, int& vertexID, int x, int y)
@@ -172,6 +305,11 @@ void Tilemap::CreateMesh(ISLANDER_POLYGON_LIBRARY lib, const int viewwidth, cons
     _mesh = IslanderAddPolyMeshData(lib, (float*)_vertexData, _indexData, numVerts, indexCount, stride, 0x4 /* Copy the mesh data */ | 0x2 /* Generate AABB */);
 }
 
+void Tilemap::Set(int layer, int cell, int tile)
+{
+    _layers[layer].Set(cell, tile);
+}
+
 int Tilemap::HitTest(int x, int y) const
 {
     const int displayWidth = _viewwidth * _tileWidth * 4; /*640.0f*/
@@ -186,11 +324,6 @@ int Tilemap::HitTest(int x, int y) const
     }
 
     return -1;
-}
-
-void Tilemap::Set(int cell, int tile)
-{
-    _tiles[cell] = tile;
 }
 
 void Tilemap::SetScrollPos(int x, int y)
@@ -219,31 +352,12 @@ bool Tilemap::GetTileBounds(int tile, float* px, float* py, float* sx, float* sy
     return false;
 }
 
-void Tilemap::Serialize(Oxygen::Message& msg)
-{
-    const int tileSize = _width * _height * sizeof(int);
-
-    msg.WriteInt32(_width);
-    msg.WriteInt32(_height);
-    msg.WriteBytes(tileSize, (unsigned char*)_tiles);
-}
-
-void Tilemap::Deserialize(Oxygen::Message& msg)
-{
-    _width = msg.ReadInt32();
-    _height = msg.ReadInt32();
-    int numBytes = msg.ReadInt32();
-    _tiles = new int[numBytes / sizeof(int)];
-    msg.ReadBytes(numBytes, (unsigned char*)_tiles);
-}
-
 void Tilemap::Clear()
 {
-    _id = -1;
     _width = 0;
     _height = 0;
     _scrollX = 0;
     _scrollY = 0;
-    delete[] _tiles;
-    _tiles = nullptr;
+    _layers.clear();
+    _collider.reset();
 }

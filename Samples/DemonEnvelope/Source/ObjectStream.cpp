@@ -19,10 +19,23 @@ void ObjectStream::OnNewObject(const Oxygen::Object& ev, Oxygen::Message& msg)
 
     if (name == "TILEMAP")
     {
-        auto& tilemap = _level->GetTilemap();
-        tilemap.SetID(ev.id);
         _level->CreateTilemap();
-        tilemap.Deserialize(msg);
+
+        auto& tilemap = _level->GetTilemap();
+        const int width = msg.ReadInt32();
+        const int height = msg.ReadInt32();
+        tilemap.Load(width, height);
+
+        const int numLayers = msg.ReadInt32();
+        tilemap.CreateLayers(numLayers);
+    }
+    else if (name == "TILEMAP_LAYER")
+    {
+        const int layer = msg.ReadInt32();
+        auto& tilemap = _level->GetTilemap();
+        
+        tilemap.GetLayer(layer).Deserialize(msg);
+        tilemap.GetLayer(layer).SetID(ev.id);
 
         std::cout << "Tilemap num tiles: " << tilemap.NumTiles() << std::endl;
     }
@@ -32,15 +45,23 @@ void ObjectStream::OnUpdateObject(const Oxygen::Object& ev, Oxygen::Message& msg
 {
     const std::string name = msg.ReadString();
 
-    if (name == "TILEMAP")
+    if (name == "TILEMAP_LAYER")
     {
+        const int index = msg.ReadInt32();
+
         auto& tilemap = _level->GetTilemap();
-        if (tilemap.ID() == ev.id)
+        
+        auto& layer = tilemap.GetLayer(index);
+        if (layer.ID() == ev.id)
         {
-            tilemap.SetVersion(ev.version);
-            tilemap.Deserialize(msg);
+            layer.SetVersion(ev.version);
+            layer.Deserialize(msg);
 
             std::cout << "Tilemap num tiles: " << tilemap.NumTiles() << std::endl;
+        }
+        else
+        {
+            std::cout << "Error: Tilemap layer id out of sync" << std::endl;
         }
     }
 }

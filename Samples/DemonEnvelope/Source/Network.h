@@ -16,6 +16,17 @@ namespace DE
 {
     class Level;
     class Tilemap;
+    class Tilemap_Layer;
+
+    enum class Network_State
+    {
+        Disconnected,
+        Connected,
+        LoggingIn,
+        LoggedIn,
+        JoiningLevel,
+        JoinedLevel
+    };
 
     class Network
     {
@@ -27,23 +38,28 @@ namespace DE
         void JoinLevel(const std::string& name, std::shared_ptr<Level>& level);
         void CloseLevel();
         void ListLevels(std::vector<std::string>& levels);
-        void CreateTilemap(int width, int height);
-        void UpdateTilemap(Tilemap& tilemap);
+        void CreateTilemap(int width, int height, int numLayers);
+        void UpdateTilemap(const Tilemap_Layer& layer);
         void UpdateCursor(int objectId, int subID);
         bool Connected();
-        inline bool LoggedIn() const { return loggedIn; }
+        inline Network_State State() const { return _state; }
         void Process();
         void ObjectStreamClosed();
+        void EventStreamClosed();
 
         inline std::shared_ptr<Oxygen::EventStream> EventStream() const { return eventSub; }
+        inline std::shared_ptr<Oxygen::Subscriber> LogSub() const { return logSub; }
+        inline std::shared_ptr<Oxygen::Subscriber> CloseSub() const { return closeSub; }
     private:
 
         void OnLevelLoaded(std::shared_ptr<Level>& level);
 
         Oxygen::ClientConnection* conn;
+        std::shared_ptr<Oxygen::Subscriber> logSub;
+        std::shared_ptr<Oxygen::Subscriber> closeSub;
         std::shared_ptr<Oxygen::ObjectStream> levelSub;
         std::shared_ptr<Oxygen::EventStream> eventSub;
         bool disconnect = false;
-        bool loggedIn = false;
+        Network_State _state = Network_State::Disconnected;
     };
 }

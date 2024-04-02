@@ -15,6 +15,10 @@ Asset server and multi-user level editor
 # Initial setup
 For initial setup run 'Oxygen.exe setup' or 'dotnet Oxygen.dll setup'. You will then be prompted to create a root user. Once initial setup is complete, run 'Oxygen.exe' or 'dotnet Oxygen.dll' to start the server. To test the root user has been created correctly, run 'O2.exe login' or 'dotnet O2.dll login' and enter the username/password and check the login is successful.
 
+A demo user group is created upon setup with some permissions assigned to try out Oxygen. Using the root user create a new user called demo and add them to the demo user group.
+* o2 user create
+* o2 group add demo demo
+
 # O2 command line application
 Some common example operations:
 * o2 asset list - lists the assets which are stored on the server

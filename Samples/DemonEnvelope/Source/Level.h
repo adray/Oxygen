@@ -1,5 +1,6 @@
 #pragma once
 #include "Tilemap.h"
+#include "Scripting.h"
 #include <vector>
 #include <unordered_map>
 
@@ -20,6 +21,7 @@ namespace DE
 
     private:
         Tilemap _tilemaps;
+        Scripting _scripting;
         std::shared_ptr<Tileset> tileset;
         ISLANDER_POLYGON_LIBRARY _lib;
     };

@@ -21,22 +21,28 @@ include_directories("${ISLANDER_DIR}/Input/includes")
 include_directories("${ISLANDER_DIR}/Model/includes")
 
 include_directories("../../Thirdparty/imgui")
+include_directories("../../Thirdparty/SunScript")
 
 set (IMGUI_SOURCES
     "../../Thirdparty/Imgui/imgui.cpp"
     "../../Thirdparty/Imgui/imgui_widgets.cpp"
 )
 
+set (SUN_SOURCES
+    "../../Thirdparty/SunScript/SunScript.cpp"
+)
+
 # Add source to this project's executable.
 add_executable (DemonEnvelope 
  ${IMGUI_SOURCES}
+ ${SUN_SOURCES}
  "Program.cpp"
  "Program.h"
  "Network.cpp"
  "Network.h"
  "GameApplication.cpp"
  "GameApplication.h"
- "Editor.h" "Editor.cpp" "Render.h" "Render.cpp" "Level.cpp" "Level.h" "Tilemap.cpp" "Tilemap.h" "Tileset.cpp" "Tileset.h" "ObjectStream.cpp" "ObjectStream.h" "EventStream.cpp" "EventStream.h" "ConfigReader.cpp" "ConfigReader.h")
+ "Editor.h" "Editor.cpp" "Render.h" "Render.cpp" "Level.cpp" "Level.h" "Tilemap.cpp" "Tilemap.h" "Tileset.cpp" "Tileset.h" "ObjectStream.cpp" "ObjectStream.h" "EventStream.cpp" "EventStream.h" "ConfigReader.cpp" "ConfigReader.h" "Scripting.cpp" "Scripting.h" "ScriptingEditor.cpp" "ScriptingEditor.h")
 target_link_libraries(DemonEnvelope debug ${OXYGEN_LIBS}\\x64-debug\\libOxygen.lib)
 target_link_libraries(DemonEnvelope debug ${LIBCRYPTO}\\libcrypto_static.lib)
 

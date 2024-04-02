@@ -21,6 +21,8 @@ namespace DE
         std::vector<std::string> assets;
         std::vector<std::string> levels;
         std::shared_ptr<Level> level;
+        Scripting _scripting;
+        ScriptBuilder _scriptBuilder;
         char selectedLevelName[256];
         char levelName[256];
         char username[256];

@@ -1,4 +1,5 @@
 #include "Editor.h"
+#include "ScriptingEditor.h"
 #include "Network.h"
 #include "imgui.h"
 #include "Window.h"
@@ -25,6 +26,8 @@ void Editor::Start(ISLANDER_POLYGON_LIBRARY lib, std::shared_ptr<Tileset> tilese
 void Editor::Run(float delta, ISLANDER_WINDOW window)
 {
     network->Process();
+
+    _scripting.RunScripts(delta);
 
     const int posX = IslanderMouseX(window);
     const int posY = IslanderMouseY(window);
@@ -143,6 +146,8 @@ void Editor::Draw(float delta, ISLANDER_DEVICE device, ISLANDER_WINDOW window, C
             }
         }
     }
+
+    DrawScriptingEditor(_scripting, _scriptBuilder);
 
     if (ImGui::Begin("Options"))
     {

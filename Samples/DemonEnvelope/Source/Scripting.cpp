@@ -97,22 +97,6 @@ ScriptBuilder::ScriptBuilder()
     :
     _program(SunScript::CreateProgram())
 {
-    //SunScript::EmitPush(_program, "Hello, from sunbeam.");
-    //SunScript::EmitCall(_program, "Print");
-    //SunScript::EmitPush(_program, 42);
-    //SunScript::EmitPush(_program, 42);
-    //SunScript::EmitEquals(_program);
-    //SunScript::EmitIf(_program);
-    //SunScript::EmitPush(_program, "10 times 10 is:");
-    //SunScript::EmitCall(_program, "Print");
-    //SunScript::EmitPush(_program, 10);
-    //SunScript::EmitPush(_program, 10);
-    //SunScript::EmitMul(_program);
-    //SunScript::EmitCall(_program, "Print");
-    //SunScript::EmitEndIf(_program);
-    //SunScript::EmitPush(_program, "Bye, from sunbeam.");
-    //SunScript::EmitCall(_program, "Print");
-    //SunScript::EmitDone(_program);
 }
 
 void ScriptBuilder::Compile(unsigned char** program)

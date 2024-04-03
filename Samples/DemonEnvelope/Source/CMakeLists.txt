@@ -30,6 +30,7 @@ set (IMGUI_SOURCES
 
 set (SUN_SOURCES
     "../../Thirdparty/SunScript/SunScript.cpp"
+    "../../Thirdparty/SunScript/SunScriptDemo.cpp"
 )
 
 # Add source to this project's executable.

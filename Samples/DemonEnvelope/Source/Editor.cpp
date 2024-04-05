@@ -247,6 +247,10 @@ void Editor::Draw(float delta, ISLANDER_DEVICE device, ISLANDER_WINDOW window, C
                                 network->JoinLevel(selectedLevelName, level);
                             });
                     }
+                    else
+                    {
+                        network->JoinLevel(selectedLevelName, level);
+                    }
                 }
             }
         }

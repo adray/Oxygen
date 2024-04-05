@@ -14,7 +14,9 @@ Tilemap_Mask::Tilemap_Mask()
     _width(0),
     _height(0),
     _numBytes(0),
-    _mask(nullptr)
+    _mask(nullptr),
+    _id(0),
+    _version(0)
 {
 }
 
@@ -317,8 +319,8 @@ int Tilemap::HitTest(int x, int y) const
 
     if (x >= 0 && x <= displayWidth && y >= 0 && y <= displayHeight)
     {
-        const int px = _viewwidth * (x / float(displayWidth)) + _scrollX;
-        const int py = _viewheight * (y / float(displayHeight)) + _scrollY;
+        const int px = int(_viewwidth * (x / float(displayWidth)) + _scrollX);
+        const int py = int(_viewheight * (y / float(displayHeight)) + _scrollY);
 
         return px + py * _width;
     }
@@ -335,17 +337,17 @@ void Tilemap::SetScrollPos(int x, int y)
 bool Tilemap::GetTileBounds(int tile, float* px, float* py, float* sx, float* sy)
 {
     int x = tile % _width;
-    int y = tile / float(_width);
+    int y = int(tile / float(_width));
 
     x -= _scrollX;
     y -= _scrollY;
     if (x >= 0 && y >= 0 &&
         x < _viewwidth && y < _viewheight)
     {
-        *px = x * _tileWidth * 4;
-        *py = y * _tileHeight * 4;
-        *sx = _tileWidth * 4;
-        *sy = _tileHeight * 4;
+        *px = float(x * _tileWidth * 4);
+        *py = float(y * _tileHeight * 4);
+        *sx = float(_tileWidth * 4);
+        *sy = float(_tileHeight * 4);
         return true;
     }
 

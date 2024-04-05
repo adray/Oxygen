@@ -367,7 +367,8 @@ namespace Oxygen
             if (version == obj.Version)
             {
                 byte[] initialData = state[id];
-                byte[] decompressedData = DeltaCompress.Decompress(initialData, msg.ReadByteArray());
+                byte[] deltaData = msg.ReadByteArray();
+                byte[] decompressedData = DeltaCompress.Decompress(initialData, deltaData);
                 Message msg2 = new Message(decompressedData);
                 msg2.ReadInt(); // type
                 msg2.ReadInt(); // id

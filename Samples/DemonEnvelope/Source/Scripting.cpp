@@ -119,6 +119,8 @@ ScriptBuilder::~ScriptBuilder()
 
 static void Handler(SunScript::VirtualMachine* vm)
 {
+    Script* script = reinterpret_cast<Script*>(SunScript::GetUserData(vm));
+
     std::string name;
     SunScript::GetCallName(vm, &name);
     if (name == "Print")
@@ -127,15 +129,15 @@ static void Handler(SunScript::VirtualMachine* vm)
         int intParam;
         if (SunScript::VM_OK == SunScript::GetParamString(vm, &param))
         {
-            std::cout << param << std::endl;
+            script->GetLog() << param << std::endl;
         }
         else if (SunScript::VM_OK == SunScript::GetParamInt(vm, &intParam))
         {
-            std::cout << intParam << std::endl;
+            script->GetLog() << intParam << std::endl;
         }
         else
         {
-            std::cout << "Error in print." << std::endl;
+            script->GetLog() << "Error in print." << std::endl;
         }
     }
     else if (name == "Wait")
@@ -143,9 +145,8 @@ static void Handler(SunScript::VirtualMachine* vm)
         int waitTime;
         if (SunScript::VM_OK == SunScript::GetParamInt(vm, &waitTime))
         {
-            std::cout << "Now we wait.. " << waitTime << " seconds!" << std::endl;
+            script->GetLog() << "Now we wait.. " << waitTime << " seconds!" << std::endl;
 
-            Script* script = reinterpret_cast<Script*>(SunScript::GetUserData(vm));
             script->Wait(waitTime);
         }
     }
@@ -197,15 +198,15 @@ void Script::RunScript(float delta)
         {
             _waiting = false;
             _suspended = false;
-            std::cout << "Script resuming.." << std::endl;
+            _log << "Script resuming.." << std::endl;
             const int code = SunScript::ResumeScript(_vm, _program);
             if (code == SunScript::VM_ERROR)
             {
-                std::cout << "Script encountered an error." << std::endl;
+                _log << "Script encountered an error." << std::endl;
             }
             else if (code == SunScript::VM_YIELDED)
             {
-                std::cout << "Script suspended." << std::endl;
+                _log << "Script suspended." << std::endl;
                 _suspended = true;
             }
         }
@@ -215,11 +216,11 @@ void Script::RunScript(float delta)
         const int code = SunScript::RunScript(_vm, _program);
         if (code == SunScript::VM_ERROR)
         {
-            std::cout << "Script encountered an error." << std::endl;
+            _log << "Script encountered an error." << std::endl;
         }
         else if (code == SunScript::VM_YIELDED)
         {
-            std::cout << "Script suspended." << std::endl;
+            _log << "Script suspended." << std::endl;
             _suspended = true;
         }
     }
@@ -227,7 +228,7 @@ void Script::RunScript(float delta)
     if (!_suspended)
     {
         _completed = true;
-        std::cout << "Script ended." << std::endl;
+        _log << "Script ended." << std::endl;
     }
 }
 
@@ -251,4 +252,9 @@ void Scripting::ClearScripts()
         delete script;
     }
     _scripts.clear();
+}
+
+const std::string Scripting::Log(int script) const
+{
+    return _scripts[script]->GetLog().str();
 }

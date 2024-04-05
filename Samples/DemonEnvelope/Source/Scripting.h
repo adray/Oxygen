@@ -3,6 +3,7 @@
 #include <vector>
 #include <list>
 #include <memory>
+#include <sstream>
 
 namespace DE
 {
@@ -82,6 +83,7 @@ namespace DE
         void Initialize();
         void RunScript(float delta);
         void Wait(float time);
+        inline std::stringstream& GetLog() { return _log; }
         ~Script();
     private:
         SunScript::VirtualMachine* _vm;
@@ -91,6 +93,7 @@ namespace DE
         bool _waiting;
         float _waitTime;
         float _elapsedTime;
+        std::stringstream _log;
     };
 
     class Scripting
@@ -99,6 +102,9 @@ namespace DE
         void AddScript(unsigned char* program);
         void RunScripts(float delta);
         void ClearScripts();
+
+        inline int NumScripts() const { return _scripts.size(); }
+        const std::string Log(int script) const;
 
     private:
         std::vector<Script*> _scripts;

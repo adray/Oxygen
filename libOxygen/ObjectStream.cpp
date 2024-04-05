@@ -10,7 +10,8 @@ using namespace Oxygen;
 
 ObjectStream::ObjectStream()
     : 
-    Subscriber(Oxygen::Message("LEVEL_SVR", "OBJECT_STREAM"))
+    Subscriber(Oxygen::Message("LEVEL_SVR", "OBJECT_STREAM")),
+    _customDataPos(0)
 {
     _Request().Prepare();
 }
@@ -175,7 +176,7 @@ Message ObjectStream::BuildUpdateMessage(const Object& obj)
 void ObjectStream::PrepareUpdateMessage(Message* msg, const Object& obj)
 {
     const int pos = msg->size();
-    const int dataSize = pos - _customDataPos;
+    const int dataSize = pos - _customDataPos - 4;
     int* customData = (int*) (msg->data() + _customDataPos);
     *customData = dataSize;
 

@@ -96,4 +96,26 @@ void DE::DrawScriptingEditor(Scripting& scripting, ScriptBuilder& script)
         }
     }
     ImGui::End();
+
+    if (ImGui::Begin("SunScript Log"))
+    {
+        ImGui::BeginTabBar("Log");
+        static int tab = 0;
+        for (int i = 0; i < scripting.NumScripts(); i++)
+        {
+            std::stringstream ss; ss << "Script " << (i + 1);
+            if (ImGui::TabItemButton(ss.str().c_str()))
+            {
+                tab = i;
+            }
+        }
+        ImGui::EndTabBar();
+
+        if (tab >= 0 && scripting.NumScripts() > 0)
+        {
+            auto& log = scripting.Log(tab);
+            ImGui::Text(log.c_str());
+        }
+    }
+    ImGui::End();
 }

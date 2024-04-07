@@ -162,7 +162,7 @@ namespace Oxygen
         /// </summary>
         /// <param name="name">The full path to the asset directory.</param>
         /// <returns>The path to the deltas file.</returns>
-        private static string CalculteDeltas(string name)
+        private static string CalculateDeltas(string name)
         {
             byte[] newData = File.ReadAllBytes(name);
 
@@ -220,7 +220,7 @@ namespace Oxygen
             {
                 asset.Version++;
 
-                string deltaFile = CalculteDeltas(name);
+                string deltaFile = CalculateDeltas(name);
                 
                 using (ZipArchive zipArchive = OpenAssetArchive(asset))
                 {

@@ -9,27 +9,12 @@ namespace Oxygen
     internal class AssetServer : Node
     {
         private readonly DataStream stream = new DataStream();
-        private readonly List<string> assets = new List<string>();
         private readonly Cache cache = new Cache();
 
         public AssetServer() : base("ASSET_SVR")
         {
-            this.LoadAssets();
             this.cache.LoadCache(@"Data\cache.data");
-        }
-
-        private void LoadAssets()
-        {
-            if (!Directory.Exists("Assets"))
-            {
-                Directory.CreateDirectory("Assets");
-            }
-
-            string[] files = Directory.GetFiles("Assets");
-            foreach (string file in files)
-            {
-                assets.Add(Path.GetFileName(file));
-            }
+            Archiver.LoadAssetFile();
         }
 
         public override void OnClientDisconnected(Client client)
@@ -62,7 +47,8 @@ namespace Oxygen
                 string assetName = msg.ReadString();
                 int sizeInBytes = msg.ReadInt();
 
-                this.assets.Add(assetName);
+                Archiver.BackupAsset(@"Assets\" + assetName);
+
                 this.stream.AddUploadStream(client, @"Assets\" + assetName, sizeInBytes);
                 Audit.Instance.Log("Asset {0} upload started by user {1}.", assetName, user);
 
@@ -70,7 +56,8 @@ namespace Oxygen
                 if (this.stream.UploadBytes(client, bytes))
                 {
                     this.cache.CacheItem(@"Assets\" + assetName);
-                    Archiver.ArchiveAsset(@"Assets\" + assetName);
+                    this.cache.SaveCache();
+                    Archiver.ArchiveAsset(@"Assets\" + assetName, user);
                     Audit.Instance.Log("Asset {0} upload finished by user {1}.", assetName, user);
                 }
 
@@ -83,7 +70,8 @@ namespace Oxygen
                 if (this.stream.UploadBytes(client, bytes))
                 {
                     this.cache.CacheItem(streamName);
-                    Archiver.ArchiveAsset(streamName);
+                    this.cache.SaveCache();
+                    Archiver.ArchiveAsset(streamName, user);
                     Audit.Instance.Log("Asset {0} upload finished by user {1}.", streamName, user);
                 }
 
@@ -93,9 +81,11 @@ namespace Oxygen
             {
                 Message response = new Message("ASSET_SVR", "ASSET_LIST");
                 response.WriteString("ACK");
-                response.WriteInt(this.assets.Count);
 
-                foreach (string asset in this.assets)
+                var assets = Archiver.GetAssets();
+                response.WriteInt(assets.Count);
+
+                foreach (string asset in assets)
                 {
                     response.WriteString(asset);
                 }
@@ -193,7 +183,7 @@ namespace Oxygen
                 string assetName = msg.ReadString();
                 int revision = msg.ReadInt();
 
-                if (Archiver.RestoreAsset($"Assets\\{assetName}", revision))
+                if (Archiver.RestoreAsset($"Assets\\{assetName}", revision, user))
                 {
                     SendAck(client, msgName);
                     Audit.Instance.Log("Asset {0} restored by user {1}.", assetName, user);

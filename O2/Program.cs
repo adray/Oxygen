@@ -78,6 +78,7 @@ namespace O2
                 Console.WriteLine("                                                                      Options: Allow/Deny/Default");
                 Console.WriteLine("o2 label create <name>                                           Creates a label of the head versions.");
                 Console.WriteLine("o2 label spec <name>                                             Gets the label spec of the specified label.");
+                Console.WriteLine("o2 label list                                                    Gets the list of labels.");
                 //Console.WriteLine("o2 build upload <name>");
                 //Console.WriteLine("o2 build download <name>");
                 //Console.WriteLine("o2 build list");
@@ -579,7 +580,10 @@ namespace O2
                     case "create":
                         CreateLabelCommand(args);
                         break;
-                }
+					case "list":
+						LabelListCommand(args);
+						break;
+				}
             }
             else
             {
@@ -587,7 +591,27 @@ namespace O2
             }
         }
 
-        static void LabelSpecCommand(string[] args)
+		static void LabelListCommand(string[] args)
+		{
+			ClientConnection cli = StartClient();
+
+			try
+			{
+				LoginWithAPIKey(cli);
+
+				List<string> list = cli.GetAssetLabels();
+				foreach (string item in list)
+				{
+					Console.WriteLine(item);
+				}
+			}
+			catch (ClientException ex)
+			{
+				Console.WriteLine(ex.Message);
+			}
+		}
+
+		static void LabelSpecCommand(string[] args)
         {
             if (args.Length > 2)
             {

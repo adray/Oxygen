@@ -593,5 +593,23 @@ namespace Oxygen
 
             return assets;
         }
+
+        public List<string> GetAssetLabels()
+        {
+			Message msg = new Message("ASSET_SVR", "LABEL_LIST");
+			Send(msg.GetData());
+
+			Message response = CheckAck();
+
+			int numItems = response.ReadInt();
+			List<string> assets = new List<string>();
+
+			for (int i = 0; i < numItems; i++)
+			{
+				assets.Add(response.ReadString());
+			}
+
+			return assets;
+		}
     }
 }

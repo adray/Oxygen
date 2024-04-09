@@ -125,5 +125,25 @@ namespace Oxygen
 
             return null;
         }
+
+        public static List<string> GetLabels()
+        {
+            List<string> labels = new List<string>();
+
+			labelFile.SeekBegin();
+
+			do
+			{
+				string? name = labelFile.GetString("NAME");
+
+				if (name != null)
+				{
+                    labels.Add(name);
+				}
+
+			} while (labelFile.NextRow());
+
+            return labels;
+		}
     }
 }

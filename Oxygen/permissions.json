@@ -157,6 +157,12 @@
       "Default": "Deny"
     },
     {
+      "Node": "ASSET_SVR",
+      "Message": "LABEL_LIST",
+      "Text": "Permission to get the list of labels.",
+      "Default": "Deny"
+    },
+    {
       "Node": "LEVEL_SVR",
       "Message": "LOAD_LEVEL",
       "Text": "Permission to load a level on the server.",

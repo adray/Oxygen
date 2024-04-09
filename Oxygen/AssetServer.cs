@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -249,6 +250,21 @@ namespace Oxygen
                     SendNack(client, 200, "Could not find the label specified.", msgName);
                 }
             }
+            else if (msgName == "LABEL_LIST")
+            {
+                var labels = AssetLabels.GetLabels();
+
+				Message response = new Message(Name, msgName);
+				response.WriteString("ACK");
+
+				response.WriteInt(labels.Count);
+                foreach(var label in labels)
+                {
+                    response.WriteString(label);
+                }
+
+                client.Send(response);
+			}
             else
             {
                 SendNack(client, 100, "Invalid request", msgName);

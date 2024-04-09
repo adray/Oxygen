@@ -565,5 +565,33 @@ namespace Oxygen
 
             CheckAck();
         }
+
+        public void CreateAssetLabel(string name)
+        {
+            Message msg = new Message("ASSET_SVR", "CREATE_LABEL");
+            msg.WriteString(name);
+            Send(msg.GetData());
+
+            CheckAck();
+        }
+
+        public List<string> GetAssetLabelSpec(string name)
+        {
+            Message msg = new Message("ASSET_SVR", "LABEL_SPEC");
+            msg.WriteString(name);
+            Send(msg.GetData());
+
+            Message response = CheckAck();
+
+            int numItems = response.ReadInt();
+            List<string> assets = new List<string>();
+
+            for (int i = 0; i < numItems; i++)
+            {
+                assets.Add(response.ReadString());
+            }
+
+            return assets;
+        }
     }
 }

@@ -145,6 +145,18 @@
       "Default": "Deny"
     },
     {
+      "Node": "ASSET_SVR",
+      "Message": "CREATE_LABEL",
+      "Text": "Permission to create a label at the head revisions.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "ASSET_SVR",
+      "Message": "LABEL_SPEC",
+      "Text": "Permission to get the label specification.",
+      "Default": "Deny"
+    },
+    {
       "Node": "LEVEL_SVR",
       "Message": "LOAD_LEVEL",
       "Text": "Permission to load a level on the server.",

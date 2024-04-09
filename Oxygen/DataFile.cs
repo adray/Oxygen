@@ -164,6 +164,11 @@ namespace Oxygen
             this.offset = 0;
         }
 
+        public void SeekEnd()
+        {
+            this.offset = this.values.Count;
+        }
+
         public void NewRow()
         {
             if (columns != null && types != null)
@@ -179,7 +184,7 @@ namespace Oxygen
                             this.values.Add(0);
                             break;
                         case Column.Int64:
-                            this.values.Add(0l);
+                            this.values.Add(0L);
                             break;
                         case Column.String:
                             this.values.Add(string.Empty);

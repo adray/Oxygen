@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Oxygen
 {
-    internal class Archiver
+    internal static class Archiver
     {
         private class Asset
         {
@@ -375,6 +375,15 @@ namespace Oxygen
             }
 
             return assetList;
+        }
+
+        public static int GetAssetVersion(string name)
+        {
+            if (assets.TryGetValue(name, out Asset? asset) && asset != null)
+            {
+                return asset.Version;
+            }
+            return -1;
         }
     }
 }

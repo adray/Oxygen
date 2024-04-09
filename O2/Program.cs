@@ -42,6 +42,9 @@ namespace O2
                     case "set-group-permission":
                         SetGroupPermissionCommand(args);
                         break;
+                    case "label":
+                        LabelCommand(args);
+                        break;
                     default:
                         Console.WriteLine("Invalid command");
                         break;
@@ -73,6 +76,8 @@ namespace O2
                 Console.WriteLine("o2 get-permission <user>                                         Gets the permissions for the specified user");
                 Console.WriteLine("o2 set-group-permission <group> <LOGIN_SVR> <CREATE_API_KEY> <allow>  Sets the permissions for the specified user group");
                 Console.WriteLine("                                                                      Options: Allow/Deny/Default");
+                Console.WriteLine("o2 label create <name>                                           Creates a label of the head versions.");
+                Console.WriteLine("o2 label spec <name>                                             Gets the label spec of the specified label.");
                 //Console.WriteLine("o2 build upload <name>");
                 //Console.WriteLine("o2 build download <name>");
                 //Console.WriteLine("o2 build list");
@@ -550,6 +555,76 @@ namespace O2
                     {
                         cli.RemoveUserFromGroup(username, group);
                     }
+                }
+                catch (ClientException ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
+            }
+            else
+            {
+                Console.WriteLine("Invalid command");
+            }
+        }
+
+        static void LabelCommand(string[] args)
+        {
+            if (args.Length > 1)
+            {
+                switch (args[1])
+                {
+                    case "spec":
+                        LabelSpecCommand(args);
+                        break;
+                    case "create":
+                        CreateLabelCommand(args);
+                        break;
+                }
+            }
+            else
+            {
+                Console.WriteLine("Invalid command");
+            }
+        }
+
+        static void LabelSpecCommand(string[] args)
+        {
+            if (args.Length > 2)
+            {
+                ClientConnection cli = StartClient();
+
+                try
+                {
+                    LoginWithAPIKey(cli);
+
+                    List<string> spec = cli.GetAssetLabelSpec(args[2]);
+                    foreach (string item in spec)
+                    {
+                        Console.WriteLine(item);
+                    }
+                }
+                catch (ClientException ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
+            }
+            else
+            {
+                Console.WriteLine("Invalid command");
+            }
+        }
+
+        static void CreateLabelCommand(string[] args)
+        {
+            if (args.Length > 2)
+            {
+                ClientConnection cli = StartClient();
+
+                try
+                {
+                    LoginWithAPIKey(cli);
+
+                    cli.CreateAssetLabel(args[2]);
                 }
                 catch (ClientException ex)
                 {

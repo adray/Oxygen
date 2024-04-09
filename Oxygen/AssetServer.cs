@@ -15,6 +15,7 @@ namespace Oxygen
         {
             this.cache.LoadCache(@"Data\cache.data");
             Archiver.LoadAssetFile();
+            AssetLabels.LoadLabelsFile();
         }
 
         public override void OnClientDisconnected(Client client)
@@ -192,7 +193,61 @@ namespace Oxygen
                 {
                     SendNack(client, 200, "Unable to restore file at specified revision", msgName);
                 }
+            }
+            else if (msgName == "CREATE_LABEL")
+            {
+                string name = msg.ReadString();
 
+                bool ack = false;
+                if (!AssetLabels.LabelExists(name))
+                {
+                    AssetLabel label = new AssetLabel(name, user);
+                    IList<string> assets = Archiver.GetAssets();
+                    foreach (var asset in assets)
+                    {
+                        label.AddItem(asset,
+                            Archiver.GetAssetVersion(asset));
+                    }
+
+                    ack = AssetLabels.CreateLabel(label);
+                }
+
+                if (ack)
+                {
+                    SendAck(client, msgName);
+                }
+                else
+                {
+                    SendNack(client, 200, "Unable to create label, label with the given name already exists.", msgName);
+                }
+            }
+            else if (msgName == "LABEL_SPEC")
+            {
+                string name = msg.ReadString();
+
+                AssetLabel? label = null;
+                if (AssetLabels.LabelExists(name))
+                {
+                    label = AssetLabels.FindLabel(name);
+                }
+
+                if (label != null)
+                {
+                    Message response = new Message(Name, msgName);
+                    response.WriteString("ACK");
+
+                    response.WriteInt(label.NumItems);
+                    for (int i = 0; i < label.NumItems; i++)
+                    {
+                        response.WriteString(label.GetAssetName(i) + "," + label.GetAssetRevision(i));
+                    }
+
+                    client.Send(response);
+                }
+                else
+                {
+                    SendNack(client, 200, "Could not find the label specified.", msgName);
+                }
             }
             else
             {

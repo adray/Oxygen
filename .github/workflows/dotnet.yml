@@ -1,13 +1,23 @@
 # This workflow will build a .NET project
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
 
-name: .NET
+name: .NET Oxygen
 
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - 'Oxygen/**'
+      - 'O2Core/**'
+      - 'O2/**'
+      - 'Samples/Compressor/**'
   pull_request:
     branches: [ "main" ]
+    paths:
+      - 'Oxygen/**'
+      - 'O2Core/**'
+      - 'O2/**'
+      - 'Samples/Compressor/**'
 
 jobs:
   build:

@@ -18,6 +18,7 @@ namespace Oxygen
         private NetworkStream networkStream;
         private List<Subscriber> subscribers = new List<Subscriber>();
         private object subscriberLock = new object();
+        private int messageId;
 
         public ClientConnection(string hostname, int port)
         {
@@ -42,16 +43,39 @@ namespace Oxygen
             networkStream.WriteByte((byte)((bytes.Length >> 16) & 0xFF));
             networkStream.WriteByte((byte)((bytes.Length >> 24) & 0xFF));
 
-            networkStream.Write(bytes);
+            int id = messageId++;
+			networkStream.WriteByte((byte)(id & 0xFF));
+			networkStream.WriteByte((byte)((id >> 8) & 0xFF));
+			networkStream.WriteByte((byte)((id >> 16) & 0xFF));
+			networkStream.WriteByte((byte)((id >> 24) & 0xFF));
+
+			networkStream.Write(bytes);
             networkStream.Flush();
         }
 
         private Message Read()
         {
-            byte[] length = new byte[4];
+            byte[] header = new byte[8];
             try
             {
-                networkStream.Read(length, 0, length.Length);
+                networkStream.ReadExactly(header, 0, header.Length);
+			}
+            catch (IOException ex)
+            {
+                throw new ClientException(0, ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                throw new ClientException(0, ex.Message);
+            }
+
+            int len = header[0] | (header[1] << 8) | (header[2] << 16) | (header[3] << 24);
+            int id = header[4] | (header[5] << 8) | (header[6] << 16) | (header[7] << 24);
+
+			byte[] bytes = new byte[len];
+            try
+            {
+                networkStream.ReadExactly(bytes, 0, len);
             }
             catch (IOException ex)
             {
@@ -62,23 +86,9 @@ namespace Oxygen
                 throw new ClientException(0, ex.Message);
             }
 
-            int len = length[0] | (length[1] << 8) | (length[2] << 16) | (length[3] << 24);
-
-            byte[] bytes = new byte[len];
-            try
-            {
-                networkStream.Read(bytes, 0, len);
-            }
-            catch (IOException ex)
-            {
-                throw new ClientException(0, ex.Message);
-            }
-            catch (InvalidOperationException ex)
-            {
-                throw new ClientException(0, ex.Message);
-            }
-
-            return new Message(bytes);
+            Message msg = new Message(bytes);
+            msg.Id = id;
+            return msg;
         }
 
         public void RunClientThread()

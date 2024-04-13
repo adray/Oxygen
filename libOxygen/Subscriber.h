@@ -11,6 +11,8 @@ namespace Oxygen
 
         Subscriber(const Message& msg);
 
+        void SetId(int id);
+        int Id() const { return _id; }
         inline const Message& Request() const { return _request; };
         void Signal(const std::function<void (Message&)>& callback);
         void NewMessage(const Message& msg);
@@ -24,5 +26,6 @@ namespace Oxygen
     private:
         Message _request;
         std::vector<std::function<void(Message&)>> _callback;
+        int _id;
     };
 }

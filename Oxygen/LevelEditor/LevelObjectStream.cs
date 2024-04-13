@@ -5,7 +5,7 @@
     /// </summary>
     internal class LevelObjectStream
     {
-        private readonly Client client;
+        private readonly Request request;
         private Queue<Message> newObjects = new Queue<Message>();
         private Queue<Message> removeObjects = new Queue<Message>();
         private Queue<Message> updates = new Queue<Message>();
@@ -15,9 +15,9 @@
         private const int UPDATE_OBJECT = 1;
         private const int DELETE_OBJECT = 2;
 
-        public LevelObjectStream(Client client)
+        public LevelObjectStream(Request request)
         {
-            this.client = client;
+            this.request = request;
         }
 
         public void AddObject(LevelObject obj)
@@ -71,17 +71,17 @@
         {
             while (newObjects.Count > 0)
             {
-                client.Send(newObjects.Dequeue());
+                request.Send(newObjects.Dequeue());
             }
 
             while (removeObjects.Count > 0)
             {
-                client.Send(removeObjects.Dequeue());
+                request.Send(removeObjects.Dequeue());
             }
             
             while (updates.Count > 0)
             {
-                client.Send(updates.Dequeue());
+                request.Send(updates.Dequeue());
             }
         }
     }

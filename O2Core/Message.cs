@@ -11,6 +11,8 @@ namespace Oxygen
         public string NodeName { get; private set; }
         public string MessageName { get; private set; }
 
+        internal int Id { get; set; }
+
         public Message(byte[] data)
         {
             this.stream = new MemoryStream(data);

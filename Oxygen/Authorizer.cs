@@ -191,12 +191,15 @@ namespace Oxygen
             return permissionList;
         }
 
-        public static bool IsAuthorized(Client client, Message message)
+        public static bool IsAuthorized(Request request)
         {
+            var client = request.Client;
+            var message = request.Message;
+
             bool? loggedIn = (bool?)client.GetProperty("LOGGED_IN");
             if (!loggedIn.GetValueOrDefault())
             {
-                SendNack(client, 400, "Authorization requried", message);
+                SendNack(request, 400, "Authorization requried", message);
                 Audit.Instance.Log("Failed attempt to access resource, user not logged in.");
                 return false;
             }
@@ -204,30 +207,30 @@ namespace Oxygen
             string? username = client.GetProperty("USER_NAME") as string;
             if (username == null)
             {
-                SendNack(client, 0, "Internal error", message);
+                SendNack(request, 0, "Internal error", message);
                 return false;
             }
 
             User? user = Users.Instance.GetUserByName(username);
             if (user == null)
             {
-                SendNack(client, 0, "Internal error", message);
+                SendNack(request, 0, "Internal error", message);
                 return false;
             }
 
             if (!CheckPermission(user, message.NodeName, message.MessageName))
             {
-                SendNack(client, 400, "Authorization requried", message);
-                Audit.Instance.Log("Failed attempt to access resource, user does not have the permission.");
+                SendNack(request, 400, "Authorization requried", message);
+                Audit.Instance.Log("Failed attempt to access resource {0}, user does not have the permission.", message.MessageName);
                 return false;
             }
 
             return true;
         }
 
-        private static void SendNack(Client client, int errorCode, string msg, Message message)
+        private static void SendNack(Request request, int errorCode, string msg, Message message)
         {
-            client.Send(Response.Nack(message.NodeName, errorCode, msg, message.MessageName));
+            request.Send(Response.Nack(message.NodeName, errorCode, msg, message.MessageName));
         }
 
         public static void LoadPermissions()

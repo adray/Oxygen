@@ -24,11 +24,14 @@ namespace Oxygen
         const size_t size() const { return _data.size(); }
         inline const std::string& NodeName() const { return _nodeName; }
         inline const std::string& MessageName() const { return _messageName; }
+        inline void SetId(int id) { _id = id; };
+        inline int Id() const { return _id; }
 
     private:
         std::string _nodeName;
         std::string _messageName;
         std::vector<unsigned char> _data;
         std::vector<unsigned char>::iterator _it;
+        int _id;
     };
 }

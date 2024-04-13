@@ -18,8 +18,9 @@ namespace Oxygen
                 server.AddNode(new LoginServer());
                 server.AddNode(new LevelServer());
                 server.AddNode(new UserServer());
+                server.AddNode(new MetricsServer());
 
-                try
+				try
                 {
                     server.Start();
                 }

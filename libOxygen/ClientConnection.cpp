@@ -131,11 +131,12 @@ namespace Oxygen
         WaitHandle writeWaitHandle;
         WaitHandle readWaitHandle;
         WaitHandle heartbeatHandle;
+        int subscriberId;
     };
 }
 
 ClientConnectionImpl::ClientConnectionImpl(const std::string& host, int port)
-    : running(true), sock(0L)
+    : running(true), sock(0L), subscriberId(0)
 {
     connected = true;
 
@@ -224,11 +225,11 @@ void ClientConnectionImpl::HeartbeatThread()
 void ClientConnectionImpl::ReadThread()
 {
     const int maxBytes = 2048*32;
-    unsigned char bytes[maxBytes];
+    unsigned char* bytes = new unsigned char[maxBytes];
 
     while (running)
     {
-        int consumed = recv(sock, (char*)bytes, 4, MSG_WAITALL);
+        int consumed = recv(sock, (char*)bytes, 8, MSG_WAITALL);
         if (consumed == -1)
         {
             // Disconnected
@@ -240,6 +241,11 @@ void ClientConnectionImpl::ReadThread()
             (bytes[1] << 8) |
             (bytes[2] << 16) |
             (bytes[3] << 24);
+        const int id = 
+            bytes[4] |
+            (bytes[5] << 8) |
+            (bytes[6] << 16) |
+            (bytes[7] << 24);
 
         consumed = recv(sock, (char*)bytes, totalBytes, MSG_WAITALL);
 
@@ -250,9 +256,12 @@ void ClientConnectionImpl::ReadThread()
         }
 
         Message msg(bytes, totalBytes);
+        msg.SetId(id);
         readQueue.Enqueue(msg);
         readWaitHandle.Set();
     }
+
+    delete[] bytes;
 }
 
 void ClientConnectionImpl::WriteThread()
@@ -264,7 +273,7 @@ void ClientConnectionImpl::WriteThread()
 
         while (writeQueue.Size() > 0)
         {
-            const Message& msg = writeQueue.Dequeue();
+            const Message msg = writeQueue.Dequeue();
 
             const unsigned char* buffer = msg.data();
             const size_t size = msg.size();
@@ -282,6 +291,7 @@ void ClientConnectionImpl::WriteMessage(const Message& msg)
 
 void ClientConnectionImpl::AddSubscriber(std::shared_ptr<Subscriber>& subscriber)
 {
+    subscriber->SetId(subscriberId++);
     WriteMessage(subscriber->Request());
 
     subscribers.push_back(subscriber);
@@ -306,14 +316,15 @@ void ClientConnectionImpl::Process(bool wait)
 
     while (readQueue.Size() > 0)
     {
-        const Message& msg = readQueue.Dequeue();
+        const Message msg = readQueue.Dequeue();
 
         // Add to a list as NewMessage can add/remove a subscriber..
         std::vector<std::shared_ptr<Subscriber>> activate;
         for (auto& sub : subscribers)
         {
             if (sub->Request().NodeName() == msg.NodeName() &&
-                sub->Request().MessageName() == msg.MessageName())
+                sub->Request().MessageName() == msg.MessageName() &&
+                sub->Id() == msg.Id())
             {
                 activate.push_back(sub);
             }
@@ -380,6 +391,50 @@ void ClientConnection::HashPassword(const std::string& password, Message& msg)
     msg.WriteBytes(size, hash);
 
     delete[] hash;
+}
+
+void ClientConnection::Logon(const std::string& username, const std::string& password)
+{
+    Message request("LOGIN_SVR", "LOGIN");
+    request.WriteString(username);
+    HashPassword(password, request);
+    std::shared_ptr<Subscriber> logSub = std::shared_ptr<Subscriber>(new Subscriber(request));
+    AddSubscriber(logSub);
+    logSub->Signal([this, sub2 = std::shared_ptr<Subscriber>(logSub)](Message& msg) {
+        RemoveSubscriber(sub2);
+        if (msg.ReadString() == "NACK")
+        {
+            const int errCode = msg.ReadInt32();
+            const std::string errText = msg.ReadString();
+            OnLogonFailed(errCode, errText);
+        }
+        else
+        {
+            OnLogonSuccess();
+        }
+        });
+}
+
+void ClientConnection::LogonHandler(const std::function<void(int errCode, const std::string& text)>& handler)
+{
+    logonHandler.active = true;
+    logonHandler.handler = handler;
+}
+
+void ClientConnection::OnLogonSuccess()
+{
+    if (logonHandler.active)
+    {
+        logonHandler.handler(0, "");
+    }
+}
+
+void ClientConnection::OnLogonFailed(int errCode, const std::string& text)
+{
+    if (logonHandler.active)
+    {
+        logonHandler.handler(errCode, text);
+    }
 }
 
 ClientConnection::~ClientConnection()

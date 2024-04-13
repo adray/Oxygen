@@ -215,6 +215,18 @@
       "Message": "UPDATE_CURSOR",
       "Text": "Permission to update the client cursor for the level.",
       "Default": "Deny"
+    },
+    {
+      "Node": "METRIC_SVR",
+      "Message": "REPORT_METRIC",
+      "Text": "Permission to report metric data.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "METRIC_SVR",
+      "Message": "METRIC_COLLECTION",
+      "Text": "Permission to collect metric data.",
+      "Default": "Deny"
     }
   ]
 }

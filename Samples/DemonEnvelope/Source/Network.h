@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include "Metrics.h"
 
 namespace Oxygen
 {
@@ -32,7 +33,7 @@ namespace DE
     {
     public:
         void Connect(const std::string& hostname);
-        void Login(const std::string& username, const std::string& password);
+        void Login(const std::string& username, const std::string& password, std::vector<std::string>& assets, std::vector<std::string>& levels);
         void GetAssets(std::vector<std::string>& assets);
         void CreateLevel(const std::string& name, std::shared_ptr<Level>& level);
         void JoinLevel(const std::string& name, std::shared_ptr<Level>& level);
@@ -48,18 +49,17 @@ namespace DE
         void EventStreamClosed();
 
         inline std::shared_ptr<Oxygen::EventStream> EventStream() const { return eventSub; }
-        inline std::shared_ptr<Oxygen::Subscriber> LogSub() const { return logSub; }
         inline std::shared_ptr<Oxygen::Subscriber> CloseSub() const { return closeSub; }
     private:
 
         void OnLevelLoaded(std::shared_ptr<Level>& level);
 
         Oxygen::ClientConnection* conn;
-        std::shared_ptr<Oxygen::Subscriber> logSub;
         std::shared_ptr<Oxygen::Subscriber> closeSub;
         std::shared_ptr<Oxygen::ObjectStream> levelSub;
         std::shared_ptr<Oxygen::EventStream> eventSub;
         bool disconnect = false;
         Network_State _state = Network_State::Disconnected;
+        std::unique_ptr<Oxygen::Metrics> _metrics;
     };
 }

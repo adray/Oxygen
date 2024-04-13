@@ -25,6 +25,24 @@ namespace Oxygen
         }
     }
 
+    public class Request
+    {
+        public Message Message { get; }
+        public Client Client { get; }
+
+        public Request(Message message, Client client)
+        {
+            this.Message = message;
+            this.Client = client;
+        }
+
+        public void Send(Message message)
+        {
+            message.Id = this.Message.Id;
+            Client.Send(message);
+        }
+    }
+
     public class Client
     {
         private readonly EventWaitHandle waitHandle;
@@ -57,7 +75,7 @@ namespace Oxygen
         /// Sends a message, safe to be called from any thread. 
         /// </summary>
         /// <param name="msg">The message to send.</param>
-        public void Send(Message msg)
+        internal void Send(Message msg)
         {
             if (this.connected)
             {
@@ -247,7 +265,7 @@ namespace Oxygen
             Logger.Instance.Log(message, args);
         }
 
-        const int INCOMING_HEADER_SIZE = 4;
+        const int INCOMING_HEADER_SIZE = 8;
 
         private void ClientReadThread(object? state)
         {
@@ -274,7 +292,8 @@ namespace Oxygen
                         //Log(bufferString);
 
                         int len = buffer[0] | (buffer[1] << 8) | (buffer[2] << 16) | (buffer[3] << 24);
-                        index -= INCOMING_HEADER_SIZE;
+                        int id = buffer[4] | (buffer[5] << 8) | (buffer[6] << 16) | (buffer[7] << 24);
+						index -= INCOMING_HEADER_SIZE;
                         if (index <= len && len <= buffer.Length)
                         {
                             Array.Copy(buffer, INCOMING_HEADER_SIZE, buffer, 0, len - INCOMING_HEADER_SIZE);
@@ -298,11 +317,13 @@ namespace Oxygen
                             Array.Copy(buffer, copy, len);
 
                             Message msg = new Message(copy);
+                            msg.Id = id;
+                            Request request = new Request(msg, cli.Client);
 
                             string name = msg.NodeName;
                             Logger.Instance.Log($"<< {name}/{msg.MessageName} {len} bytes");
 
-                            QueueEvent(new MessageRecievedEvent(cli.Client, name, msg, cli.MsgHandle));
+                            QueueEvent(new MessageRecievedEvent(cli.Client, name, request, cli.MsgHandle));
                         }
                     }
                 }
@@ -339,6 +360,7 @@ namespace Oxygen
                         byte[] payload = response.GetData();
 
                         int payloadSize = payload.Length;
+                        int id = response.Id;
 
                         WriteToStream(cli, stream, new byte[]
                         {
@@ -347,7 +369,14 @@ namespace Oxygen
                             (byte)((payloadSize >> 16) & 0xFF),
                             (byte)((payloadSize >> 24) & 0xFF)
                         });
-                        WriteToStream(cli, stream, payload);
+						WriteToStream(cli, stream, new byte[]
+						{
+							(byte)(id & 0xFF),
+							(byte)((id >> 8) & 0xFF),
+							(byte)((id >> 16) & 0xFF),
+							(byte)((id >> 24) & 0xFF)
+						});
+						WriteToStream(cli, stream, payload);
                     }
                 }
 

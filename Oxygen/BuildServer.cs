@@ -12,15 +12,16 @@ namespace Oxygen
         {
         }
 
-        public override void OnRecieveMessage(Client client, Message msg)
+        public override void OnRecieveMessage(Request request)
         {
-            base.OnRecieveMessage(client, msg);
+            base.OnRecieveMessage(request);
 
-            if (!Authorizer.IsAuthorized(client, msg))
+            if (!Authorizer.IsAuthorized(request))
             {
                 return;
             }
 
+            var msg = request.Message;
             if (msg.MessageName == "UPLOAD_BUILD")
             {
                 string name = msg.ReadString();

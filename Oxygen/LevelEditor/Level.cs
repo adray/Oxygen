@@ -1,12 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
-using static Oxygen.Level;
-
 namespace Oxygen
 {
     internal static class Vector3
@@ -68,6 +61,7 @@ namespace Oxygen
         private readonly ObjectStream objectStream = new ObjectStream();
         private readonly EventStream eventStream = new EventStream();
         private Dictionary<int, byte[]> state = new Dictionary<int, byte[]>();
+        private Dictionary<Client, List<Request>> requests = new Dictionary<Client, List<Request>>();
         private readonly EventWaitHandle streamEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
         private int nextObjectID;
         private Thread streamThread;
@@ -229,9 +223,9 @@ namespace Oxygen
             Console.WriteLine("Streaming {0} Thread ended", Name);
         }
 
-        private void StartObjectStream(Client client)
+        private void StartObjectStream(Request request)
         {
-            LevelObjectStream stream = new LevelObjectStream(client);
+            LevelObjectStream stream = new LevelObjectStream(request);
 
             foreach (var obj in this.objects)
             {
@@ -240,45 +234,61 @@ namespace Oxygen
 
             // We don't need to lock until we share the resource
             // by adding it to the streams.
-            if (objectStream.Add(client, stream))
+            if (objectStream.Add(request, stream))
             {
                 streamEvent.Set();
             }
         }
 
-        private void StopObjectStream(Client client)
+        private void StopObjectStream(Request request)
         {
             // TODO: send close stream only if it is open
-            objectStream.Remove(client);
+            objectStream.Remove(request);
 
             Message msg = new Message("LEVEL_SVR", "OBJECT_STREAM");
             msg.WriteInt(END_STREAM);
-            client.Send(msg);
+            request.Send(msg);
         }
 
-        private void StartEventStream(Client client)
+        private void StartEventStream(Request request)
         {
-            LevelEventStream stream = new LevelEventStream(client);
+            LevelEventStream stream = new LevelEventStream(request);
 
             foreach (var user in this.connected)
             {
                 stream.UserConnected(user.ID, (string?)user.GetProperty("USER_NAME"));
             }
 
-            if (eventStream.AddStream(client, stream))
+            if (eventStream.AddStream(request, stream))
             {
                 streamEvent.Set();
             }
         }
 
-        private void StopEventStream(Client client)
+        private void StopEventStream(Request request)
         {
             // TODO: send close stream only if it is open
-            eventStream.RemoveStream(client);
+            eventStream.RemoveStream(request);
 
             Message msg = new Message("LEVEL_SVR", "EVENT_STREAM");
             msg.WriteInt(END_STREAM);
-            client.Send(msg);
+            request.Send(msg);
+        }
+
+        private void AddRequest(Request request)
+        {
+            List<Request>? requests;
+
+			if (this.requests.TryGetValue(request.Client, out requests) && requests != null)
+            {
+                requests.Add(request);
+            }
+            else
+            {
+                requests = new List<Request>();
+                requests.Add(request);
+                this.requests.Add(request.Client, requests);
+            }
         }
 
         public void AddClient(Client client)
@@ -299,42 +309,52 @@ namespace Oxygen
 
             connected.Remove(client);
 
-            StopEventStream(client);
-            StopObjectStream(client);
+            RemoveStream(client, Stream.Object);
+            RemoveStream(client, Stream.Event);
 
-            if (connected.Count == 0)
+			if (connected.Count == 0)
             {
                 this.Shutdown();
             }
         }
 
-        public void AddStream(Client client, Stream stream)
+        public void AddStream(Request request, Stream stream)
         {
+            AddRequest(request);
+
             switch (stream)
             {
                 case Stream.Object:
-                    StartObjectStream(client);
+                    StartObjectStream(request);
                     break;
                 case Stream.Event:
-                    StartEventStream(client);
+                    StartEventStream(request);
                     break;
             }
         }
 
         public void RemoveStream(Client client, Stream stream)
         {
-            switch (stream)
+            if (this.requests.TryGetValue(client, out List<Request>? requests) && requests != null)
             {
-                case Stream.Object:
-                    StopObjectStream(client);
-                    break;
-                case Stream.Event:
-                    StopEventStream(client);
-                    break;
-            }
+                foreach (var request in requests)
+                {
+					switch (stream)
+					{
+						case Stream.Object:
+							StopObjectStream(request);
+							break;
+						case Stream.Event:
+							StopEventStream(request);
+							break;
+					}
+				}
+
+                this.requests.Remove(client);
+			}
         }
 
-        public void AddObject(Client client, Message msg)
+        public void AddObject(Request request, Message msg)
         {
             LevelObject obj = new LevelObject();
 
@@ -355,10 +375,10 @@ namespace Oxygen
 
             streamEvent.Set();
 
-            client.Send(Response.Ack(msg.NodeName, msg.MessageName));
+			request.Send(Response.Ack(msg.NodeName, msg.MessageName));
         }
         
-        public void UpdateObject(Client client, Message msg)
+        public void UpdateObject(Request request, Message msg)
         {
             int id = msg.ReadInt();
             int version = msg.ReadInt();
@@ -381,11 +401,11 @@ namespace Oxygen
 
                 streamEvent.Set();
 
-                client.Send(Response.Ack(msg.NodeName, msg.MessageName));
+                request.Send(Response.Ack(msg.NodeName, msg.MessageName));
             }
             else
             {
-                client.Send(Response.Nack(msg.NodeName, 100, "Version number is out of date.", msg.MessageName));
+                request.Send(Response.Nack(msg.NodeName, 100, "Version number is out of date.", msg.MessageName));
             }
         }
 

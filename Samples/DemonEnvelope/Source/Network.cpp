@@ -21,7 +21,6 @@ void Network::GetAssets(std::vector<std::string>& assets)
         _state == Network_State::JoinedLevel)
     {
         Oxygen::Message request("ASSET_SVR", "ASSET_LIST");
-        request.Prepare();
 
         std::shared_ptr<Oxygen::Subscriber> sub = std::shared_ptr<Oxygen::Subscriber>(new Oxygen::Subscriber(request));
         sub->Signal([this, &assets, sub2 = std::shared_ptr<Oxygen::Subscriber>(sub)](Oxygen::Message& msg) {
@@ -43,30 +42,30 @@ void Network::GetAssets(std::vector<std::string>& assets)
     }
 }
 
-void Network::Login(const std::string& username, const std::string& password)
+void Network::Login(const std::string& username, const std::string& password, std::vector<std::string>& assets, std::vector<std::string>& levels)
 {
     if (_state == Network_State::Connected)
     {
-        Oxygen::Message request("LOGIN_SVR", "LOGIN");
-        request.WriteString(username);
-        conn->HashPassword(password, request);
-        request.Prepare();
+        conn->Logon(username, password);
+        conn->LogonHandler([this, &levels, &assets](int code, const std::string& text)
+            {
+                if (code == 0)
+                {
+                    _state = Network_State::LoggedIn;
 
-        logSub = std::shared_ptr<Oxygen::Subscriber>(new Oxygen::Subscriber(request));
-        logSub ->Signal([this, sub2 = std::shared_ptr<Oxygen::Subscriber>(logSub)](Oxygen::Message& msg) {
-            conn->RemoveSubscriber(sub2);
-            if (msg.ReadString() == "NACK")
-            {
-                std::cout << msg.ReadInt32() << " " << msg.ReadString() << std::endl;
-                disconnect = true;
-                _state = Network_State::Disconnected;
-            }
-            else
-            {
-                _state = Network_State::LoggedIn;
-            }
+                    // Request initial data.
+                    ListLevels(levels);
+                    GetAssets(assets);
+
+                    _metrics = std::make_unique<Oxygen::Metrics>(conn);
+                }
+                else
+                {
+                    std::cout << code << " " << text << std::endl;
+                    disconnect = true;
+                    _state = Network_State::Disconnected;
+                }
             });
-        conn->AddSubscriber(logSub);
 
         _state = Network_State::LoggingIn;
     }
@@ -79,7 +78,6 @@ void Network::CreateLevel(const std::string& name, std::shared_ptr<Level>& level
     {
         Oxygen::Message request("LEVEL_SVR", "NEW_LEVEL");
         request.WriteString(name);
-        request.Prepare();
 
         std::shared_ptr<Oxygen::Subscriber> sub = std::shared_ptr<Oxygen::Subscriber>(new Oxygen::Subscriber(request));
         sub->Signal([this, sub2 = std::shared_ptr<Oxygen::Subscriber>(sub), name2 = name, &level](Oxygen::Message& msg) {
@@ -103,7 +101,6 @@ void Network::JoinLevel(const std::string& name, std::shared_ptr<Level>& level)
     {
         Oxygen::Message request("LEVEL_SVR", "LOAD_LEVEL");
         request.WriteString(name);
-        request.Prepare();
 
         std::shared_ptr<Oxygen::Subscriber> sub = std::shared_ptr<Oxygen::Subscriber>(new Oxygen::Subscriber(request));
         sub->Signal([this, sub2 = std::shared_ptr<Oxygen::Subscriber>(sub), &level](Oxygen::Message& msg) {
@@ -142,7 +139,6 @@ void Network::CloseLevel()
     if (_state == Network_State::JoinedLevel)
     {
         Oxygen::Message request("LEVEL_SVR", "CLOSE_LEVEL");
-        request.Prepare();
 
         closeSub = std::shared_ptr<Oxygen::Subscriber>(new Oxygen::Subscriber(request));
         closeSub->Signal([this, sub2 = std::shared_ptr<Oxygen::Subscriber>(closeSub)](Oxygen::Message& msg) {
@@ -167,7 +163,6 @@ void Network::ListLevels(std::vector<std::string>& levels)
         _state == Network_State::JoinedLevel)
     {
         Oxygen::Message request("LEVEL_SVR", "LIST_LEVELS");
-        request.Prepare();
 
         std::shared_ptr<Oxygen::Subscriber> sub = std::shared_ptr<Oxygen::Subscriber>(new Oxygen::Subscriber(request));
         sub->Signal([this, &levels, sub2 = std::shared_ptr<Oxygen::Subscriber>(sub)](Oxygen::Message& msg) {
@@ -290,7 +285,6 @@ void Network::UpdateCursor(int objectId, int subID)
     Oxygen::Message msg("LEVEL_SVR", "UPDATE_CURSOR");
     msg.WriteInt32(objectId);
     msg.WriteInt32(subID);
-    msg.Prepare();
 
     std::shared_ptr<Oxygen::Subscriber> sub = std::shared_ptr<Oxygen::Subscriber>(new Oxygen::Subscriber(msg));
     sub->Signal([this, sub2 = std::shared_ptr<Oxygen::Subscriber>(sub)](Oxygen::Message& response) {

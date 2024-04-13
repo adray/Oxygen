@@ -5,6 +5,7 @@ Asset server and multi-user level editor
 * Storage and retrival of assets with versioning history
 * Audit trail of events e.g. creating users, login history
 * Rich user permissioning model
+* Metric collection framework
 * Command line tool to automate tasks
 
 # Components
@@ -29,22 +30,40 @@ Some common example operations:
 # libOxygen
 This is designed to be integrated directly into games and engines. For example a connection can be created and a login message sent to the server.
 ```
-  Oxygen::ClientConnection* conn = new Oxygen::ClientConnection(hostname, Oxygen::DEFAULT_PORT);
-  Oxygen::Message request("LOGIN_SVR", "LOGIN");
-  request.WriteString(username);
-  conn->HashPassword(password, request);
-  request.Prepare();
-  std::shared_ptr<Oxygen::Subscriber> logSub = std::shared_ptr<Oxygen::Subscriber>(new Oxygen::Subscriber(request));
-  conn->AddSubscriber(logSub);
+Oxygen::ClientConnection* conn = new Oxygen::ClientConnection(hostname, Oxygen::DEFAULT_PORT);
+conn->Logon(username, password);
+conn->LogonHandler([this](int code, const std::string& text)
+{
+    if (code != 0)
+    {
+        std::cout << code << " " << text << std::endl;
+    }
+});
+```
+Once logged into the server. Assets can then be uploaded/downloaded/etc and the levels can be joined/created/etc. For levels once joined, the object stream and event streams can be subscribed to, to recieve updates in response to objects being added to the level and other users moving their cursors onto objects. More examples can be found in Samples directory.
+
+## Using low level subscribers.
+```
+Oxygen::Message request("ASSET_SVR", "ASSET_LIST");
+std::shared_ptr<Oxygen::Subscriber> sub = std::shared_ptr<Oxygen::Subscriber>(new Oxygen::Subscriber(request));
+conn->AddSubscriber(sub);
 ```
 We can hook responses to the subscriber and then unhook when we are done.
 ```
-logSub ->Signal([this, sub2 = std::shared_ptr<Oxygen::Subscriber>(logSub)](Oxygen::Message& msg) {
-    conn->RemoveSubscriber(sub2);
+sub->Signal([this, &assets, sub2 = std::shared_ptr<Oxygen::Subscriber>(sub)](Oxygen::Message& msg) {
     if (msg.ReadString() == "NACK")
     {
         std::cout << msg.ReadInt32() << " " << msg.ReadString() << std::endl;
     }
-    });
+    else
+    {
+        int numAssets = msg.ReadInt32();
+        for (int i = 0; i < numAssets; i++)
+        {
+            assets.push_back(msg.ReadString());
+        }
+    }
+    conn->RemoveSubscriber(sub2);
+});
 ```
-Once logged into the server. Assets can then be uploaded/downloaded/etc and the levels can be joined/created/etc. For levels once joined, the object stream and event streams can be subscribed to, to recieve updates in response to objects being added to the level and other users moving their cursors onto objects. More examples can be found in Samples directory.
+

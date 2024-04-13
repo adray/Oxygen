@@ -8,16 +8,16 @@ namespace Oxygen
 {
     internal class LevelEventStream
     {
-        private readonly Client client;
+        private readonly Request request;
         private Queue<Message> events = new Queue<Message>();
 
         private const int USER_CONNECTED = 0;
         private const int USER_DISCONNECTED = 1;
         private const int MOVE_USER_CURSOR = 2;
 
-        public LevelEventStream(Client client)
+        public LevelEventStream(Request request)
         {
-            this.client = client;
+            this.request = request;
         }
 
         public void UserConnected(long id, string username)
@@ -52,7 +52,7 @@ namespace Oxygen
         {
             while (events.Count > 0)
             {
-                client.Send(events.Dequeue());
+                request.Send(events.Dequeue());
             }
         }
     }

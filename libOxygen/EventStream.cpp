@@ -10,7 +10,6 @@ constexpr int END_STREAM = 255;
 EventStream::EventStream()
     : Subscriber(Message("LEVEL_SVR", "EVENT_STREAM"))
 {
-    _Request().Prepare();
 }
 
 void EventStream::OnNewMessage(Message& msg)

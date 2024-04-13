@@ -27,19 +27,22 @@ namespace Oxygen
             this.stream.CloseDownloadStream(client);
         }
 
-        public override void OnRecieveMessage(Client client, Message msg)
+        public override void OnRecieveMessage(Request request)
         {
-            base.OnRecieveMessage(client, msg);
+            base.OnRecieveMessage(request);
 
-            if (!Authorizer.IsAuthorized(client, msg))
+            if (!Authorizer.IsAuthorized(request))
             {
                 return;
             }
 
+            var client = request.Client;
+            var msg = request.Message;
+
             string? user = client.GetProperty("USER_NAME") as string;
             if (user == null)
             {
-                SendNack(client, 0, "Internal error", msg.MessageName);
+                SendNack(request, 0, "Internal error", msg.MessageName);
                 return;
             }
 
@@ -63,7 +66,7 @@ namespace Oxygen
                     Audit.Instance.Log("Asset {0} upload finished by user {1}.", assetName, user);
                 }
 
-                SendAck(client, msgName);
+                SendAck(request, msgName);
             }
             else if (msgName == "UPLOAD_ASSET_PART")
             {
@@ -77,7 +80,7 @@ namespace Oxygen
                     Audit.Instance.Log("Asset {0} upload finished by user {1}.", streamName, user);
                 }
 
-                SendAck(client, msgName);
+                SendAck(request, msgName);
             }
             else if (msgName == "ASSET_LIST")
             {
@@ -91,7 +94,7 @@ namespace Oxygen
                 {
                     response.WriteString(asset);
                 }
-                client.Send(response);
+				request.Send(response);
             }
             else if (msgName == "DOWNLOAD_ASSET")
             {
@@ -118,7 +121,7 @@ namespace Oxygen
                     Message response = new Message("ASSET_SVR", "DOWNLOAD_ASSET");
                     response.WriteString("ACK");
                     response.WriteString(checksum);
-                    client.Send(response);
+					request.Send(response);
                 }
                 else
                 {
@@ -136,18 +139,18 @@ namespace Oxygen
                             response.WriteInt(totalBytes);
                             response.WriteInt(bytes.Length);
                             response.WriteBytes(bytes);
-                            client.Send(response);
+							request.Send(response);
 
                             Audit.Instance.Log("Asset {0} download started by user {1}.", assetName, user);
                         }
                         else
                         {
-                            SendNack(client, 200, "Download failed", msgName);
+                            SendNack(request, 200, "Download failed", msgName);
                         }
                     }
                     else
                     {
-                        SendNack(client, 200, "Download already in progress", msgName);
+                        SendNack(request, 200, "Download already in progress", msgName);
                     }
                 }
             }
@@ -162,11 +165,11 @@ namespace Oxygen
                     response.WriteString("ACK");
                     response.WriteInt(bytes.Length);
                     response.WriteBytes(bytes);
-                    client.Send(response);
+					request.Send(response);
                 }
                 else
                 {
-                    SendNack(client, 200, "Download failed", msgName);
+                    SendNack(request, 200, "Download failed", msgName);
                 }
             }
             else if (msgName == "ASSET_HISTORY")
@@ -178,7 +181,7 @@ namespace Oxygen
                 Message response = new Message("ASSET_SVR", "ASSET_HISTORY");
                 response.WriteString("ACK");
                 response.WriteString(summary);
-                client.Send(response);
+				request.Send(response);
             }
             else if (msgName == "ASSET_RESTORE")
             {
@@ -187,12 +190,12 @@ namespace Oxygen
 
                 if (Archiver.RestoreAsset($"Assets\\{assetName}", revision, user))
                 {
-                    SendAck(client, msgName);
+                    SendAck(request, msgName);
                     Audit.Instance.Log("Asset {0} restored by user {1}.", assetName, user);
                 }
                 else
                 {
-                    SendNack(client, 200, "Unable to restore file at specified revision", msgName);
+                    SendNack(request, 200, "Unable to restore file at specified revision", msgName);
                 }
             }
             else if (msgName == "CREATE_LABEL")
@@ -215,11 +218,11 @@ namespace Oxygen
 
                 if (ack)
                 {
-                    SendAck(client, msgName);
+                    SendAck(request, msgName);
                 }
                 else
                 {
-                    SendNack(client, 200, "Unable to create label, label with the given name already exists.", msgName);
+                    SendNack(request, 200, "Unable to create label, label with the given name already exists.", msgName);
                 }
             }
             else if (msgName == "LABEL_SPEC")
@@ -243,11 +246,11 @@ namespace Oxygen
                         response.WriteString(label.GetAssetName(i) + "," + label.GetAssetRevision(i));
                     }
 
-                    client.Send(response);
+					request.Send(response);
                 }
                 else
                 {
-                    SendNack(client, 200, "Could not find the label specified.", msgName);
+                    SendNack(request, 200, "Could not find the label specified.", msgName);
                 }
             }
             else if (msgName == "LABEL_LIST")
@@ -263,11 +266,11 @@ namespace Oxygen
                     response.WriteString(label);
                 }
 
-                client.Send(response);
+				request.Send(response);
 			}
             else
             {
-                SendNack(client, 100, "Invalid request", msgName);
+                SendNack(request, 100, "Invalid request", msgName);
             }
         }
     }

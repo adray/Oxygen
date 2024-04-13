@@ -8,28 +8,28 @@ namespace Oxygen
 {
     internal class EventStream
     {
-        private readonly Dictionary<Client, LevelEventStream> eventStreams = new Dictionary<Client, LevelEventStream>();
+        private readonly Dictionary<Request, LevelEventStream> eventStreams = new Dictionary<Request, LevelEventStream>();
         private readonly object streamLock = new object();
 
-        public bool AddStream(Client client, LevelEventStream stream)
+        public bool AddStream(Request request, LevelEventStream stream)
         {
             bool success = false;
             lock (this.streamLock)
             {
-                if (!eventStreams.ContainsKey(client))
+                if (!eventStreams.ContainsKey(request))
                 {
-                    this.eventStreams.Add(client, stream);
+                    this.eventStreams.Add(request, stream);
                     success = true;
                 }
             }
             return success;
         }
 
-        public void RemoveStream(Client client)
+        public void RemoveStream(Request request)
         {
             lock (this.streamLock)
             {
-                this.eventStreams.Remove(client);
+                this.eventStreams.Remove(request);
             }
         }
 

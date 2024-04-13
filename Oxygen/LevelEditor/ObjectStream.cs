@@ -2,28 +2,28 @@
 {
     internal class ObjectStream
     {
-        private readonly Dictionary<Client, LevelObjectStream> streams = new Dictionary<Client, LevelObjectStream>();
+        private readonly Dictionary<Request, LevelObjectStream> streams = new Dictionary<Request, LevelObjectStream>();
         private readonly object streamLock = new object();
 
-        public bool Add(Client client, LevelObjectStream stream)
+        public bool Add(Request request, LevelObjectStream stream)
         {
             bool success = false;
             lock (this.streamLock)
             {
-                if (!this.streams.ContainsKey(client))
+                if (!this.streams.ContainsKey(request))
                 {
-                    this.streams.Add(client, stream);
+                    this.streams.Add(request, stream);
                     success = true;
                 }
             }
             return success;
         }
 
-        public void Remove(Client client)
+        public void Remove(Request request)
         {
             lock (this.streamLock)
             {
-                this.streams.Remove(client);
+                this.streams.Remove(request);
             }
         }
 

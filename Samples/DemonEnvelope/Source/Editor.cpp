@@ -178,17 +178,8 @@ void Editor::Draw(float delta, ISLANDER_DEVICE device, ISLANDER_WINDOW window, C
             if (ImGui::Button("Login"))
             {
                 network->Connect(hostname);
-                network->Login(username, password);
+                network->Login(username, password, assets, levels);
                 std::memset(password, 0, sizeof(password));
-
-                if (network->LogSub())
-                {
-                    network->LogSub()->Signal([this](Oxygen::Message& msg)
-                        {
-                            network->GetAssets(assets);
-                            network->ListLevels(levels);
-                        });
-                }
             }
         }
     }

@@ -44,14 +44,14 @@ namespace Oxygen
 
     internal class MessageRecievedEvent : ClientEvent
     {
-        private Message msg;
+        private Request request;
         private EventWaitHandle handle;
         private string name;
 
-        public MessageRecievedEvent(Client client, string name, Message msg, EventWaitHandle handle)
+        public MessageRecievedEvent(Client client, string name, Request request, EventWaitHandle handle)
             : base(client)
         {
-            this.msg = msg;
+            this.request = request;
             this.name = name;
             this.handle = handle;
         }
@@ -62,7 +62,7 @@ namespace Oxygen
 
             if (node.Name == name)
             {
-                node.OnRecieveMessage(this.Client, msg);
+                node.OnRecieveMessage(request);
             }
         }
     }

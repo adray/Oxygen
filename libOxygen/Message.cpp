@@ -6,16 +6,24 @@ using namespace Oxygen;
 Message::Message(unsigned char* data, int size)
     :
     _data(data, data + size),
-    _it(_data.begin())
+    _it(_data.begin()),
+    _id(-1)
 {
     _nodeName = ReadString();
     _messageName = ReadString();
 }
 
 Message::Message(const std::string& nodeName, const std::string& messageName)
-    : _nodeName(nodeName), _messageName(messageName)
+    : _nodeName(nodeName), _messageName(messageName), _id(-1)
 {
     // Reverse space for the header bytes.
+    // Size
+    _data.push_back(0);
+    _data.push_back(0);
+    _data.push_back(0);
+    _data.push_back(0);
+
+    // Id
     _data.push_back(0);
     _data.push_back(0);
     _data.push_back(0);
@@ -29,7 +37,8 @@ Message::Message(const Message& msg)
     :
     _data(msg._data),
     _nodeName(msg._nodeName),
-    _messageName(msg._messageName)
+    _messageName(msg._messageName),
+    _id(msg._id)
 {
     if (msg._it._Ptr)
     {
@@ -165,10 +174,15 @@ void Message::WriteDouble(double value)
 
 void Message::Prepare()
 {
-    const int payloadSize = _data.size() - 4;
+    const int payloadSize = _data.size() - 8;
     _data[0] = (payloadSize & 0xFF);
     _data[1] = ((payloadSize >> 8) & 0xFF);
     _data[2] = ((payloadSize >> 16) & 0xFF);
     _data[3] = ((payloadSize >> 24) & 0xFF);
+
+    _data[4] = (_id & 0xFF);
+    _data[5] = ((_id >> 8) & 0xFF);
+    _data[6] = ((_id >> 16) & 0xFF);
+    _data[7] = ((_id >> 24) & 0xFF);
 }
 

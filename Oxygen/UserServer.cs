@@ -15,133 +15,136 @@ namespace Oxygen
         {
         }
 
-        public override void OnRecieveMessage(Client client, Message msg)
+        public override void OnRecieveMessage(Request request)
         {
-            base.OnRecieveMessage(client, msg);
+            base.OnRecieveMessage(request);
 
-            if (!Authorizer.IsAuthorized(client, msg))
+            if (!Authorizer.IsAuthorized(request))
             {
                 return;
             }
 
-            switch (msg.MessageName)
+            switch (request.Message.MessageName)
             {
                 case "CREATE_USER":
                     {
-                        CreateUser(client, msg);
+                        CreateUser(request);
                         break;
                     }
 
                 case "DELETE_USER":
                     {
-                        DeleteUser(client, msg);
+                        DeleteUser(request);
                         break;
                     }
 
                 case "RESET_PASSWORD":
                     {
-                        ResetPassword(client, msg);
+                        ResetPassword(request);
                         break;
                     }
 
                 case "SET_PERMISSION":
                     {
-                        SetPermission(client, msg);
+                        SetPermission(request);
                         break;
                     }
 
                 case "GET_PERMISSION":
                     {
-                        GetPermission(client, msg);
+                        GetPermission(request);
                         break;
                     }
 
                 case "SET_GROUP_PERMISSION":
                     {
-                        SetGroupPermission(client, msg);
+                        SetGroupPermission(request);
                         break;
                     }
 
                 case "USER_LIST":
                     {
-                        UserList(client, msg);
+                        UserList(request);
                         break;
                     }
 
                 case "CREATE_USER_GROUP":
                     {
-                        CreateUserGroup(client, msg);
+                        CreateUserGroup(request);
                         break;
                     }
 
                 case "DELETE_USER_GROUP":
                     {
-                        DeleteUserGroup(client, msg);
+                        DeleteUserGroup(request);
                         break;
                     }
 
                 case "ADD_USER_TO_GROUP":
                     {
-                        AddUserToGroup(client, msg);
+                        AddUserToGroup(request);
                         break;
                     }
 
                 case "REMOVE_USER_FROM_GROUP":
                     {
-                        RemoveUserFromGroup(client, msg);
+                        RemoveUserFromGroup(request);
                         break;
                     }
 
                 case "USER_GROUPS_LIST":
                     {
-                        UserGroupsList(client, msg);
+                        UserGroupsList(request);
                         break;
                     }
 
                 case "USER_GROUP_INFO":
                     {
-                        UserGroupInfo(client, msg);
+                        UserGroupInfo(request);
                         break;
                     }
 
                 default:
-                    SendNack(client, 100, $"Invalid request.", msg.MessageName);
+                    SendNack(request, 100, $"Invalid request.", request.Message.MessageName);
                     break;
             }
         }
 
-        private void DeleteUserGroup(Client client, Message msg)
-        {
-            string name = msg.ReadString();
+        private void DeleteUserGroup(Request request)
+		{
+			var msg = request.Message;
+			string name = msg.ReadString();
 
             if (users.DeleteUserGroup(name))
             {
-                SendAck(client, msg.MessageName);
+                SendAck(request, msg.MessageName);
             }
             else
             {
-                SendNack(client, 100, "Unable to delete user group.", msg.MessageName);
+                SendNack(request, 100, "Unable to delete user group.", msg.MessageName);
             }
         }
 
-        private void CreateUserGroup(Client client, Message msg)
-        {
-            string name = msg.ReadString();
+        private void CreateUserGroup(Request request)
+		{
+			var msg = request.Message;
+			string name = msg.ReadString();
 
             UserGroup? group = users.CreateUserGroup(name);
 
             if (group != null)
             {
-                SendAck(client, msg.MessageName);
+                SendAck(request, msg.MessageName);
             }
             else
             {
-                SendNack(client, 100, "Unable to create user group.", msg.MessageName);
+                SendNack(request, 100, "Unable to create user group.", msg.MessageName);
             }
         }
 
-        private void UserGroupInfo(Client client, Message msg)
+        private void UserGroupInfo(Request request)
         {
+            var msg = request.Message;
             string name = msg.ReadString();
 
             var group = users.GetUserGroup(name);
@@ -157,17 +160,18 @@ namespace Oxygen
                     response.WriteString(user.Name);
                 }
 
-                client.Send(response);
+                request.Send(response);
             }
             else
             {
-                this.SendNack(client, 100, "No such user group.", msg.MessageName);
+                this.SendNack(request, 100, "No such user group.", msg.MessageName);
             }
         }
 
-        private void UserGroupsList(Client client, Message msg)
-        {
-            Message response = new Message(msg.NodeName, msg.MessageName);
+        private void UserGroupsList(Request request)
+		{
+			var msg = request.Message;
+			Message response = new Message(msg.NodeName, msg.MessageName);
             response.WriteString("ACK");
 
             var groups = users.UserGroupsList;
@@ -178,42 +182,45 @@ namespace Oxygen
                 response.WriteString(group.Name);
             }
 
-            client.Send(response);
+            request.Send(response);
         }
 
-        private void RemoveUserFromGroup(Client client, Message msg)
-        {
-            string username = msg.ReadString();
+        private void RemoveUserFromGroup(Request request)
+		{
+			var msg = request.Message;
+			string username = msg.ReadString();
             string userGroup = msg.ReadString();
 
             if (users.RemoveUserFromGroup(username, userGroup))
             {
-                SendAck(client, msg.MessageName);
+                SendAck(request, msg.MessageName);
             }
             else
             {
-                SendNack(client, 200, "Could not remove user from user group.", msg.MessageName);
+                SendNack(request, 200, "Could not remove user from user group.", msg.MessageName);
             }
         }
 
-        private void AddUserToGroup(Client client, Message msg)
-        {
-            string username = msg.ReadString();
+        private void AddUserToGroup(Request request)
+		{
+			var msg = request.Message;
+			string username = msg.ReadString();
             string userGroup = msg.ReadString();
 
             if (users.AddUserToGroup(username, userGroup))
             {
-                SendAck(client, msg.MessageName);
+                SendAck(request, msg.MessageName);
             }
             else
             {
-                SendNack(client, 200, "Could not add user to user group.", msg.MessageName);
+                SendNack(request, 200, "Could not add user to user group.", msg.MessageName);
             }
         }
 
-        private void UserList(Client client, Message msg)
-        {
-            Message response = new Message(msg.NodeName, msg.MessageName);
+        private void UserList(Request request)
+		{
+			var msg = request.Message;
+			Message response = new Message(msg.NodeName, msg.MessageName);
             response.WriteString("ACK");
 
             var userList = users.UserList;
@@ -223,12 +230,13 @@ namespace Oxygen
                 response.WriteString(user.Name);
             }
 
-            client.Send(response);
+            request.Send(response);
         }
 
-        private static void GetPermission(Client client, Message msg)
-        {
-            string user = msg.ReadString();
+        private static void GetPermission(Request request)
+		{
+			var msg = request.Message;
+			string user = msg.ReadString();
 
             Message response = new Message(msg.NodeName, msg.MessageName);
             response.WriteString("ACK");
@@ -240,12 +248,13 @@ namespace Oxygen
                 response.WriteString(permission);
             }
 
-            client.Send(response);
+            request.Send(response);
         }
 
-        private void SetGroupPermission(Client client, Message msg)
-        {
-            string groupName = msg.ReadString();
+        private void SetGroupPermission(Request request)
+		{
+			var msg = request.Message;
+			string groupName = msg.ReadString();
             int flags = msg.ReadInt();
             string node = msg.ReadString();
             string messageName = msg.ReadString();
@@ -261,22 +270,23 @@ namespace Oxygen
                 else if (Authorizer.SetPermission(group, node, messageName, Authorizer.PermissionAttribute.Allow))
                 {
                     Audit.Instance.Log("Permission {0}/{1} for user group {2} updated", node, messageName, groupName);
-                    SendAck(client, msg.MessageName);
+                    SendAck(request, msg.MessageName);
                 }
                 else
                 {
-                    SendNack(client, 200, $"Unable to set permission.", msg.MessageName);
+                    SendNack(request, 200, $"Unable to set permission.", msg.MessageName);
                 }
             }
             else
             {
-                SendNack(client, 200, $"Cannot find user group {groupName}.", msg.MessageName);
+                SendNack(request, 200, $"Cannot find user group {groupName}.", msg.MessageName);
             }
         }
 
-        private void SetPermission(Client client, Message msg)
-        {
-            string userName = msg.ReadString();
+        private void SetPermission(Request request)
+		{
+			var msg = request.Message;
+			string userName = msg.ReadString();
             int flags = msg.ReadInt();
             string node = msg.ReadString();
             string messageName = msg.ReadString();
@@ -289,27 +299,28 @@ namespace Oxygen
                 {
                     Authorizer.RemovePermission(user, node, messageName);
                     Audit.Instance.Log("Permission {0}/{1} for user {2} reverted", node, messageName, userName);
-                    SendAck(client, msg.MessageName);
+                    SendAck(request, msg.MessageName);
                 }
                 else if (Authorizer.SetPermission(user, node, messageName, (Authorizer.PermissionAttribute)flags))
                 {
                     Audit.Instance.Log("Permission {0}/{1} for user {2} updated", node, messageName, userName);
-                    SendAck(client, msg.MessageName);
+                    SendAck(request, msg.MessageName);
                 }
                 else
                 {
-                    SendNack(client, 200, $"Unable to set permission.", msg.MessageName);
+                    SendNack(request, 200, $"Unable to set permission.", msg.MessageName);
                 }
             }
             else
             {
-                SendNack(client, 200, $"Cannot find user {userName}.", msg.MessageName);
+                SendNack(request, 200, $"Cannot find user {userName}.", msg.MessageName);
             }
         }
 
-        private void ResetPassword(Client client, Message msg)
-        {
-            string? userName = client.GetProperty("USER_NAME") as string;
+        private void ResetPassword(Request request)
+		{
+			var msg = request.Message;
+			string? userName = request.Client.GetProperty("USER_NAME") as string;
             if (userName != null)
             {
                 User? user = users.GetUserByName(userName);
@@ -323,57 +334,58 @@ namespace Oxygen
                         user.ChangePassword(newPassword);
                         users.WriteUserData();
                         Audit.Instance.Log("Password changed for user {0}.", userName);
-                        SendAck(client, msg.MessageName);
+                        SendAck(request, msg.MessageName);
                     }
                     else
                     {
-                        SendNack(client, 100, "Unable to change password", msg.MessageName);
+                        SendNack(request, 100, "Unable to change password", msg.MessageName);
                     }
                 }
                 else
                 {
-                    SendNack(client, 200, $"Cannot find user {userName}.", msg.MessageName);
+                    SendNack(request, 200, $"Cannot find user {userName}.", msg.MessageName);
                 }
             }
             else
             {
-                SendNack(client, 200, $"Cannot find user {userName}.", msg.MessageName);
+                SendNack(request, 200, $"Cannot find user {userName}.", msg.MessageName);
             }
         }
 
-        private void DeleteUser(Client client, Message msg)
-        {
-            string userName = msg.ReadString();
+        private void DeleteUser(Request request)
+		{
+			var msg = request.Message;
+			string userName = msg.ReadString();
             if (!string.IsNullOrEmpty(userName))
             {
                 if (users.DeleteUser(userName))
                 {
-                    SendAck(client, msg.MessageName);
+                    SendAck(request, msg.MessageName);
                 }
                 else
                 {
-                    SendNack(client, 200, $"Unable to delete user {userName}.", msg.MessageName);
+                    SendNack(request, 200, $"Unable to delete user {userName}.", msg.MessageName);
                 }
             }
             else
             {
-                SendNack(client, 200, "Username not specified", msg.MessageName);
+                SendNack(request, 200, "Username not specified", msg.MessageName);
             }
         }
 
-        private void CreateUser(Client client, Message msg)
+        private void CreateUser(Request request)
         {
-            string userName = msg.ReadString();
-            byte[] password = msg.ReadByteArray();
+            string userName = request.Message.ReadString();
+            byte[] password = request.Message.ReadByteArray();
 
             if (!string.IsNullOrEmpty(userName))
             {
                 users.CreateUser(userName, password);
-                SendAck(client, msg.MessageName);
+                SendAck(request, request.Message.MessageName);
             }
             else
             {
-                SendNack(client, 200, "Username not specified", msg.MessageName);
+                SendNack(request, 200, "Username not specified", request.Message.MessageName);
             }
         }
     }

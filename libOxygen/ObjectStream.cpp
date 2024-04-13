@@ -13,7 +13,6 @@ ObjectStream::ObjectStream()
     Subscriber(Oxygen::Message("LEVEL_SVR", "OBJECT_STREAM")),
     _customDataPos(0)
 {
-    _Request().Prepare();
 }
 
 void ObjectStream::OnNewMessage(Message& msg)
@@ -183,7 +182,7 @@ void ObjectStream::PrepareUpdateMessage(Message* msg, const Object& obj)
     std::vector<unsigned char>& stateData = state[obj.id];
 
     unsigned char* newData;
-    int numBytes = Oxygen::Compress(stateData.data(), stateData.size(), msg->data() + 4, msg->size() - 4, &newData);
+    int numBytes = Oxygen::Compress(stateData.data(), stateData.size(), msg->data() + 8, msg->size() - 8, &newData);
     if (numBytes > 0)
     {
         Oxygen::Message msg2("LEVEL_SVR", "UPDATE_OBJECT");

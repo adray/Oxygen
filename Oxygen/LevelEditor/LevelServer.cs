@@ -37,19 +37,22 @@ namespace Oxygen
             }
         }
 
-        public override void OnRecieveMessage(Client client, Message msg)
+        public override void OnRecieveMessage(Request request)
         {
-            base.OnRecieveMessage(client, msg);
+            base.OnRecieveMessage(request);
 
-            if (!Authorizer.IsAuthorized(client, msg))
+            if (!Authorizer.IsAuthorized(request))
             {
                 return;
             }
 
+            var client = request.Client;
+            var msg = request.Message;
+
             string? user = client.GetProperty("USER_NAME") as string;
             if (user == null)
             {
-                SendNack(client, 0, "Internal error", msg.MessageName);
+                SendNack(request, 0, "Internal error", msg.MessageName);
                 return;
             }
 
@@ -68,7 +71,7 @@ namespace Oxygen
                 {
                     client.SetProperty("LEVEL", level);
                     level.AddClient(client);
-                    SendAck(client, messageName);
+                    SendAck(request, messageName);
                 }
                 else
                 {
@@ -79,11 +82,11 @@ namespace Oxygen
                         levels.Add(levelName, level);
                         level.AddClient(client);
                         client.SetProperty("LEVEL", level);
-                        SendAck(client, messageName);
+                        SendAck(request, messageName);
                     }
                     else
                     {
-                        SendNack(client, 200, "No such level.", messageName);
+                        SendNack(request, 200, "No such level.", messageName);
                     }
                 }
             }
@@ -93,11 +96,11 @@ namespace Oxygen
                 if (level != null)
                 {
                     CloseLevel(client, level);
-                    SendAck(client, messageName);
+                    SendAck(request, messageName);
                 }
                 else
                 {
-                    SendNack(client, 200, "No level open to close.", messageName);
+                    SendNack(request, 200, "No level open to close.", messageName);
                 }
             }
             else if (messageName == "OBJECT_STREAM")
@@ -105,7 +108,7 @@ namespace Oxygen
                 Level? level = client.GetProperty("LEVEL") as Level;
                 if (level != null)
                 {
-                    level.AddStream(client, Level.Stream.Object);
+                    level.AddStream(request, Level.Stream.Object);
                 }
             }
             else if (messageName == "NEW_LEVEL")
@@ -114,11 +117,11 @@ namespace Oxygen
                 if (!levels.ContainsKey(levelName))
                 {
                     levels.Add(levelName, Level.NewLevel(levelName));
-                    SendAck(client, messageName);
+                    SendAck(request, messageName);
                 }
                 else
                 {
-                    SendNack(client, 200, "Level already exists.", messageName);
+                    SendNack(request, 200, "Level already exists.", messageName);
                 }
             }
             else if (messageName == "LIST_LEVELS")
@@ -130,18 +133,18 @@ namespace Oxygen
                 {
                     response.WriteString(level);
                 }
-                client.Send(response);
+                request.Send(response);
             }
             else if (messageName == "ADD_OBJECT")
             {
                 Level? level = client.GetProperty("LEVEL") as Level;
                 if (level != null)
                 {
-                    level.AddObject(client, msg);
+                    level.AddObject(request, msg);
                 }
                 else
                 {
-                    SendNack(client, 100, "No level opened.", msg.MessageName);
+                    SendNack(request, 100, "No level opened.", msg.MessageName);
                 }
             }
             else if (messageName == "UPDATE_OBJECT")
@@ -149,11 +152,11 @@ namespace Oxygen
                 Level? level = client.GetProperty("LEVEL") as Level;
                 if (level != null)
                 {
-                    level.UpdateObject(client, msg);
+                    level.UpdateObject(request, msg);
                 }
                 else
                 {
-                    SendNack(client, 100, "No level opened.", msg.MessageName);
+                    SendNack(request, 100, "No level opened.", msg.MessageName);
                 }
             }
             else if (messageName == "EVENT_STREAM")
@@ -161,7 +164,7 @@ namespace Oxygen
                 Level? level = client.GetProperty("LEVEL") as Level;
                 if (level != null)
                 {
-                    level.AddStream(client, Level.Stream.Event);
+                    level.AddStream(request, Level.Stream.Event);
                 }
             }
             else if (messageName == "UPDATE_CURSOR")
@@ -170,16 +173,16 @@ namespace Oxygen
                 if (level != null)
                 {
                     level.MoveCursor(client, msg);
-                    SendAck(client, msg.MessageName);
+                    SendAck(request, msg.MessageName);
                 }
                 else
                 {
-                    SendNack(client, 100, "No level opened.", msg.MessageName);
+                    SendNack(request, 100, "No level opened.", msg.MessageName);
                 }
             }
             else
             {
-                SendNack(client, 100, "Request failed.", messageName);
+                SendNack(request, 100, "Request failed.", messageName);
             }
         }
     }

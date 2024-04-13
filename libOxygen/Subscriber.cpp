@@ -3,9 +3,16 @@
 using namespace Oxygen;
 
 Subscriber::Subscriber(const Message& msg)
-    : _request(msg)
+    : _request(msg), _id(-1)
 {
 
+}
+
+void Subscriber::SetId(int id)
+{
+    _id = id;
+    _request.SetId(id);
+    _request.Prepare();
 }
 
 void Subscriber::Signal(const std::function<void(Message&)>& callback)

@@ -29,7 +29,6 @@ void OnNewLevel(Oxygen::ClientConnection* conn)
 {
     Oxygen::Message msg("LEVEL_SVR", "LOAD_LEVEL");
     msg.WriteString("myLevel");
-    msg.Prepare();
 
     std::shared_ptr<Oxygen::Subscriber> sub(new Oxygen::Subscriber(msg));
     sub->Signal([conn, sub2 = std::shared_ptr<Oxygen::Subscriber>(sub)](Oxygen::Message& msg) {
@@ -47,7 +46,6 @@ void OnLoggedIn(Oxygen::ClientConnection* conn)
 {
     Oxygen::Message msg2("LEVEL_SVR", "NEW_LEVEL");
     msg2.WriteString("myLevel");
-    msg2.Prepare();
     std::shared_ptr<Oxygen::Subscriber> sub(new Oxygen::Subscriber(msg2));
     sub->Signal([conn, sub2 = std::shared_ptr<Oxygen::Subscriber>(sub)](Oxygen::Message& msg) {
         std::cout << msg.NodeName() << " " << msg.MessageName() << std::endl;

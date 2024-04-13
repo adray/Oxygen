@@ -58,7 +58,9 @@ namespace Oxygen
             Authorizer.SetPermission(demo, "LEVEL_SVR", "OBJECT_STREAM", Authorizer.PermissionAttribute.Allow);
             Authorizer.SetPermission(demo, "LEVEL_SVR", "EVENT_STREAM", Authorizer.PermissionAttribute.Allow);
             Authorizer.SetPermission(demo, "LEVEL_SVR", "UPDATE_CURSOR", Authorizer.PermissionAttribute.Allow);
-        }
+            Authorizer.SetPermission(demo, "METRIC_SVR", "REPORT_METRIC", Authorizer.PermissionAttribute.Allow);
+            Authorizer.SetPermission(demo, "METRIC_SVR", "METRIC_COLLECTION", Authorizer.PermissionAttribute.Allow);
+		}
 
         private static void CreateAdmin(Users users, string password)
         {

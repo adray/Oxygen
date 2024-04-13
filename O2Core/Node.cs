@@ -48,7 +48,7 @@ namespace Oxygen
             // Do nothing
         }
 
-        public virtual void OnRecieveMessage(Client client, Message msg)
+        public virtual void OnRecieveMessage(Request request)
         {
             // Do nothing
         }
@@ -58,16 +58,16 @@ namespace Oxygen
             // Do nothing
         }
 
-        protected void SendNack(Client client, int errorCode, string msg, string messageName)
+        protected void SendNack(Request request, int errorCode, string msg, string messageName)
         {
             Message response = Response.Nack(this, errorCode, msg, messageName);
-            client.Send(response);
+            request.Send(response);
         }
 
-        protected void SendAck(Client client, string messageName)
+        protected void SendAck(Request request, string messageName)
         {
             Message response = Response.Ack(this, messageName);
-            client.Send(response);
+            request.Send(response);
         }
     }
 
@@ -77,16 +77,16 @@ namespace Oxygen
         {
         }
 
-        public override void OnRecieveMessage(Client client, Message msg)
+        public override void OnRecieveMessage(Request request)
         {
-            base.OnRecieveMessage(client, msg);
+            base.OnRecieveMessage(request);
 
             DateTime dateTime = DateTime.Now;
 
-            Message response = new Message(this.Name, msg.MessageName);
+            Message response = new Message(this.Name, request.Message.MessageName);
             response.WriteString(dateTime.ToString("HH:mm:ss ddMMyyyy"));
 
-            client.Send(response);
+            request.Send(response);
         }
     }
 }

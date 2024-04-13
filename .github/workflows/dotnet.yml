@@ -23,10 +23,10 @@ jobs:
     #- name: Restore dependencies
     #  run: dotnet restore
     - name: Build O2Core
-      run: dotnet build ./O2Core --no-dependencies --no-restore
+      run: dotnet build ./O2Core --no-dependencies
     - name: Build O2
-      run: dotnet build ./O2 --no-dependencies --no-restore
+      run: dotnet build ./O2 --no-dependencies
     - name: Build Oxygen
-      run: dotnet build ./Oxygen --no-dependencies --no-restore
+      run: dotnet build ./Oxygen --no-dependencies
     - name: Build Compressor
-      run: dotnet build ./Samples/Compressor --no-dependencies --no-restore
+      run: dotnet build ./Samples/Compressor --no-dependencies

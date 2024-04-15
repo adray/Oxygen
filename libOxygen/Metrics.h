@@ -75,5 +75,7 @@ namespace Oxygen
         std::shared_ptr<Subscriber> _subscriber;
 
         std::shared_ptr<Metrics_Counter> _numCollections;
+        std::shared_ptr<Metrics_Counter> _numBytesSent;
+        std::shared_ptr<Metrics_Counter> _numBytesReceived;
     };
 }

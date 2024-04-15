@@ -70,6 +70,12 @@ Metrics::Metrics(ClientConnection* conn)
 
     _numCollections = std::make_shared<Metrics_Counter>("oxygen_client_num_metric_collections_counter");
     AddMetric(_numCollections);
+
+    _numBytesReceived = std::make_shared<Metrics_Counter>("oxygen_client_bytes_received_total");
+    AddMetric(_numBytesReceived);
+
+    _numBytesSent = std::make_shared<Metrics_Counter>("oxygen_client_bytes_sent_total");
+    AddMetric(_numBytesSent);
 }
 
 void Metrics::AddMetric(std::shared_ptr<Metrics_Pos>& metric)
@@ -90,6 +96,8 @@ void Metrics::AddMetric(std::shared_ptr<Metrics_Gauge>& metric)
 void Metrics::ReportMetrics()
 {
     _numCollections->Increment(1.0);
+    _numBytesSent->Update(_conn->NumByesSent());
+    _numBytesReceived->Update(_conn->NumByesReceived());
 
     for (auto& metric : _posMetrics)
     {

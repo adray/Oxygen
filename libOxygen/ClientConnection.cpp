@@ -116,6 +116,8 @@ namespace Oxygen
         void AddSubscriber(std::shared_ptr<Subscriber>& subscriber);
         void RemoveSubscriber(const std::shared_ptr<Subscriber>& subscriber);
         void Process(bool wait);
+        inline int NumBytesSent() const { return numBytesSent; }
+        inline int NumBytesReceived() const { return numBytesReceived; }
         ~ClientConnectionImpl();
 
     private:
@@ -132,11 +134,13 @@ namespace Oxygen
         WaitHandle readWaitHandle;
         WaitHandle heartbeatHandle;
         int subscriberId;
+        int numBytesSent;
+        int numBytesReceived;
     };
 }
 
 ClientConnectionImpl::ClientConnectionImpl(const std::string& host, int port)
-    : running(true), sock(0L), subscriberId(0)
+    : running(true), sock(0L), subscriberId(0), numBytesReceived(0), numBytesSent(0)
 {
     connected = true;
 
@@ -236,6 +240,8 @@ void ClientConnectionImpl::ReadThread()
             break;
         }
 
+        numBytesReceived += consumed;
+
         const int totalBytes =
             bytes[0] |
             (bytes[1] << 8) |
@@ -254,6 +260,8 @@ void ClientConnectionImpl::ReadThread()
             // Disconnected
             break;
         }
+
+        numBytesReceived += consumed;
 
         Message msg(bytes, totalBytes);
         msg.SetId(id);
@@ -279,6 +287,8 @@ void ClientConnectionImpl::WriteThread()
             const size_t size = msg.size();
 
             const int error = send(sock, (char*)buffer, (int)size, 0);
+
+            numBytesSent += size;
         }
     }
 }
@@ -435,6 +445,16 @@ void ClientConnection::OnLogonFailed(int errCode, const std::string& text)
     {
         logonHandler.handler(errCode, text);
     }
+}
+
+int ClientConnection::NumByesSent() const
+{
+    return impl->NumBytesSent();
+}
+
+int ClientConnection::NumByesReceived() const
+{
+    return impl->NumBytesReceived();
 }
 
 ClientConnection::~ClientConnection()

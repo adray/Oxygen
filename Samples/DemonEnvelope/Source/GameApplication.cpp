@@ -68,7 +68,7 @@ void GameApplication::OnStart()
     tileset->Load(device, tileCfg);
 
     Editor editor;
-    editor.Start(lib, tileset);
+    editor.Start(lib, tileset, "../../../../Assets");
 
     Render* render = new Render();
 

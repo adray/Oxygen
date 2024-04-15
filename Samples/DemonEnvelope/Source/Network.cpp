@@ -5,6 +5,7 @@
 #include "DeltaCompress.h"
 #include "EventStream.h"
 #include "ObjectStream.h"
+#include <unordered_map>
 #include <iostream>
 
 using namespace DE;
@@ -15,34 +16,50 @@ void Network::Connect(const std::string& hostname)
     _state = Network_State::Connected;
 }
 
-void Network::GetAssets(std::vector<std::string>& assets)
+void Network::StartAssetService(const std::string& assetDir)
+{
+    if (_state == Network_State::Connected)
+    {
+        _assetService = std::make_unique<Oxygen::AssetService>(conn, assetDir);
+    }
+}
+
+void Network::GetAssets(std::vector<Asset>& assets)
 {
     if (_state == Network_State::LoggedIn ||
         _state == Network_State::JoinedLevel)
     {
-        Oxygen::Message request("ASSET_SVR", "ASSET_LIST");
-
-        std::shared_ptr<Oxygen::Subscriber> sub = std::shared_ptr<Oxygen::Subscriber>(new Oxygen::Subscriber(request));
-        sub->Signal([this, &assets, sub2 = std::shared_ptr<Oxygen::Subscriber>(sub)](Oxygen::Message& msg) {
-            if (msg.ReadString() == "NACK")
+        _assetService->GetAssetList([this, &assets](std::vector<std::string>& assetList)
             {
-                std::cout << msg.ReadInt32() << " " << msg.ReadString() << std::endl;
-            }
-            else
-            {
-                int numAssets = msg.ReadInt32();
-                for (int i = 0; i < numAssets; i++)
+                std::unordered_map<std::string, int> map;
+                int index = 0;
+                for (auto& item : assets)
                 {
-                    assets.push_back(msg.ReadString());
+                    map.insert(std::make_pair(item.name, index));
+                    index++;
                 }
-            }
-            conn->RemoveSubscriber(sub2);
+
+                for (auto& asset : assetList)
+                {
+                    const auto& it = map.find(asset);
+                    if (it != map.end())
+                    {
+                        assets[it->second].onServer = true;
+                    }
+                    else
+                    {
+                        Asset ass = {};
+                        ass.name = asset;
+                        ass.onDisk = false;
+                        ass.onServer = true;
+                        assets.push_back(ass);
+                    }
+                }
             });
-        conn->AddSubscriber(sub);
     }
 }
 
-void Network::Login(const std::string& username, const std::string& password, std::vector<std::string>& assets, std::vector<std::string>& levels)
+void Network::Login(const std::string& username, const std::string& password, std::vector<Asset>& assets, std::vector<std::string>& levels)
 {
     if (_state == Network_State::Connected)
     {
@@ -132,6 +149,20 @@ void Network::EventStreamClosed()
 {
     conn->RemoveSubscriber(eventSub);
     eventSub.reset();
+}
+
+void Network::DownloadAsset(const std::string& asset)
+{
+    _assetService->DownloadAsset(asset, [this]() {
+        std::cout << "Download completed" << std::endl;
+        });
+}
+
+void Network::UploadAsset(const std::string& asset)
+{
+    _assetService->UploadAsset(asset, [this]() {
+        std::cout << "Upload completed" << std::endl;
+        });
 }
 
 void Network::CloseLevel()

@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include "Level.h"
+#include "Asset.h"
 
 namespace DE
 {
@@ -11,14 +12,17 @@ namespace DE
     class Editor
     {
     public:
-        void Start(ISLANDER_POLYGON_LIBRARY lib, std::shared_ptr<Tileset> tileset_);
+        void Start(ISLANDER_POLYGON_LIBRARY lib, std::shared_ptr<Tileset> tileset_, const std::string& assetDir);
         void Run(float delta, ISLANDER_WINDOW window);
         void Draw(float delta, ISLANDER_DEVICE device, ISLANDER_WINDOW window, CRIMSON_HANDLE crimson, IslanderImguiContext* cxt);
         inline std::shared_ptr<Level>& GetLevel() { return level; }
 
     private:
+
+        void ScanAssetDir();
+
         std::shared_ptr<DE::Network> network;
-        std::vector<std::string> assets;
+        std::vector<Asset> assets;
         std::vector<std::string> levels;
         std::shared_ptr<Level> level;
         Scripting _scripting;
@@ -34,5 +38,6 @@ namespace DE
         float cursorTime = 0;
         int cursorTile = -1;
         bool update = false;
+        std::string _assetDir;
     };
 }

@@ -3,6 +3,8 @@
 #include <vector>
 #include <memory>
 #include "Metrics.h"
+#include "AssetService.h"
+#include "Asset.h"
 
 namespace Oxygen
 {
@@ -33,8 +35,8 @@ namespace DE
     {
     public:
         void Connect(const std::string& hostname);
-        void Login(const std::string& username, const std::string& password, std::vector<std::string>& assets, std::vector<std::string>& levels);
-        void GetAssets(std::vector<std::string>& assets);
+        void Login(const std::string& username, const std::string& password, std::vector<Asset>& assets, std::vector<std::string>& levels);
+        void GetAssets(std::vector<Asset>& assets);
         void CreateLevel(const std::string& name, std::shared_ptr<Level>& level);
         void JoinLevel(const std::string& name, std::shared_ptr<Level>& level);
         void CloseLevel();
@@ -47,6 +49,9 @@ namespace DE
         void Process();
         void ObjectStreamClosed();
         void EventStreamClosed();
+        void StartAssetService(const std::string& assetDir);
+        void DownloadAsset(const std::string& asset);
+        void UploadAsset(const std::string& asset);
 
         inline std::shared_ptr<Oxygen::EventStream> EventStream() const { return eventSub; }
         inline std::shared_ptr<Oxygen::Subscriber> CloseSub() const { return closeSub; }
@@ -61,5 +66,6 @@ namespace DE
         bool disconnect = false;
         Network_State _state = Network_State::Disconnected;
         std::unique_ptr<Oxygen::Metrics> _metrics;
+        std::unique_ptr<Oxygen::AssetService> _assetService;
     };
 }

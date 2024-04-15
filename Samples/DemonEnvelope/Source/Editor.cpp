@@ -3,15 +3,19 @@
 #include "Network.h"
 #include "imgui.h"
 #include "Window.h"
+#include "FileSystem.h"
 #include <EventStream.h>
 #include <memory>
 
 using namespace DE;
 
-void Editor::Start(ISLANDER_POLYGON_LIBRARY lib, std::shared_ptr<Tileset> tileset_)
+void Editor::Start(ISLANDER_POLYGON_LIBRARY lib, std::shared_ptr<Tileset> tileset_, const std::string& assetDir)
 {
     level = std::shared_ptr<Level>(new Level());
     network = std::shared_ptr<DE::Network>(new DE::Network());
+    _assetDir = assetDir;
+
+    ScanAssetDir();
 
     std::memset(username, 0, sizeof(username));
     std::memset(password, 0, sizeof(password));
@@ -21,6 +25,23 @@ void Editor::Start(ISLANDER_POLYGON_LIBRARY lib, std::shared_ptr<Tileset> tilese
     std::strcpy(hostname, "localhost");
 
     level->Setup(lib, tileset_);
+}
+
+void Editor::ScanAssetDir()
+{
+    assets.clear();
+
+    Asset asset = {};
+    asset.onDisk = true;
+
+    void* handle = Islander::FileSystem::GetFirstFile(_assetDir, asset.name);
+    
+    assets.push_back(asset);
+
+    while (Islander::FileSystem::GetNextFile(handle, asset.name))
+    {
+        assets.push_back(asset);
+    }
 }
 
 void Editor::Run(float delta, ISLANDER_WINDOW window)
@@ -178,6 +199,7 @@ void Editor::Draw(float delta, ISLANDER_DEVICE device, ISLANDER_WINDOW window, C
             if (ImGui::Button("Login"))
             {
                 network->Connect(hostname);
+                network->StartAssetService(_assetDir);
                 network->Login(username, password, assets, levels);
                 std::memset(password, 0, sizeof(password));
             }
@@ -189,9 +211,42 @@ void Editor::Draw(float delta, ISLANDER_DEVICE device, ISLANDER_WINDOW window, C
     {
         if (ImGui::Begin("Assets"))
         {
+            if (ImGui::Button("Refresh"))
+            {
+                ScanAssetDir();
+                network->GetAssets(assets);
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Bake"))
+            {
+                // todo
+                Islander::FileSystem::RunProcess("", "");
+            }
+
             for (int i = 0; i < assets.size(); i++)
             {
-                ImGui::Text(assets[i].c_str());
+                const Asset& asset = assets[i];
+                const std::string name = asset.name;
+
+                ImGui::PushID(name.c_str());
+                ImGui::Text(name.c_str());
+                if (asset.onServer)
+                {
+                    ImGui::SameLine();
+                    if (ImGui::Button("Download"))
+                    {
+                        network->DownloadAsset(name);
+                    }
+                }
+                if (asset.onDisk)
+                {
+                    ImGui::SameLine();
+                    if (ImGui::Button("Upload"))
+                    {
+                        network->UploadAsset(name);
+                    }
+                }
+                ImGui::PopID();
             }
         }
         ImGui::End();

@@ -1,15 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.ComponentModel;
-using System.IO;
-using System.Linq;
-using System.Net;
+﻿using System.Diagnostics;
 using System.Net.Sockets;
-using System.Reflection;
-using System.Reflection.PortableExecutable;
-using System.Text;
-using System.Threading.Tasks;
 
 // +Support clients connecting (blocking listener)
 // +Support clients sending a request and response
@@ -17,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Oxygen
 {
-    public class ServerException : Exception
+	public class ServerException : Exception
     {
         public ServerException(string message, Exception inner) : base(message, inner)
         {
@@ -157,7 +147,13 @@ namespace Oxygen
         private EventWaitHandle eventHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
         private List<ServerTimer> timers = new List<ServerTimer>();
 
-        public Server(int port) { this.port = port; }
+        private readonly GaugeMetric peakEventTime = new GaugeMetric("oxygen_server_peak_event_time", string.Empty);
+        private readonly CounterMetric eventsProcessed = new CounterMetric("oxygen_server_events_processed_counter", string.Empty);
+
+		public Server(int port)
+        {
+            this.port = port;
+        }
 
         public void AddNode(Node node)
         {
@@ -177,7 +173,10 @@ namespace Oxygen
 
                 Log("Timer registered for {0}", node.Name);
             }
-        }
+
+            node.AddMetric(peakEventTime);
+            node.AddMetric(eventsProcessed);
+		}
 
         private void OnTimer(object? state)
         {
@@ -458,6 +457,7 @@ namespace Oxygen
 
                 if (ev != null)
                 {
+                    Stopwatch watch = Stopwatch.StartNew();
                     foreach (var node in nodes)
                     {
                         try
@@ -473,6 +473,12 @@ namespace Oxygen
                             }
                         }
                     }
+
+                    watch.Stop();
+                    double elapsed = watch.Elapsed.TotalSeconds;
+                    peakEventTime.Value = Math.Max(elapsed, peakEventTime.Value);
+
+                    eventsProcessed.Value++;
 
                     ev.EventEnd();
                 }

@@ -380,8 +380,15 @@ namespace Oxygen
 
             if (!string.IsNullOrEmpty(userName))
             {
-                users.CreateUser(userName, password);
-                SendAck(request, request.Message.MessageName);
+                User? user = users.CreateUser(userName, password);
+                if (user != null)
+                {
+                    SendAck(request, request.Message.MessageName);
+                }
+                else
+                {
+                    SendNack(request, 200, "User could not be created", request.Message.MessageName);
+                }
             }
             else
             {

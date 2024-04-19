@@ -18,6 +18,13 @@ namespace Oxygen
 			this.AddTimer(collectionTimer);
 		}
 
+		public override void AddMetric(Metric metric)
+		{
+			base.AddMetric(metric);
+
+			Metrics.AddMetric(metric);
+		}
+
 		public override void OnTimer(NodeTimer timer)
 		{
 			base.OnTimer(timer);
@@ -28,6 +35,8 @@ namespace Oxygen
 				{
 					client.Send(new Message(this.Name, "METRIC_COLLECTION"));
 				}
+
+				Metrics.Collect();
 			}
 		}
 

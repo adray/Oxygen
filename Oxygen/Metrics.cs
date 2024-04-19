@@ -13,11 +13,37 @@ namespace Oxygen
 		private const string GaugeMetricHeader = "timestamp,value,labels";
 		private const string CounterMetricHeader = "timestamp,value,labels";
 
+		private static List<Metric> metrics = new List<Metric>();
+
 		public static void Start()
 		{
 			if (!Directory.Exists(MetricFolder))
 			{
 				Directory.CreateDirectory(MetricFolder);
+			}
+		}
+
+		public static void AddMetric(Metric metric)
+		{
+			metrics.Add(metric);
+
+			Logger.Instance.Log("Added metric {0}.", metric.Name);
+		}
+
+		public static void Collect()
+		{
+			foreach (Metric metric in metrics)
+			{
+				if (metric.Type == "gauge")
+				{
+					GaugeMetric gauge = (GaugeMetric)metric;
+					ReportGaugeMetric(gauge.Value, metric.Name, metric.Labels);
+				}
+				else if (metric.Type == "counter")
+				{
+					CounterMetric counter = (CounterMetric)metric;
+					ReportGaugeMetric(counter.Value, metric.Name, metric.Labels);
+				}
 			}
 		}
 

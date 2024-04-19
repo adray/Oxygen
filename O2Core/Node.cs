@@ -58,6 +58,11 @@ namespace Oxygen
             // Do nothing
         }
 
+        public virtual void AddMetric(Metric metric)
+        {
+            // Do nothing
+        }
+
         protected void SendNack(Request request, int errorCode, string msg, string messageName)
         {
             Message response = Response.Nack(this, errorCode, msg, messageName);

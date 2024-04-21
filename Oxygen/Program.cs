@@ -20,7 +20,7 @@ namespace Oxygen
                 server.AddNode(new UserServer());
                 server.AddNode(new MetricsServer());
 
-				try
+                try
                 {
                     server.Start();
                 }

@@ -7,7 +7,7 @@ using System.Net.Sockets;
 
 namespace Oxygen
 {
-	public class ServerException : Exception
+    public class ServerException : Exception
     {
         public ServerException(string message, Exception inner) : base(message, inner)
         {
@@ -150,7 +150,7 @@ namespace Oxygen
         private readonly GaugeMetric peakEventTime = new GaugeMetric("oxygen_server_peak_event_time", string.Empty);
         private readonly CounterMetric eventsProcessed = new CounterMetric("oxygen_server_events_processed_counter", string.Empty);
 
-		public Server(int port)
+        public Server(int port)
         {
             this.port = port;
         }
@@ -176,7 +176,7 @@ namespace Oxygen
 
             node.AddMetric(peakEventTime);
             node.AddMetric(eventsProcessed);
-		}
+        }
 
         private void OnTimer(object? state)
         {
@@ -292,7 +292,7 @@ namespace Oxygen
 
                         int len = buffer[0] | (buffer[1] << 8) | (buffer[2] << 16) | (buffer[3] << 24);
                         int id = buffer[4] | (buffer[5] << 8) | (buffer[6] << 16) | (buffer[7] << 24);
-						index -= INCOMING_HEADER_SIZE;
+                        index -= INCOMING_HEADER_SIZE;
                         if (index <= len && len <= buffer.Length)
                         {
                             Array.Copy(buffer, INCOMING_HEADER_SIZE, buffer, 0, len - INCOMING_HEADER_SIZE);
@@ -368,14 +368,14 @@ namespace Oxygen
                             (byte)((payloadSize >> 16) & 0xFF),
                             (byte)((payloadSize >> 24) & 0xFF)
                         });
-						WriteToStream(cli, stream, new byte[]
-						{
-							(byte)(id & 0xFF),
-							(byte)((id >> 8) & 0xFF),
-							(byte)((id >> 16) & 0xFF),
-							(byte)((id >> 24) & 0xFF)
-						});
-						WriteToStream(cli, stream, payload);
+                        WriteToStream(cli, stream, new byte[]
+                        {
+                            (byte)(id & 0xFF),
+                            (byte)((id >> 8) & 0xFF),
+                            (byte)((id >> 16) & 0xFF),
+                            (byte)((id >> 24) & 0xFF)
+                        });
+                        WriteToStream(cli, stream, payload);
                     }
                 }
 

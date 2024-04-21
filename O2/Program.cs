@@ -338,13 +338,13 @@ namespace O2
                     {
                         if (permission.Inherit == PermissionInherit.Group)
                         {
-							Console.WriteLine("{0}.{1} - {2} [Group]", permission.NodeName, permission.MessageName, permission.Attribute);
-						}
+                            Console.WriteLine("{0}.{1} - {2} [Group]", permission.NodeName, permission.MessageName, permission.Attribute);
+                        }
                         else if (permission.Inherit == PermissionInherit.User)
-						{
-							Console.WriteLine("{0}.{1} - {2} [User]", permission.NodeName, permission.MessageName, permission.Attribute);
-						}
-						else
+                        {
+                            Console.WriteLine("{0}.{1} - {2} [User]", permission.NodeName, permission.MessageName, permission.Attribute);
+                        }
+                        else
                         {
                             Console.WriteLine("{0}.{1} - {2}", permission.NodeName, permission.MessageName, permission.Attribute);
                         }
@@ -591,10 +591,10 @@ namespace O2
                     case "create":
                         CreateLabelCommand(args);
                         break;
-					case "list":
-						LabelListCommand(args);
-						break;
-				}
+                    case "list":
+                        LabelListCommand(args);
+                        break;
+                }
             }
             else
             {
@@ -602,27 +602,27 @@ namespace O2
             }
         }
 
-		static void LabelListCommand(string[] args)
-		{
-			ClientConnection cli = StartClient();
+        static void LabelListCommand(string[] args)
+        {
+            ClientConnection cli = StartClient();
 
-			try
-			{
-				LoginWithAPIKey(cli);
+            try
+            {
+                LoginWithAPIKey(cli);
 
-				List<string> list = cli.GetAssetLabels();
-				foreach (string item in list)
-				{
-					Console.WriteLine(item);
-				}
-			}
-			catch (ClientException ex)
-			{
-				Console.WriteLine(ex.Message);
-			}
-		}
+                List<string> list = cli.GetAssetLabels();
+                foreach (string item in list)
+                {
+                    Console.WriteLine(item);
+                }
+            }
+            catch (ClientException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
 
-		static void LabelSpecCommand(string[] args)
+        static void LabelSpecCommand(string[] args)
         {
             if (args.Length > 2)
             {

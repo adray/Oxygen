@@ -130,20 +130,20 @@ namespace Oxygen
         {
             List<string> labels = new List<string>();
 
-			labelFile.SeekBegin();
+            labelFile.SeekBegin();
 
-			do
-			{
-				string? name = labelFile.GetString("NAME");
+            do
+            {
+                string? name = labelFile.GetString("NAME");
 
-				if (name != null)
-				{
+                if (name != null)
+                {
                     labels.Add(name);
-				}
+                }
 
-			} while (labelFile.NextRow());
+            } while (labelFile.NextRow());
 
             return labels;
-		}
+        }
     }
 }

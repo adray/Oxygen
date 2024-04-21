@@ -279,7 +279,7 @@ namespace Oxygen
         {
             List<Request>? requests;
 
-			if (this.requests.TryGetValue(request.Client, out requests) && requests != null)
+            if (this.requests.TryGetValue(request.Client, out requests) && requests != null)
             {
                 requests.Add(request);
             }
@@ -312,7 +312,7 @@ namespace Oxygen
             RemoveStream(client, Stream.Object);
             RemoveStream(client, Stream.Event);
 
-			if (connected.Count == 0)
+            if (connected.Count == 0)
             {
                 this.Shutdown();
             }
@@ -339,19 +339,19 @@ namespace Oxygen
             {
                 foreach (var request in requests)
                 {
-					switch (stream)
-					{
-						case Stream.Object:
-							StopObjectStream(request);
-							break;
-						case Stream.Event:
-							StopEventStream(request);
-							break;
-					}
-				}
+                    switch (stream)
+                    {
+                        case Stream.Object:
+                            StopObjectStream(request);
+                            break;
+                        case Stream.Event:
+                            StopEventStream(request);
+                            break;
+                    }
+                }
 
                 this.requests.Remove(client);
-			}
+            }
         }
 
         public void AddObject(Request request, Message msg)
@@ -375,7 +375,7 @@ namespace Oxygen
 
             streamEvent.Set();
 
-			request.Send(Response.Ack(msg.NodeName, msg.MessageName));
+            request.Send(Response.Ack(msg.NodeName, msg.MessageName));
         }
         
         public void UpdateObject(Request request, Message msg)

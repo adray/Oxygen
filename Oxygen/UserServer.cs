@@ -304,15 +304,15 @@ namespace Oxygen
 
             var permissions = Authorizer.GetPermissionsForUser(user);
             response.WriteInt(permissions.Count);
-			foreach (PermissionItem permission in permissions)
-			{
-				response.WriteString(permission.NodeName);
-				response.WriteString(permission.MessageName);
-				response.WriteInt((int)permission.Inherit);
-				response.WriteInt((int)permission.Attribute);
-			}
+            foreach (PermissionItem permission in permissions)
+            {
+                response.WriteString(permission.NodeName);
+                response.WriteString(permission.MessageName);
+                response.WriteInt((int)permission.Inherit);
+                response.WriteInt((int)permission.Attribute);
+            }
 
-			request.Send(response);
+            request.Send(response);
         }
 
         private void SetGroupPermission(Request request)

@@ -218,15 +218,15 @@ namespace Oxygen
                                 {
                                     perm = groupPerm;
                                     found = true;
-									inherited = PermissionInherit.Group;
-								}
+                                    inherited = PermissionInherit.Group;
+                                }
                             }
                             else if (groupPerm != PermissionAttribute.Default)
                             {
                                 perm = groupPerm;
                                 found = true;
-								inherited = PermissionInherit.Group;
-							}
+                                inherited = PermissionInherit.Group;
+                            }
                         }
                     }
                 }
@@ -248,7 +248,7 @@ namespace Oxygen
                             MessageName = permission.Value.MessageName,
                             NodeName = permission.Value.NodeName
                         });
-				}
+                }
             }
 
             return permissionList;

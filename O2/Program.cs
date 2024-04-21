@@ -336,7 +336,18 @@ namespace O2
                     LoginWithAPIKey(client);
                     foreach (var permission in client.GetPermissionsForUser(username))
                     {
-                        Console.WriteLine(permission);
+                        if (permission.Inherit == PermissionInherit.Group)
+                        {
+							Console.WriteLine("{0}.{1} - {2} [Group]", permission.NodeName, permission.MessageName, permission.Attribute);
+						}
+                        else if (permission.Inherit == PermissionInherit.User)
+						{
+							Console.WriteLine("{0}.{1} - {2} [User]", permission.NodeName, permission.MessageName, permission.Attribute);
+						}
+						else
+                        {
+                            Console.WriteLine("{0}.{1} - {2}", permission.NodeName, permission.MessageName, permission.Attribute);
+                        }
                     }
                 }
                 catch (ClientException ex)

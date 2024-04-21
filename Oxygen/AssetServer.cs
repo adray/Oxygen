@@ -94,7 +94,7 @@ namespace Oxygen
                 {
                     response.WriteString(asset);
                 }
-				request.Send(response);
+                request.Send(response);
             }
             else if (msgName == "DOWNLOAD_ASSET")
             {
@@ -121,7 +121,7 @@ namespace Oxygen
                     Message response = new Message("ASSET_SVR", "DOWNLOAD_ASSET");
                     response.WriteString("ACK");
                     response.WriteString(checksum);
-					request.Send(response);
+                    request.Send(response);
                 }
                 else
                 {
@@ -139,7 +139,7 @@ namespace Oxygen
                             response.WriteInt(totalBytes);
                             response.WriteInt(bytes.Length);
                             response.WriteBytes(bytes);
-							request.Send(response);
+                            request.Send(response);
 
                             Audit.Instance.Log("Asset {0} download started by user {1}.", assetName, user);
                         }
@@ -165,7 +165,7 @@ namespace Oxygen
                     response.WriteString("ACK");
                     response.WriteInt(bytes.Length);
                     response.WriteBytes(bytes);
-					request.Send(response);
+                    request.Send(response);
                 }
                 else
                 {
@@ -181,7 +181,7 @@ namespace Oxygen
                 Message response = new Message("ASSET_SVR", "ASSET_HISTORY");
                 response.WriteString("ACK");
                 response.WriteString(summary);
-				request.Send(response);
+                request.Send(response);
             }
             else if (msgName == "ASSET_RESTORE")
             {
@@ -246,7 +246,7 @@ namespace Oxygen
                         response.WriteString(label.GetAssetName(i) + "," + label.GetAssetRevision(i));
                     }
 
-					request.Send(response);
+                    request.Send(response);
                 }
                 else
                 {
@@ -257,17 +257,17 @@ namespace Oxygen
             {
                 var labels = AssetLabels.GetLabels();
 
-				Message response = new Message(Name, msgName);
-				response.WriteString("ACK");
+                Message response = new Message(Name, msgName);
+                response.WriteString("ACK");
 
-				response.WriteInt(labels.Count);
+                response.WriteInt(labels.Count);
                 foreach(var label in labels)
                 {
                     response.WriteString(label);
                 }
 
-				request.Send(response);
-			}
+                request.Send(response);
+            }
             else
             {
                 SendNack(request, 100, "Invalid request", msgName);

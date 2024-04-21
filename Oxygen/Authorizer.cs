@@ -10,21 +10,6 @@ namespace Oxygen
 {
     internal class Authorizer
     {
-        internal enum PermissionAttribute
-        {
-            Allow = 0,
-            Deny = 1,
-            Default = 2
-        }
-
-        private class Permission
-        {
-            public string NodeName { get; set; } = string.Empty;
-            public string MessageName { get; set; } = string.Empty;
-            public string Text { get; set; } = string.Empty;
-            public PermissionAttribute DefaultPermission { get; set; }
-        }
-
         private const string permissionFile = "permissions.json";
         private const string authorizationData = @"Data\auth.data";
         private static readonly Dictionary<string, Permission> permissions = new Dictionary<string, Permission>();
@@ -142,53 +127,142 @@ namespace Oxygen
         public static bool CheckPermission(User user, string node, string message)
         {
             string key = user.Name + "." + node + "." + message;
-            if (userPermissions.TryGetValue(key, out PermissionAttribute attribute))
+            if (userPermissions.TryGetValue(key, out PermissionAttribute attribute) && attribute != PermissionAttribute.Default)
             {
                 return attribute == PermissionAttribute.Allow ? true : false;
             }
 
+            PermissionAttribute groupAttribute = PermissionAttribute.Default;
             foreach (var group in Users.Instance.GetUserGroups(user.Name))
             {
                 string groupKey = group.Name + "." + node + "." + message;
-                if (groupPermissions.TryGetValue(groupKey, out PermissionAttribute groupAttribute))
+                if (groupPermissions.TryGetValue(groupKey, out attribute) && attribute != PermissionAttribute.Default)
                 {
-                    return groupAttribute == PermissionAttribute.Allow ? true : false;
+                    if (groupAttribute == PermissionAttribute.Default)
+                    {
+                        groupAttribute = attribute;
+                    }
+                    else if (groupAttribute == PermissionAttribute.Allow &&
+                        attribute == PermissionAttribute.Deny)
+                    {
+                        groupAttribute = PermissionAttribute.Deny;
+                    }
                 }
+            }
+
+            if (groupAttribute != PermissionAttribute.Default)
+            {
+                return groupAttribute == PermissionAttribute.Allow ? true : false;
             }
 
             if (permissions.TryGetValue(node + "." + message, out Permission? permission))
             {
-                return permission.DefaultPermission  == PermissionAttribute.Allow ? true : false;
+                return permission.Attribute  == PermissionAttribute.Allow ? true : false;
             }
 
             return false;
         }
 
-        public static IList<string> GetPermissionsForUser(string username)
+        public static IList<PermissionItem> GetPermissionsForUser(string username)
         {
-            List<string> permissionList = new List<string>();
-            string prefix = username + ".";
-            foreach (var permission in userPermissions)
-            {
-                if (permission.Key.StartsWith(prefix))
-                {
-                    permissionList.Add($"{permission.Key} - {permission.Value}");
-                }
-            }
-
+            List<PermissionItem> permissionList = new List<PermissionItem>();
             IList<UserGroup> userGroups = Users.Instance.GetUserGroups(username);
-            foreach (var permission in groupPermissions)
+            User? user = Users.Instance.GetUserByName(username);
+            IList<UserGroup> myGroups = new List<UserGroup>();
+
+            // Determine which groups contain the user.
+            if (user != null)
             {
                 foreach (var group in userGroups)
                 {
-                    if (permission.Key.StartsWith(group.Name + "."))
+                    if (group.Users.Contains(user))
                     {
-                        permissionList.Add($"{permission.Key} - {permission.Value}");
+                        myGroups.Add(group);
                     }
                 }
             }
 
+            string prefix = username + ".";
+
+            foreach (var permission in permissions)
+            {
+                bool found = false;
+                PermissionInherit inherited = PermissionInherit.Default;
+                PermissionAttribute perm;
+
+                // Look for the permission at the user level.
+                if (userPermissions.TryGetValue(prefix + permission.Key, out perm) &&
+                    perm != PermissionAttribute.Default)
+                {
+                    found = true;
+                    inherited = PermissionInherit.User;
+                }
+
+                if (!found)
+                {
+                    // Look for the permission at the group level.
+                    foreach (var group in myGroups)
+                    {
+                        string groupKey = group.Name + "." + permission.Key;
+                        if (groupPermissions.TryGetValue(groupKey, out PermissionAttribute groupPerm))
+                        {
+                            if (found)
+                            {
+                                if (groupPerm == PermissionAttribute.Deny)
+                                {
+                                    perm = groupPerm;
+                                    found = true;
+                                    inherited = PermissionInherit.Group;
+                                }
+                                else if (groupPerm == PermissionAttribute.Allow)
+                                {
+                                    perm = groupPerm;
+                                    found = true;
+									inherited = PermissionInherit.Group;
+								}
+                            }
+                            else if (groupPerm != PermissionAttribute.Default)
+                            {
+                                perm = groupPerm;
+                                found = true;
+								inherited = PermissionInherit.Group;
+							}
+                        }
+                    }
+                }
+
+                // Look for the default value of the permission.
+                if (!found && permission.Value.Attribute != PermissionAttribute.Default)
+                {
+                    perm = permission.Value.Attribute;
+                    found = true;
+                }
+
+                if (found)
+                {
+                    permissionList.Add(
+                        new PermissionItem()
+                        {
+                            Attribute = perm,
+                            Inherit = inherited,
+                            MessageName = permission.Value.MessageName,
+                            NodeName = permission.Value.NodeName
+                        });
+				}
+            }
+
             return permissionList;
+        }
+
+        public static IList<Permission> GetAllPermissions()
+        {
+            List<Permission> list = new List<Permission>();
+            foreach (var permission in permissions)
+            {
+                list.Add(permission.Value);
+            }
+
+            return list;
         }
 
         public static bool IsAuthorized(Request request)
@@ -327,7 +401,7 @@ namespace Oxygen
                             permission.Text = reader.GetString() ?? string.Empty;
                             break;
                         case "default":
-                            permission.DefaultPermission = Enum.Parse<PermissionAttribute>(reader.GetString() ?? "Allow");
+                            permission.Attribute = Enum.Parse<PermissionAttribute>(reader.GetString() ?? "Allow");
                             break;
                     }
 

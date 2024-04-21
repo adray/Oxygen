@@ -56,6 +56,18 @@ namespace Oxygen
                         break;
                     }
 
+                case "GET_MY_PERMISSION":
+                    {
+                        GetMyPermission(request);
+                        break;
+                    }
+
+                case "GET_ALL_PERMISSION":
+                    {
+                        GetAllPermissions(request);
+                        break;
+                    }
+
                 case "SET_GROUP_PERMISSION":
                     {
                         SetGroupPermission(request);
@@ -111,9 +123,9 @@ namespace Oxygen
         }
 
         private void DeleteUserGroup(Request request)
-		{
-			var msg = request.Message;
-			string name = msg.ReadString();
+        {
+            var msg = request.Message;
+            string name = msg.ReadString();
 
             if (users.DeleteUserGroup(name))
             {
@@ -126,9 +138,9 @@ namespace Oxygen
         }
 
         private void CreateUserGroup(Request request)
-		{
-			var msg = request.Message;
-			string name = msg.ReadString();
+        {
+            var msg = request.Message;
+            string name = msg.ReadString();
 
             UserGroup? group = users.CreateUserGroup(name);
 
@@ -169,9 +181,9 @@ namespace Oxygen
         }
 
         private void UserGroupsList(Request request)
-		{
-			var msg = request.Message;
-			Message response = new Message(msg.NodeName, msg.MessageName);
+        {
+            var msg = request.Message;
+            Message response = new Message(msg.NodeName, msg.MessageName);
             response.WriteString("ACK");
 
             var groups = users.UserGroupsList;
@@ -186,9 +198,9 @@ namespace Oxygen
         }
 
         private void RemoveUserFromGroup(Request request)
-		{
-			var msg = request.Message;
-			string username = msg.ReadString();
+        {
+            var msg = request.Message;
+            string username = msg.ReadString();
             string userGroup = msg.ReadString();
 
             if (users.RemoveUserFromGroup(username, userGroup))
@@ -202,9 +214,9 @@ namespace Oxygen
         }
 
         private void AddUserToGroup(Request request)
-		{
-			var msg = request.Message;
-			string username = msg.ReadString();
+        {
+            var msg = request.Message;
+            string username = msg.ReadString();
             string userGroup = msg.ReadString();
 
             if (users.AddUserToGroup(username, userGroup))
@@ -218,9 +230,9 @@ namespace Oxygen
         }
 
         private void UserList(Request request)
-		{
-			var msg = request.Message;
-			Message response = new Message(msg.NodeName, msg.MessageName);
+        {
+            var msg = request.Message;
+            Message response = new Message(msg.NodeName, msg.MessageName);
             response.WriteString("ACK");
 
             var userList = users.UserList;
@@ -233,28 +245,80 @@ namespace Oxygen
             request.Send(response);
         }
 
+        private static void GetAllPermissions(Request request)
+        {
+            var msg = request.Message;
+
+            Message response = new Message(msg.NodeName, msg.MessageName);
+            response.WriteString("ACK");
+
+            var permissions = Authorizer.GetAllPermissions();
+            response.WriteInt(permissions.Count);
+            foreach (Permission permission in permissions)
+            {
+                response.WriteString(permission.NodeName);
+                response.WriteString(permission.MessageName);
+                response.WriteString(permission.Text);
+                response.WriteInt((int)permission.Attribute);
+            }
+
+            request.Send(response);
+        }
+
+        private void GetMyPermission(Request request)
+        {
+            var msg = request.Message;
+
+            string? user = request.Client.GetProperty("USER_NAME") as string;
+
+            if (user != null)
+            {
+                Message response = new Message(msg.NodeName, msg.MessageName);
+                response.WriteString("ACK");
+
+                var permissions = Authorizer.GetPermissionsForUser(user);
+                response.WriteInt(permissions.Count);
+                foreach (PermissionItem permission in permissions)
+                {
+                    response.WriteString(permission.NodeName);
+                    response.WriteString(permission.MessageName);
+                    response.WriteInt((int)permission.Inherit);
+                    response.WriteInt((int)permission.Attribute);
+                }
+
+                request.Send(response);
+            }
+            else
+            {
+                SendNack(request, 200, "No user defined.", msg.MessageName);
+            }
+        }
+
         private static void GetPermission(Request request)
-		{
-			var msg = request.Message;
-			string user = msg.ReadString();
+        {
+            var msg = request.Message;
+            string user = msg.ReadString();
 
             Message response = new Message(msg.NodeName, msg.MessageName);
             response.WriteString("ACK");
 
             var permissions = Authorizer.GetPermissionsForUser(user);
             response.WriteInt(permissions.Count);
-            foreach (string permission in permissions)
-            {
-                response.WriteString(permission);
-            }
+			foreach (PermissionItem permission in permissions)
+			{
+				response.WriteString(permission.NodeName);
+				response.WriteString(permission.MessageName);
+				response.WriteInt((int)permission.Inherit);
+				response.WriteInt((int)permission.Attribute);
+			}
 
-            request.Send(response);
+			request.Send(response);
         }
 
         private void SetGroupPermission(Request request)
-		{
-			var msg = request.Message;
-			string groupName = msg.ReadString();
+        {
+            var msg = request.Message;
+            string groupName = msg.ReadString();
             int flags = msg.ReadInt();
             string node = msg.ReadString();
             string messageName = msg.ReadString();
@@ -263,11 +327,11 @@ namespace Oxygen
             
             if (group != null)
             {
-                if (flags == (int)Authorizer.PermissionAttribute.Default)
+                if (flags == (int)PermissionAttribute.Default)
                 {
                     Authorizer.RemovePermission(group, node, messageName);
                 }
-                else if (Authorizer.SetPermission(group, node, messageName, Authorizer.PermissionAttribute.Allow))
+                else if (Authorizer.SetPermission(group, node, messageName, PermissionAttribute.Allow))
                 {
                     Audit.Instance.Log("Permission {0}/{1} for user group {2} updated", node, messageName, groupName);
                     SendAck(request, msg.MessageName);
@@ -284,9 +348,9 @@ namespace Oxygen
         }
 
         private void SetPermission(Request request)
-		{
-			var msg = request.Message;
-			string userName = msg.ReadString();
+        {
+            var msg = request.Message;
+            string userName = msg.ReadString();
             int flags = msg.ReadInt();
             string node = msg.ReadString();
             string messageName = msg.ReadString();
@@ -295,13 +359,13 @@ namespace Oxygen
 
             if (user != null)
             {
-                if (flags == (int)Authorizer.PermissionAttribute.Default)
+                if (flags == (int)PermissionAttribute.Default)
                 {
                     Authorizer.RemovePermission(user, node, messageName);
                     Audit.Instance.Log("Permission {0}/{1} for user {2} reverted", node, messageName, userName);
                     SendAck(request, msg.MessageName);
                 }
-                else if (Authorizer.SetPermission(user, node, messageName, (Authorizer.PermissionAttribute)flags))
+                else if (Authorizer.SetPermission(user, node, messageName, (PermissionAttribute)flags))
                 {
                     Audit.Instance.Log("Permission {0}/{1} for user {2} updated", node, messageName, userName);
                     SendAck(request, msg.MessageName);
@@ -318,9 +382,9 @@ namespace Oxygen
         }
 
         private void ResetPassword(Request request)
-		{
-			var msg = request.Message;
-			string? userName = request.Client.GetProperty("USER_NAME") as string;
+        {
+            var msg = request.Message;
+            string? userName = request.Client.GetProperty("USER_NAME") as string;
             if (userName != null)
             {
                 User? user = users.GetUserByName(userName);
@@ -353,9 +417,9 @@ namespace Oxygen
         }
 
         private void DeleteUser(Request request)
-		{
-			var msg = request.Message;
-			string userName = msg.ReadString();
+        {
+            var msg = request.Message;
+            string userName = msg.ReadString();
             if (!string.IsNullOrEmpty(userName))
             {
                 if (users.DeleteUser(userName))

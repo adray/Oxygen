@@ -44,12 +44,12 @@ namespace Oxygen
             networkStream.WriteByte((byte)((bytes.Length >> 24) & 0xFF));
 
             int id = messageId++;
-			networkStream.WriteByte((byte)(id & 0xFF));
-			networkStream.WriteByte((byte)((id >> 8) & 0xFF));
-			networkStream.WriteByte((byte)((id >> 16) & 0xFF));
-			networkStream.WriteByte((byte)((id >> 24) & 0xFF));
+            networkStream.WriteByte((byte)(id & 0xFF));
+            networkStream.WriteByte((byte)((id >> 8) & 0xFF));
+            networkStream.WriteByte((byte)((id >> 16) & 0xFF));
+            networkStream.WriteByte((byte)((id >> 24) & 0xFF));
 
-			networkStream.Write(bytes);
+            networkStream.Write(bytes);
             networkStream.Flush();
         }
 
@@ -59,7 +59,7 @@ namespace Oxygen
             try
             {
                 networkStream.ReadExactly(header, 0, header.Length);
-			}
+            }
             catch (IOException ex)
             {
                 throw new ClientException(0, ex.Message);
@@ -72,7 +72,7 @@ namespace Oxygen
             int len = header[0] | (header[1] << 8) | (header[2] << 16) | (header[3] << 24);
             int id = header[4] | (header[5] << 8) | (header[6] << 16) | (header[7] << 24);
 
-			byte[] bytes = new byte[len];
+            byte[] bytes = new byte[len];
             try
             {
                 networkStream.ReadExactly(bytes, 0, len);
@@ -365,8 +365,8 @@ namespace Oxygen
             string ack = response.ReadString();
             if (ack == "ACK")
             {
-                int numAssets = response.ReadInt();
-                for (int i = 0; i < numAssets; i++)
+                int numResources = response.ReadInt();
+                for (int i = 0; i < numResources; i++)
                 {
                     resources.Add(response.ReadString());
                 }
@@ -387,9 +387,98 @@ namespace Oxygen
             return ListResource("USER_SVR", "USER_LIST");
         }
 
-        public IList<string> GetPermissionsForUser(string username)
+        private IList<PermissionItem> GetPermissionsForUserInternal(string? username)
         {
-            return ListResource("USER_SVR", "GET_PERMISSION", username);
+            Message msg;
+            if (username == null)
+            {
+                msg = new Message("USER_SVR", "GET_MY_PERMISSION");
+            }
+            else
+            {
+                msg = new Message("USER_SVR", "GET_PERMISSION");
+                msg.WriteString(username);
+            }
+
+            Send(msg.GetData());
+
+            Message response = Read();
+
+            if (response.ReadString() == "ACK")
+            {
+                IList<PermissionItem> items = new List<PermissionItem>();
+
+                int numResults = response.ReadInt();
+                for (int i = 0; i < numResults; i++)
+                {
+                    string node = response.ReadString();
+                    string message = response.ReadString();
+                    int inherited = response.ReadInt();
+                    PermissionAttribute attribute = (PermissionAttribute)response.ReadInt();
+
+                    items.Add(new PermissionItem()
+                    {
+                        Attribute = attribute,
+                        Inherit = (PermissionInherit)inherited,
+                        MessageName = message,
+                        NodeName = node
+                    });
+                }
+
+                return items;
+            }
+            else
+            {
+                int errorCode = response.ReadInt();
+                string errorMsg = response.ReadString();
+
+                throw new ClientException(errorCode, errorMsg);
+            }
+        }
+
+        public IList<PermissionItem> GetPermissionsForUser(string username)
+        {
+            return GetPermissionsForUserInternal(username);
+        }
+
+        public IList<PermissionItem> GetPermissionsForMySelf()
+        {
+            return GetPermissionsForUserInternal(null);
+        }
+
+        public IList<Permission> GetAllPermissions()
+        {
+            Message msg = new Message("USER_SVR", "GET_ALL_PERMISSION");
+
+            Send(msg.GetData());
+
+            Message response = Read();
+            List<Permission> resources = new List<Permission>();
+
+            string ack = response.ReadString();
+            if (ack == "ACK")
+            {
+                int numResources = response.ReadInt();
+                for (int i = 0; i < numResources; i++)
+                {
+                    Permission permission = new Permission();
+                    permission.NodeName = response.ReadString();
+                    permission.MessageName = response.ReadString();
+                    permission.Text = response.ReadString();
+                    permission.Attribute = (PermissionAttribute)response.ReadInt();
+
+                    resources.Add(permission);
+                }
+            }
+            else
+            {
+                int errorCode = response.ReadInt();
+                string errorMsg = response.ReadString();
+
+                throw new ClientException(errorCode, errorMsg);
+            }
+
+            return resources;
         }
 
         public void RevokeAPIKeys(string username)
@@ -606,20 +695,20 @@ namespace Oxygen
 
         public List<string> GetAssetLabels()
         {
-			Message msg = new Message("ASSET_SVR", "LABEL_LIST");
-			Send(msg.GetData());
+            Message msg = new Message("ASSET_SVR", "LABEL_LIST");
+            Send(msg.GetData());
 
-			Message response = CheckAck();
+            Message response = CheckAck();
 
-			int numItems = response.ReadInt();
-			List<string> assets = new List<string>();
+            int numItems = response.ReadInt();
+            List<string> assets = new List<string>();
 
-			for (int i = 0; i < numItems; i++)
-			{
-				assets.Add(response.ReadString());
-			}
+            for (int i = 0; i < numItems; i++)
+            {
+                assets.Add(response.ReadString());
+            }
 
-			return assets;
-		}
+            return assets;
+        }
     }
 }

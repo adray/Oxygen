@@ -49,17 +49,17 @@ namespace Oxygen
             }
 
             // Enable demo features
-            Authorizer.SetPermission(demo, "ASSET_SVR", "ASSET_LIST", Authorizer.PermissionAttribute.Allow);
-            Authorizer.SetPermission(demo, "LEVEL_SVR", "LOAD_LEVEL", Authorizer.PermissionAttribute.Allow);
-            Authorizer.SetPermission(demo, "LEVEL_SVR", "CLOSE_LEVEL", Authorizer.PermissionAttribute.Allow);
-            Authorizer.SetPermission(demo, "LEVEL_SVR", "LIST_LEVELS", Authorizer.PermissionAttribute.Allow);
-            Authorizer.SetPermission(demo, "LEVEL_SVR", "ADD_OBJECT", Authorizer.PermissionAttribute.Allow);
-            Authorizer.SetPermission(demo, "LEVEL_SVR", "UPDATE_OBJECT", Authorizer.PermissionAttribute.Allow);
-            Authorizer.SetPermission(demo, "LEVEL_SVR", "OBJECT_STREAM", Authorizer.PermissionAttribute.Allow);
-            Authorizer.SetPermission(demo, "LEVEL_SVR", "EVENT_STREAM", Authorizer.PermissionAttribute.Allow);
-            Authorizer.SetPermission(demo, "LEVEL_SVR", "UPDATE_CURSOR", Authorizer.PermissionAttribute.Allow);
-            Authorizer.SetPermission(demo, "METRIC_SVR", "REPORT_METRIC", Authorizer.PermissionAttribute.Allow);
-            Authorizer.SetPermission(demo, "METRIC_SVR", "METRIC_COLLECTION", Authorizer.PermissionAttribute.Allow);
+            Authorizer.SetPermission(demo, "ASSET_SVR", "ASSET_LIST", PermissionAttribute.Allow);
+            Authorizer.SetPermission(demo, "LEVEL_SVR", "LOAD_LEVEL", PermissionAttribute.Allow);
+            Authorizer.SetPermission(demo, "LEVEL_SVR", "CLOSE_LEVEL", PermissionAttribute.Allow);
+            Authorizer.SetPermission(demo, "LEVEL_SVR", "LIST_LEVELS", PermissionAttribute.Allow);
+            Authorizer.SetPermission(demo, "LEVEL_SVR", "ADD_OBJECT", PermissionAttribute.Allow);
+            Authorizer.SetPermission(demo, "LEVEL_SVR", "UPDATE_OBJECT", PermissionAttribute.Allow);
+            Authorizer.SetPermission(demo, "LEVEL_SVR", "OBJECT_STREAM", PermissionAttribute.Allow);
+            Authorizer.SetPermission(demo, "LEVEL_SVR", "EVENT_STREAM", PermissionAttribute.Allow);
+            Authorizer.SetPermission(demo, "LEVEL_SVR", "UPDATE_CURSOR", PermissionAttribute.Allow);
+            Authorizer.SetPermission(demo, "METRIC_SVR", "REPORT_METRIC", PermissionAttribute.Allow);
+            Authorizer.SetPermission(demo, "METRIC_SVR", "METRIC_COLLECTION", PermissionAttribute.Allow);
 		}
 
         private static void CreateAdmin(Users users, string password)
@@ -81,17 +81,19 @@ namespace Oxygen
             users.AddUserToGroup(user.Name, admins.Name);
 
             // Enable standard root features
-            Authorizer.SetPermission(admins, "USER_SVR", "GET_PERMISSION", Authorizer.PermissionAttribute.Allow);
-            Authorizer.SetPermission(admins, "USER_SVR", "SET_PERMISSION", Authorizer.PermissionAttribute.Allow);
-            Authorizer.SetPermission(admins, "USER_SVR", "CREATE_API_KEY", Authorizer.PermissionAttribute.Allow);
-            Authorizer.SetPermission(admins, "USER_SVR", "CREATE_USER", Authorizer.PermissionAttribute.Allow);
-            Authorizer.SetPermission(admins, "USER_SVR", "DELETE_USER", Authorizer.PermissionAttribute.Allow);
-            Authorizer.SetPermission(admins, "USER_SVR", "USER_LIST", Authorizer.PermissionAttribute.Allow);
-            Authorizer.SetPermission(admins, "USER_SVR", "CREATE_USER_GROUP", Authorizer.PermissionAttribute.Allow);
-            Authorizer.SetPermission(admins, "USER_SVR", "ADD_USER_TO_GROUP", Authorizer.PermissionAttribute.Allow);
-            Authorizer.SetPermission(admins, "USER_SVR", "REMOVE_USER_FROM_GROUP", Authorizer.PermissionAttribute.Allow);
-            Authorizer.SetPermission(admins, "USER_SVR", "USER_GROUP_INFO", Authorizer.PermissionAttribute.Allow);
-            Authorizer.SetPermission(admins, "USER_SVR", "USER_GROUP_LIST", Authorizer.PermissionAttribute.Allow);
+            Authorizer.SetPermission(admins, "USER_SVR", "GET_PERMISSION", PermissionAttribute.Allow);
+            Authorizer.SetPermission(admins, "USER_SVR", "SET_PERMISSION", PermissionAttribute.Allow);
+            Authorizer.SetPermission(admins, "USER_SVR", "GET_MY_PERMISSION", PermissionAttribute.Allow);
+            Authorizer.SetPermission(admins, "USER_SVR", "GET_ALL_PERMISSION", PermissionAttribute.Allow);
+            Authorizer.SetPermission(admins, "USER_SVR", "CREATE_API_KEY", PermissionAttribute.Allow);
+            Authorizer.SetPermission(admins, "USER_SVR", "CREATE_USER", PermissionAttribute.Allow);
+            Authorizer.SetPermission(admins, "USER_SVR", "DELETE_USER", PermissionAttribute.Allow);
+            Authorizer.SetPermission(admins, "USER_SVR", "USER_LIST", PermissionAttribute.Allow);
+            Authorizer.SetPermission(admins, "USER_SVR", "CREATE_USER_GROUP", PermissionAttribute.Allow);
+            Authorizer.SetPermission(admins, "USER_SVR", "ADD_USER_TO_GROUP", PermissionAttribute.Allow);
+            Authorizer.SetPermission(admins, "USER_SVR", "REMOVE_USER_FROM_GROUP", PermissionAttribute.Allow);
+            Authorizer.SetPermission(admins, "USER_SVR", "USER_GROUP_INFO", PermissionAttribute.Allow);
+            Authorizer.SetPermission(admins, "USER_SVR", "USER_GROUP_LIST", PermissionAttribute.Allow);
         }
     }
 }

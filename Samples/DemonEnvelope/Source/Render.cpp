@@ -35,6 +35,9 @@ void Render::LoadShaders(const std::string& dir, ISLANDER_DEVICE device)
     tilemapShader.vertexShader = IslanderLoadVertexShaderEx(device, (dir + std::string("/Tilemap.fx")).c_str(), "TilemapVertex", semantic, 3, nullptr);
     tilemapShader.pixelShader = IslanderLoadPixelShaderEx(device, (dir + std::string("/Tilemap.fx")).c_str(), "TilemapPixel", nullptr);
 
+    spriteBatchShader.vertexShader = IslanderLoadVertexShaderEx(device, (dir + std::string("/SpriteBatch.fx")).c_str(), "SpriteBatchVertex", semantic, 3, nullptr);
+    spriteBatchShader.pixelShader = IslanderLoadPixelShaderEx(device, (dir + std::string("/SpriteBatch.fx")).c_str(), "SpriteBatchPixel", nullptr);
+
     semantic[0]._desc = const_cast<char*>("POSITION");
     semantic[0]._format = ISLANDER_SEMANTIC_FLOAT3;
     semantic[0]._stream = 0;
@@ -61,7 +64,9 @@ void Render::RenderFrame(ISLANDER_DEVICE device, std::shared_ptr<Level>& level)
 
     IslanderSetPassConstantData(passlist, 0, &constantData, sizeof(constantData));
 
-    level->Render(renderable, &passes->renderableCount, tilemapShader.pixelShader, tilemapShader.vertexShader);
+    level->Render(renderable, &passes->renderableCount,
+        tilemapShader.pixelShader, tilemapShader.vertexShader,
+        spriteBatchShader.pixelShader, spriteBatchShader.vertexShader);
 
     IslanderSetPassList(device, passlist);
     IslanderRenderScene3D(device, passes, 1, renderable);

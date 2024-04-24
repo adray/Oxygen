@@ -37,5 +37,6 @@ namespace DE
 
         Shader tilemapShader;
         Shader lineShader;
+        Shader spriteBatchShader;
     };
 };

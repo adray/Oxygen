@@ -39,6 +39,13 @@ void ObjectStream::OnNewObject(const Oxygen::Object& ev, Oxygen::Message& msg)
 
         std::cout << "Tilemap num tiles: " << tilemap.NumTiles() << std::endl;
     }
+    else if (name == "TILEMAP_MASK")
+    {
+        auto& tilemap = _level->GetTilemap();
+        auto& mask = tilemap.GetCollisionMask();
+        mask.Deserialize(msg);
+        mask.SetID(ev.id);
+    }
 }
 
 void ObjectStream::OnUpdateObject(const Oxygen::Object& ev, Oxygen::Message& msg)
@@ -62,6 +69,16 @@ void ObjectStream::OnUpdateObject(const Oxygen::Object& ev, Oxygen::Message& msg
         else
         {
             std::cout << "Error: Tilemap layer id out of sync" << std::endl;
+        }
+    }
+    else if (name == "TILEMAP_MASK")
+    {
+        auto& tilemap = _level->GetTilemap();
+        auto& mask = tilemap.GetCollisionMask();
+        if (mask.ID() == ev.id)
+        {
+            mask.SetVersion(ev.version);
+            mask.Deserialize(msg);
         }
     }
 }

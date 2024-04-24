@@ -5,6 +5,7 @@
 #include "Editor.h"
 #include "Render.h"
 #include "ConfigReader.h"
+#include "Game.h"
 
 using namespace DE;
 
@@ -67,8 +68,14 @@ void GameApplication::OnStart()
     ConfigReader tileCfg("../../../../Assets/tiles.cfg");
     tileset->Load(device, tileCfg);
 
+    Islander::component_texture texture;
+    IslanderFindMaterialTexture(device, "simon", &texture);
+
+    Game* game = new Game();
+    game->Initialize(tileset);
+
     Editor editor;
-    editor.Start(lib, tileset, "../../../../Assets");
+    editor.Start(lib, tileset, game, "../../../../Assets");
 
     Render* render = new Render();
 
@@ -80,18 +87,20 @@ void GameApplication::OnStart()
     IslanderUISettings settings = {};
     settings.linePixelShader = render->LinePixelShader();
     settings.lineVertexShader = render->LineVertexShader();
-    settings.filledRectPixelShader = render->LineVertexShader();
+    settings.filledRectPixelShader = render->LinePixelShader();
     settings.filledRectVertexShader = render->LineVertexShader();
     IslanderSetUISettings(device, &settings);
 
     while (IslanderPumpWindow(window))
     {
         editor.Run(1 / 60.0f, window);
+        game->Run(1 / 60.0f, window);
 
         CrimsonFrame(crimson);
         IslanderImguiNewFrame(device, &context);
         ImGui::NewFrame();
         editor.Draw(1 / 60.0f, device, window, crimson, &context);
+        game->Draw(1 / 60.0f);
 
         // Render here
         render->RenderFrame(device, editor.GetLevel());

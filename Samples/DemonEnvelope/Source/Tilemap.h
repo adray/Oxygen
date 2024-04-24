@@ -22,7 +22,7 @@ namespace DE
         Tilemap_Mask();
 
         void Load(const int width, const int height);
-        void Set(int cell, int tile);
+        void Set(int cell, bool value);
         bool Get(int cell) const;
         inline int Width() const { return _width; }
         inline int Height() const { return _height; }
@@ -131,7 +131,14 @@ namespace DE
 
         inline Tilemap_Layer& GetLayer(int layer) { return _layers[layer]; }
 
+        inline Tilemap_Mask& GetCollisionMask() { return _collider; }
+
         bool GetTileBounds(int tile, float* px, float* py, float* sx, float* sy);
+
+        inline int Width() const { return _width; }
+        inline int Height() const { return _height; }
+        inline int ViewWidth() const { return _viewwidth; }
+        inline int ViewHeight() const { return _viewheight; }
 
         void Clear();
 
@@ -141,7 +148,7 @@ namespace DE
         void AddTile(int& vertexPos, int& indexPos, int& vertexID, int x, int y);
 
         std::vector<Tilemap_Layer> _layers;
-        std::unique_ptr<Tilemap_Mask> _collider;
+        Tilemap_Mask _collider;
         std::shared_ptr<Tileset> _tileset;
         unsigned char* _vertexData;
         int* _indexData;

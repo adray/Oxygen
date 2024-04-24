@@ -9,11 +9,12 @@
 
 using namespace DE;
 
-void Editor::Start(ISLANDER_POLYGON_LIBRARY lib, std::shared_ptr<Tileset> tileset_, const std::string& assetDir)
+void Editor::Start(ISLANDER_POLYGON_LIBRARY lib, std::shared_ptr<Tileset> tileset_, Game* game, const std::string& assetDir)
 {
     level = std::shared_ptr<Level>(new Level());
     network = std::shared_ptr<DE::Network>(new DE::Network());
     _assetDir = assetDir;
+    _game = game;
 
     ScanAssetDir();
 
@@ -45,6 +46,14 @@ void Editor::ScanAssetDir()
 }
 
 void Editor::Run(float delta, ISLANDER_WINDOW window)
+{
+    if (editMode)
+    {
+        _Run(delta, window);
+    }
+}
+
+void Editor::_Run(float delta, ISLANDER_WINDOW window)
 {
     network->Process();
 
@@ -102,6 +111,7 @@ void Editor::Run(float delta, ISLANDER_WINDOW window)
                     map.Set(palette_layer, cell, palette);
 
                     network->UpdateTilemap(map.GetLayer(palette_layer));
+                    network->UpdateTilemask(map.GetCollisionMask());
                 }
             }
         }
@@ -135,12 +145,35 @@ void Editor::Run(float delta, ISLANDER_WINDOW window)
 
 void Editor::Draw(float delta, ISLANDER_DEVICE device, ISLANDER_WINDOW window, CRIMSON_HANDLE crimson, IslanderImguiContext* cxt)
 {
+    if (network->Connected())
+    {
+        if (ImGui::Begin("Game"))
+        {
+            if (editMode && ImGui::Button("Play"))
+            {
+                editMode = false;
+                _game->Start(level, 0, 0);
+            }
+            else if (!editMode && ImGui::Button("Stop"))
+            {
+                editMode = true;
+                _game->Stop();
+            }
+        }
+        ImGui::End();
+    }
+
+    if (!editMode)
+    {
+        return;
+    }
+
+    const int width = IslanderWindowWidth(window);
+    const int height = IslanderWindowHeight(window);
+
     auto evStream = network->EventStream();
     if (evStream.get())
     {
-        const int width = IslanderWindowWidth(window);
-        const int height = IslanderWindowHeight(window);
-
         for (const Oxygen::EventStream::User& user : evStream->Users())
         {
             auto& map = level->GetTilemap();
@@ -163,6 +196,34 @@ void Editor::Draw(float delta, ISLANDER_DEVICE device, ISLANDER_WINDOW window, C
                         float border[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
                         CrimsonFilledRect(crimson, sx, sy, colour, 1.0f, border);
                     }
+                }
+            }
+        }
+    }
+
+    if (showCollider && level->GetTilemap().NumLayers() > 0)
+    {
+        auto& map = level->GetTilemap();
+        auto& mask = map.GetCollisionMask();
+        for (int i = 0; i < map.ViewWidth(); i++)
+        {
+            for (int j = 0; j < map.ViewHeight(); j++)
+            {
+                const int cell = (i + map.ScrollX()) + (j + map.ScrollY()) * map.Width();
+
+                float px, py, sx, sy;
+                if (map.GetTileBounds(cell, &px, &py, &sx, &sy) && mask.Get(cell))
+                {
+                    px /= width;
+                    py /= height;
+                    sx /= width;
+                    sy /= height;
+
+                    CrimsonSetPos(crimson, px + 0.5f, py + 0.5f);
+
+                    float colour[4] = { 0.0f, 0.0f, 1.0f, 0.5f };
+                    float border[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+                    CrimsonFilledRect(crimson, sx, sy, colour, 1.0f, border);
                 }
             }
         }
@@ -323,6 +384,8 @@ void Editor::Draw(float delta, ISLANDER_DEVICE device, ISLANDER_WINDOW window, C
                     }
                     ImGui::PopID();
                 }
+
+                ImGui::Checkbox("Show Collider", &showCollider);
 
                 std::shared_ptr<Tileset> tileset = level->TileSet();
                 for (int i = 0; i < tileset->NumTiles(); i++)

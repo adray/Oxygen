@@ -20,6 +20,7 @@ namespace DE
     class Level;
     class Tilemap;
     class Tilemap_Layer;
+    class Tilemap_Mask;
 
     enum class Network_State
     {
@@ -43,6 +44,7 @@ namespace DE
         void ListLevels(std::vector<std::string>& levels);
         void CreateTilemap(int width, int height, int numLayers);
         void UpdateTilemap(const Tilemap_Layer& layer);
+        void UpdateTilemask(const Tilemap_Mask& mask);
         void UpdateCursor(int objectId, int subID);
         bool Connected();
         inline Network_State State() const { return _state; }

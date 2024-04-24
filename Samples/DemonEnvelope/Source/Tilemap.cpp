@@ -29,23 +29,26 @@ void Tilemap_Mask::Load(const int width, const int height)
     _numBytes = (numTiles / 8) * 8 + (numTiles % 8 > 0 ? 1 : 0);
     
     _mask = new unsigned char[_numBytes];
+    std::memset(_mask, 0, _numBytes);
 }
 
 bool Tilemap_Mask::Get(int cell) const
 {
+    if (!_mask) { return false; }
+
     unsigned char value = _mask[cell / 8];
     return ((value >> (cell % 8)) & 0x1) == 1;
 }
 
-void Tilemap_Mask::Set(int cell, int tile)
+void Tilemap_Mask::Set(int cell, bool value)
 {
-    _mask[cell / 8] |= tile << (cell % 8);
+    if (_mask) {
+        _mask[cell / 8] |= (value ? 0x1 : 0x0) << (cell % 8);
+    }
 }
 
 void Tilemap_Mask::Serialize(Oxygen::Message& msg) const
 {
-    const int tileSize = _width * _height * sizeof(int);
-
     msg.WriteInt32(_width);
     msg.WriteInt32(_height);
     msg.WriteBytes(_numBytes, _mask);
@@ -199,6 +202,8 @@ void Tilemap::CreateLayers(int numLayers)
         layer.Load(index++, _width, _height);
         layer.SetTileSet(_tileset);
     }
+
+    _collider.Load(_width, _height);
 }
 
 void Tilemap::Update()
@@ -310,6 +315,13 @@ void Tilemap::CreateMesh(ISLANDER_POLYGON_LIBRARY lib, const int viewwidth, cons
 void Tilemap::Set(int layer, int cell, int tile)
 {
     _layers[layer].Set(cell, tile);
+
+    if (layer == _layers.size() - 1)
+    {
+        Tileset_Tile tileset_tile;
+        _tileset->GetTile(tile, tileset_tile);
+        _collider.Set(cell, tileset_tile._walkable ? 0 : 1);
+    }
 }
 
 int Tilemap::HitTest(int x, int y) const
@@ -361,5 +373,4 @@ void Tilemap::Clear()
     _scrollX = 0;
     _scrollY = 0;
     _layers.clear();
-    _collider.reset();
 }

@@ -281,6 +281,53 @@ void Network::CreateTilemap(int width, int height, int numLayers)
             });
         conn->AddSubscriber(sub);
     }
+
+    {
+        auto& mask = tilemap.GetCollisionMask();
+        Oxygen::Message msg = levelSub->BuildAddMessage(obj);
+        msg.WriteString("TILEMAP_MASK");
+        mask.Serialize(msg);
+
+        levelSub->PrepareAddMessage(&msg, obj);
+
+        std::shared_ptr<Oxygen::Subscriber> sub = std::shared_ptr<Oxygen::Subscriber>(new Oxygen::Subscriber(msg));
+        sub->Signal([this, sub2 = std::shared_ptr<Oxygen::Subscriber>(sub)](Oxygen::Message& response) {
+            if (response.ReadString() == "NACK")
+            {
+                std::cout << response.ReadInt32() << " " << response.ReadString() << std::endl;
+            }
+
+            conn->RemoveSubscriber(sub2);
+            });
+        conn->AddSubscriber(sub);
+    }
+}
+
+void Network::UpdateTilemask(const Tilemap_Mask& mask)
+{
+    Oxygen::Object obj = {};
+    obj.id = mask.ID();
+    obj.version = mask.Version();
+    obj.scale[0] = 1.0;
+    obj.scale[1] = 1.0;
+    obj.scale[2] = 1.0;
+
+    Oxygen::Message msg = levelSub->BuildUpdateMessage(obj);
+    msg.WriteString("TILEMAP_MASK");
+    mask.Serialize(msg);
+
+    levelSub->PrepareUpdateMessage(&msg, obj);
+
+    std::shared_ptr<Oxygen::Subscriber> sub = std::shared_ptr<Oxygen::Subscriber>(new Oxygen::Subscriber(msg));
+    sub->Signal([this, sub2 = std::shared_ptr<Oxygen::Subscriber>(sub)](Oxygen::Message& response) {
+        if (response.ReadString() == "NACK")
+        {
+            std::cout << response.ReadInt32() << " " << response.ReadString() << std::endl;
+        }
+
+        conn->RemoveSubscriber(sub2);
+        });
+    conn->AddSubscriber(sub);
 }
 
 void Network::UpdateTilemap(const Tilemap_Layer& layer)

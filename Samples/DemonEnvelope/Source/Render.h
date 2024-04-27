@@ -17,6 +17,9 @@ namespace DE
         inline int LineVertexShader() const { return lineShader.vertexShader; }
         inline int LinePixelShader() const { return lineShader.pixelShader; }
 
+        inline int TextVertexShader() const { return textShader.vertexShader; }
+        inline int TextPixelShader() const { return textShader.pixelShader; }
+
     private:
         ISLANDER_PASS_LIST passlist;
         IslanderRenderable renderable[128];
@@ -38,5 +41,6 @@ namespace DE
         Shader tilemapShader;
         Shader lineShader;
         Shader spriteBatchShader;
+        Shader textShader;
     };
 };

@@ -163,6 +163,21 @@ void Editor::Draw(float delta, ISLANDER_DEVICE device, ISLANDER_WINDOW window, C
         ImGui::End();
     }
 
+    if (_game->IsRunning())
+    {
+        if (ImGui::Begin("Debug"))
+        {
+            auto& party = _game->GetParty();
+            auto& pack = party.Pack();
+            for (int i = 0; i < pack.NumItems(); i++)
+            {
+                auto& item = pack.At(i);
+                ImGui::Text("ID:%i x%i Equipped:%i", item.ID(), item.NumItems(), item.NumEquipped());
+            }
+        }
+        ImGui::End();
+    }
+
     if (!editMode)
     {
         return;

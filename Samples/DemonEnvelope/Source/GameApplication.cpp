@@ -6,6 +6,9 @@
 #include "Render.h"
 #include "ConfigReader.h"
 #include "Game.h"
+#include "Item.h"
+
+#include <iostream>
 
 using namespace DE;
 
@@ -20,8 +23,9 @@ void GameApplication::OnStart()
     auto device = IslanderCreateDevice();
     IslanderSetPreferredRenderer(device, (int)ISLANDER_RENDERER_TYPE_D3D11);
     IslanderFontDescription defaultFont;
-    defaultFont.filedef = const_cast<char*>("../../../../Assets/Font/Aleo/Aleo-Regular.ttf");
-    defaultFont.name = const_cast<char*>("Aleo-Regular");
+    defaultFont.filedef =  //const_cast<char*>("../../../../Assets/PixgamerRegular-OVD6A.ttf");
+        const_cast<char*>("../../../../Assets/Font/Aleo/Aleo-Regular.ttf");
+    defaultFont.name = const_cast<char*>("PixgamerRegular");
     IslanderInitializeDevice(device, window, defaultFont);
     //IslanderInitializeGPUPerformanceCounters(device);
 
@@ -53,7 +57,7 @@ void GameApplication::OnStart()
     IslanderImguiCreate(device, &context);
 
     //io.Fonts->AddFontDefault();
-    io.Fonts->AddFontFromFileTTF(defaultFont.filedef, 14);
+    io.Fonts->AddFontFromFileTTF(defaultFont.filedef, 16);
 
     IslanderSetSyncInterval(device, 1);
 
@@ -68,11 +72,20 @@ void GameApplication::OnStart()
     ConfigReader tileCfg("../../../../Assets/tiles.cfg");
     tileset->Load(device, tileCfg);
 
+    ConfigReader itemCfg("../../../../Assets/items.cfg");
+    ConfigReader attributeCfg("../../../../Assets/attributes.cfg");
+    std::shared_ptr<ItemConfig> items = std::shared_ptr<ItemConfig>(new ItemConfig(itemCfg));
+    items->LoadAttributes(attributeCfg);
+    for (auto& error : items->Errors())
+    {
+        std::cout << "Error: " << error << std::endl;
+    }
+
     Islander::component_texture texture;
     IslanderFindMaterialTexture(device, "simon", &texture);
 
     Game* game = new Game();
-    game->Initialize(tileset);
+    game->Initialize(tileset, items);
 
     Editor editor;
     editor.Start(lib, tileset, game, "../../../../Assets");
@@ -89,7 +102,15 @@ void GameApplication::OnStart()
     settings.lineVertexShader = render->LineVertexShader();
     settings.filledRectPixelShader = render->LinePixelShader();
     settings.filledRectVertexShader = render->LineVertexShader();
+    settings.defaultFontName = const_cast<char*>("PixgamerRegular");
+    settings.textPixelShader = render->TextPixelShader();
+    settings.textVertexShader = render->TextVertexShader();
     IslanderSetUISettings(device, &settings);
+
+    IslanderUITextSetting textSettings = {};
+    textSettings.id = 0;
+    textSettings.size = 16;
+    IslanderSetUITextSettings(device, &textSettings, 1);
 
     while (IslanderPumpWindow(window))
     {
@@ -100,7 +121,7 @@ void GameApplication::OnStart()
         IslanderImguiNewFrame(device, &context);
         ImGui::NewFrame();
         editor.Draw(1 / 60.0f, device, window, crimson, &context);
-        game->Draw(1 / 60.0f);
+        game->Draw(1 / 60.0f, window, crimson);
 
         // Render here
         render->RenderFrame(device, editor.GetLevel());

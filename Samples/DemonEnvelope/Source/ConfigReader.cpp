@@ -8,8 +8,9 @@ ConfigReader::ConfigReader(const std::string& filepath)
 
     if (!_stream.bad())
     {
-        std::string header;
-        _stream >> header;
+        char headerData[512];
+        _stream.getline(headerData, sizeof(headerData));
+        std::string header(headerData);
 
         size_t offset = 0;
         size_t next = header.find(',', offset);
@@ -30,8 +31,9 @@ bool ConfigReader::ReadNextRow()
     {
         _row.clear();
 
-        std::string row;
-        _stream >> row;
+        char rowData[512];
+        _stream.getline(rowData, sizeof(rowData));
+        std::string row(rowData);
 
         size_t offset = 0;
         size_t next = row.find(',', offset);

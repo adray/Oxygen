@@ -47,6 +47,16 @@ void Render::LoadShaders(const std::string& dir, ISLANDER_DEVICE device)
 
     lineShader.vertexShader = IslanderLoadVertexShaderEx(device, (dir + std::string("/Crimson.fx")).c_str(), "CrimsonLineVertex", semantic, 2, nullptr);
     lineShader.pixelShader = IslanderLoadPixelShaderEx(device, (dir + std::string("/Crimson.fx")).c_str(), "CrimsonLinePixel", nullptr);
+
+    semantic[0]._desc = const_cast<char*>("POSITION");
+    semantic[0]._format = ISLANDER_SEMANTIC_FLOAT4;
+    semantic[0]._stream = 0;
+    semantic[1]._desc = const_cast<char*>("TEXCOORD");
+    semantic[1]._format = ISLANDER_SEMANTIC_FLOAT;
+    semantic[1]._stream = 0;
+
+    textShader.vertexShader = IslanderLoadVertexShaderEx(device, (dir + std::string("/CrimsonFont.fx")).c_str(), "CrimsonFontVertex", semantic, 2, nullptr);
+    textShader.pixelShader = IslanderLoadPixelShaderEx(device, (dir + std::string("/CrimsonFont.fx")).c_str(), "CrimsonFontPixel", nullptr);
 }
 
 void Render::CreateConstantBuffers(ISLANDER_DEVICE device, ISLANDER_WINDOW window)

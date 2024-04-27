@@ -55,15 +55,13 @@ void DE::DrawScriptingEditor(Scripting& scripting, ScriptBuilder& script)
         {
             nodes.erase(delIt);
         }
-
-        if (upIt != nodes.begin())
+        else if (upIt != nodes.begin())
         {
             std::list<std::shared_ptr<ScriptNode>>::iterator cur = upIt;
             upIt--;
             std::swap(*cur, *upIt);
         }
-
-        if (downIt != nodes.end())
+        else if (downIt != nodes.end())
         {
             std::list<std::shared_ptr<ScriptNode>>::iterator cur = downIt;
             downIt++;

@@ -103,7 +103,7 @@ namespace DE
         void RunScripts(float delta);
         void ClearScripts();
 
-        inline int NumScripts() const { return _scripts.size(); }
+        inline int NumScripts() const { return int(_scripts.size()); }
         const std::string Log(int script) const;
 
     private:

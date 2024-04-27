@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <API.h>
+#include "Party.h"
 
 namespace DE
 {
@@ -8,6 +9,7 @@ namespace DE
     class Tilemap;
     class Level;
     class Level_Entity;
+    class ItemConfig;
 
     class GameState_Map
     {
@@ -35,20 +37,55 @@ namespace DE
     class GameMenu
     {
     public:
-        void Run(float delta);
-        void Draw(float delta);
+        GameMenu();
+        void Start();
+        void Run(float delta, ISLANDER_WINDOW window, Party& party, std::shared_ptr<ItemConfig>& items);
+        void Draw(float delta, ISLANDER_WINDOW window, CRIMSON_HANDLE crimson, Party& party, std::shared_ptr<ItemConfig>& items);
+    private:
+        enum class MenuType
+        {
+            Main = 0,
+            Party = 1,
+            Items = 2,
+            Character = 3,
+            Equip = 4
+        };
 
+        struct ContextMenuItem
+        {
+            int _type;
+            std::string _text;
+        };
 
+        void BuildItemContextMenu(Party& party, std::shared_ptr<ItemConfig>& items);
+
+        void UnequipItem(Party& party, std::shared_ptr<ItemConfig>& items);
+        void EquipItem(Party& party, std::shared_ptr<ItemConfig>& items);
+        void EnterMenu(MenuType type, Party& party);
+        int GetFlags(int pos);
+
+        bool _open;
+        int _selIndex;
+        int _selMax;
+        int _selMin;
+        int _charIndex;
+        int _itemIndex;
+        bool _contextMenu;
+        int _contextIndex;
+        std::vector< ContextMenuItem> _contextMenuItems;
+        MenuType _type;
     };
 
     class Game
     {
     public:
-        void Initialize(std::shared_ptr<Tileset>& tileset);
+        void Initialize(std::shared_ptr<Tileset>& tileset, std::shared_ptr<ItemConfig>& items);
         void Start(std::shared_ptr<Level>& level, int px, int py);
         void Stop();
         void Run(float delta, ISLANDER_WINDOW window);
-        void Draw(float detla);
+        void Draw(float detla, ISLANDER_WINDOW window, CRIMSON_HANDLE crimson);
+        bool IsRunning() const { return _running; }
+        const Party& GetParty() const { return _party; }
 
     private:
         enum class State
@@ -61,6 +98,8 @@ namespace DE
         GameState_Map _map;
         GameState_Battle _battle;
         GameMenu _menu;
+        Party _party;
+        std::shared_ptr<ItemConfig> _items;
         bool _running;
     };
 }

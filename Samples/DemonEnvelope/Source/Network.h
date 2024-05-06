@@ -13,6 +13,7 @@ namespace Oxygen
     class Subscriber;
     class ObjectStream;
     class EventStream;
+    struct Object;
 }
 
 namespace DE
@@ -21,6 +22,7 @@ namespace DE
     class Tilemap;
     class Tilemap_Layer;
     class Tilemap_Mask;
+    class ScriptObject;
 
     enum class Network_State
     {
@@ -46,6 +48,8 @@ namespace DE
         void UpdateTilemap(const Tilemap_Layer& layer);
         void UpdateTilemask(const Tilemap_Mask& mask);
         void UpdateCursor(int objectId, int subID);
+        void CreateScript(int parentId, int x, int y);
+        void UpdateScript(ScriptObject& script);
         bool Connected();
         inline Network_State State() const { return _state; }
         void Process();
@@ -60,6 +64,7 @@ namespace DE
     private:
 
         void OnLevelLoaded(std::shared_ptr<Level>& level);
+        void SendUpdateMsg(Oxygen::Message& msg, Oxygen::Object& obj);
 
         Oxygen::ClientConnection* conn;
         std::shared_ptr<Oxygen::Subscriber> closeSub;

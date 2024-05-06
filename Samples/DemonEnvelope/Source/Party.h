@@ -9,28 +9,58 @@ namespace DE
     class Party_Pack;
     class ItemConfig;
 
+    class Party_Stat_Curve
+    {
+    public:
+        Party_Stat_Curve() : _curveType(0), _min(0), _max(0) {}
+        Party_Stat_Curve(int curveType, int min, int max) : _curveType(curveType), _min(min), _max(max) {}
+
+        int Calculate(int level) const;
+
+    private:
+        int Curve0(int level) const;
+        int Curve1(int level) const;
+        int Curve2(int level) const;
+
+        int _curveType;
+        int _min; int _max;
+    };
+
     class Party_Member_Stats
     {
     public:
-        Party_Member_Stats() : _maxDP(0), _maxHP(0), _damage(0), _defence(0) {}
+        Party_Member_Stats() : _maxDP(0), _maxHP(0), _attack(0), _defence(0) {}
 
         inline int MaxHP() const { return _maxHP; }
         inline int MaxDP() const { return _maxDP; }
-        inline int Damage() const { return _damage; }
+        inline int Attack() const { return _attack; }
         inline int Defence() const { return _defence; }
 
         void Reset();
 
         inline void SetMaxHP(int hp) { _maxHP = hp; }
         inline void SetMaxDP(int dp) { _maxDP = dp; }
-        inline void SetDamage(int damage) { _damage = damage; }
+        inline void SetAttack(int attack) { _attack = attack; }
         inline void SetDefence(int defence) { _defence = defence; }
+
+        inline void SetAttackCurve(Party_Stat_Curve curve) { _attackCurve = curve; }
+        inline void SetDefenceCurve(Party_Stat_Curve curve) { _defenceCurve = curve; }
+        inline void SetMaxHPCurve(Party_Stat_Curve curve) { _maxHPCurve = curve; }
+
+        inline const Party_Stat_Curve& AttackCurve() const { return _attackCurve; }
+        inline const Party_Stat_Curve& DefenceCurve() const { return _defenceCurve; }
+        inline const Party_Stat_Curve& MaxHPCurve() const { return _maxHPCurve; }
 
     private:
         int _maxHP;
         int _maxDP;
-        int _damage;
+        int _attack;
         int _defence;
+
+        Party_Stat_Curve _attackCurve;
+        Party_Stat_Curve _maxHPCurve;
+        Party_Stat_Curve _maxDPCurve;
+        Party_Stat_Curve _defenceCurve;
     };
 
     class Party_Member
@@ -43,6 +73,10 @@ namespace DE
         inline bool Active() const { return _active; }
         inline void SetActive(bool active) { _active = active; }
         inline int XP() const { return _exp; }
+        inline void SetXP(int exp) { _exp = exp; }
+        inline void SetLevel(int level) { _level = level; }
+        inline int HP() const { return _health; };
+        inline void SetHP(int hp) { _health = hp; }
 
         inline int Helm() const { return _helm; }
         inline int Footwear() const { return _footwear; }
@@ -61,7 +95,8 @@ namespace DE
         inline void SetSecondaryWeapon(int id) { _weaponSecondary = id; }
 
         void CalculateStats(const Party_Pack& pack, const std::shared_ptr<ItemConfig>& cfg);
-        inline Party_Member_Stats GetStats() const { return _stats; }
+        inline const Party_Member_Stats& GetStats() const { return _stats; }
+        inline Party_Member_Stats& GetStats() { return _stats; }
 
     private:
         Party_Member_Stats _stats;
@@ -144,7 +179,11 @@ namespace DE
     public:
         Party();
         Party_Member& FindMemberByID(int id);
+        const Party_Member& FindMemberByID(int id) const;
         inline Party_Member& FindMemberByIndex(int index) {
+            return _members[index];
+        }
+        inline const Party_Member& FindMemberByIndex(int index) const {
             return _members[index];
         }
         inline Party_Pack& Pack() { return _pack; }

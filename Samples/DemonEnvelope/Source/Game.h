@@ -10,6 +10,7 @@ namespace DE
     class Level;
     class Level_Entity;
     class ItemConfig;
+    class Dialogue;
 
     class GameState_Map
     {
@@ -17,6 +18,7 @@ namespace DE
         void Initialize(std::shared_ptr<Tileset>& tileset);
         void SetLevel(std::shared_ptr<Level>& level);
         void Run(float delta, ISLANDER_WINDOW window);
+        void Close();
 
         inline int Player() const { return _player; }
 
@@ -48,7 +50,8 @@ namespace DE
             Party = 1,
             Items = 2,
             Character = 3,
-            Equip = 4
+            Equip = 4,
+            Use = 5
         };
 
         struct ContextMenuItem
@@ -59,8 +62,10 @@ namespace DE
 
         void BuildItemContextMenu(Party& party, std::shared_ptr<ItemConfig>& items);
 
+        void DiscardItem(Party& party);
         void UnequipItem(Party& party, std::shared_ptr<ItemConfig>& items);
         void EquipItem(Party& party, std::shared_ptr<ItemConfig>& items);
+        void UseItem(Party& party, std::shared_ptr<ItemConfig>& items);
         void EnterMenu(MenuType type, Party& party);
         int GetFlags(int pos);
 
@@ -85,15 +90,18 @@ namespace DE
         void Run(float delta, ISLANDER_WINDOW window);
         void Draw(float detla, ISLANDER_WINDOW window, CRIMSON_HANDLE crimson);
         bool IsRunning() const { return _running; }
-        const Party& GetParty() const { return _party; }
+        Party& GetParty() { return _party; }
 
     private:
+        void DrawDialogue(CRIMSON_HANDLE crimson);
+
         enum class State
         {
             Map,
             Battle
         };
 
+        std::shared_ptr<Level> _level;
         State _state;
         GameState_Map _map;
         GameState_Battle _battle;

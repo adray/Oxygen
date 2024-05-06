@@ -20,6 +20,8 @@ namespace DE
 
     private:
 
+        void DrawScriptNode(ScriptObject& sc);
+
         void ScanAssetDir();
         void _Run(float delta, ISLANDER_WINDOW window);
 

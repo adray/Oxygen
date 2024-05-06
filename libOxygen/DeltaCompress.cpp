@@ -138,7 +138,7 @@ int Oxygen::Compress(const unsigned char* initialData, int numInitialBytes, cons
         }
         else
         {
-            WriteBlock(stream, newData, UNCOMPRESSED_BLOCK, 0, numNewDataBytes);
+            WriteBlock(stream, newData, numNewDataBytes, UNCOMPRESSED_BLOCK, 0);
         }
     }
     else

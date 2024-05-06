@@ -107,7 +107,7 @@ namespace DE
         void SetTileSet(std::shared_ptr<Tileset>& tileset) { _tileset = tileset; }
         std::shared_ptr<Tileset> GetTileset() { return _tileset; }
 
-        void Load(const int width, const int height);
+        void Load(const int id, const int width, const int height);
 
         void CreateMesh(ISLANDER_POLYGON_LIBRARY lib, const int viewwidth, const int viewheight, const int tileWidth, const int tileHeight);
 
@@ -135,6 +135,7 @@ namespace DE
 
         bool GetTileBounds(int tile, float* px, float* py, float* sx, float* sy);
 
+        inline int ID() const { return _id; }
         inline int Width() const { return _width; }
         inline int Height() const { return _height; }
         inline int ViewWidth() const { return _viewwidth; }
@@ -152,6 +153,7 @@ namespace DE
         std::shared_ptr<Tileset> _tileset;
         unsigned char* _vertexData;
         int* _indexData;
+        int _id;
         int _width;
         int _height;
         int _viewwidth;

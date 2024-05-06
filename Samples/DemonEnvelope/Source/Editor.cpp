@@ -143,6 +143,59 @@ void Editor::_Run(float delta, ISLANDER_WINDOW window)
     }
 }
 
+void Editor::DrawScriptNode(ScriptObject& sc)
+{
+    bool update = false;
+
+    ImGui::PushID(sc.ID());
+    if (ImGui::TreeNode("Script"))
+    {
+        ImGui::Text("ID %i", sc.ID());
+        
+        int x = sc.X();
+        int y = sc.Y();
+        if (ImGui::InputInt("X", &x)) { sc.SetX(x); update = true; }
+        if (ImGui::InputInt("Y", &y)) { sc.SetY(y); update = true; }
+
+        static std::string type[3] = {
+            "None",
+            "OnCreate",
+            "OnTouch"
+        };
+
+        if (ImGui::BeginCombo("Trigger", type[(int)sc.Trigger()].c_str()))
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                bool selected = i == (int)sc.Trigger();
+                if (ImGui::Selectable(type[i].c_str(), &selected))
+                {
+                    sc.SetTrigger((DE::ScriptTrigger)i);
+                    update = true;
+                }
+            }
+
+            ImGui::EndCombo();
+        }
+
+        char buffer[256];
+        std::memcpy(buffer, sc.ScriptName().c_str(), sizeof(buffer));
+
+        if (ImGui::InputText("File", buffer, sizeof(buffer)))
+        {
+            sc.SetScriptName(buffer);
+            update = true;
+        }
+        ImGui::TreePop();
+    }
+    ImGui::PopID();
+
+    if (update)
+    {
+        network->UpdateScript(sc);
+    }
+}
+
 void Editor::Draw(float delta, ISLANDER_DEVICE device, ISLANDER_WINDOW window, CRIMSON_HANDLE crimson, IslanderImguiContext* cxt)
 {
     if (network->Connected())
@@ -168,6 +221,14 @@ void Editor::Draw(float delta, ISLANDER_DEVICE device, ISLANDER_WINDOW window, C
         if (ImGui::Begin("Debug"))
         {
             auto& party = _game->GetParty();
+            for (int i = 0; i < party.NumMembers(); i++)
+            {
+                auto& member = party.FindMemberByIndex(i);
+                int level = member.Level();
+                ImGui::InputInt(member.Name().c_str(), &level);
+                member.SetLevel(level);
+            }
+
             auto& pack = party.Pack();
             for (int i = 0; i < pack.NumItems(); i++)
             {
@@ -180,6 +241,7 @@ void Editor::Draw(float delta, ISLANDER_DEVICE device, ISLANDER_WINDOW window, C
 
     if (!editMode)
     {
+        DrawScriptLog(level->ScriptSystem());
         return;
     }
 
@@ -373,6 +435,51 @@ void Editor::Draw(float delta, ISLANDER_DEVICE device, ISLANDER_WINDOW window, C
                     {
                         network->JoinLevel(selectedLevelName, level);
                     }
+                }
+            }
+        }
+        ImGui::End();
+
+        if (ImGui::Begin("Scene"))
+        {
+            auto& tilemap = level->GetTilemap();
+            if (tilemap.NumLayers() > 0)
+            {
+                if (ImGui::TreeNode("Tilemap"))
+                {
+                    if (ImGui::BeginPopupContextItem())
+                    {
+                        if (ImGui::Selectable("New script"))
+                        {
+                            network->CreateScript(tilemap.ID(), 0, 0);
+                        }
+
+                        ImGui::EndPopup();
+                    }
+
+                    for (int i = 0; i < tilemap.NumLayers(); i++)
+                    {
+                        ImGui::Text("Layer %i", i);
+                    }
+
+                    for (auto& sc : level->Scripts())
+                    {
+                        if (sc.ParentID() == tilemap.ID())
+                        {
+                            DrawScriptNode(sc);
+                        }
+                    }
+
+                    ImGui::TreePop();
+                }
+            }
+
+            // Draw any scripts which are unattached (however that happened?)
+            for (auto& sc : level->Scripts())
+            {
+                if (sc.ParentID() == -1)
+                {
+                    DrawScriptNode(sc);
                 }
             }
         }

@@ -231,7 +231,7 @@ void Network::OnLevelLoaded(std::shared_ptr<Level>& level)
 void Network::CreateTilemap(int width, int height, int numLayers)
 {
     Tilemap tilemap;
-    tilemap.Load(width, height);
+    tilemap.Load(0, width, height);
     tilemap.CreateLayers(numLayers);
 
     Oxygen::Object obj = {};
@@ -316,18 +316,7 @@ void Network::UpdateTilemask(const Tilemap_Mask& mask)
     msg.WriteString("TILEMAP_MASK");
     mask.Serialize(msg);
 
-    levelSub->PrepareUpdateMessage(&msg, obj);
-
-    std::shared_ptr<Oxygen::Subscriber> sub = std::shared_ptr<Oxygen::Subscriber>(new Oxygen::Subscriber(msg));
-    sub->Signal([this, sub2 = std::shared_ptr<Oxygen::Subscriber>(sub)](Oxygen::Message& response) {
-        if (response.ReadString() == "NACK")
-        {
-            std::cout << response.ReadInt32() << " " << response.ReadString() << std::endl;
-        }
-
-        conn->RemoveSubscriber(sub2);
-        });
-    conn->AddSubscriber(sub);
+    SendUpdateMsg(msg, obj);
 }
 
 void Network::UpdateTilemap(const Tilemap_Layer& layer)
@@ -344,7 +333,62 @@ void Network::UpdateTilemap(const Tilemap_Layer& layer)
     msg.WriteInt32(layer.Layer());
     layer.Serialize(msg);
 
-    levelSub->PrepareUpdateMessage(&msg, obj);
+    SendUpdateMsg(msg, obj);
+}
+
+void Network::CreateScript(int parentId, int x, int y)
+{
+    Oxygen::Object obj = {};
+    obj.scale[0] = 1.0;
+    obj.scale[1] = 1.0;
+    obj.scale[2] = 1.0;
+
+    {
+        Oxygen::Message msg = levelSub->BuildAddMessage(obj);
+        msg.WriteString("SCRIPT");
+
+        ScriptObject sc(-1);
+        sc.SetX(x);
+        sc.SetY(y);
+        sc.SetParentID(parentId);
+        sc.Serialize(msg);
+
+        levelSub->PrepareAddMessage(&msg, obj);
+
+        std::shared_ptr<Oxygen::Subscriber> sub = std::shared_ptr<Oxygen::Subscriber>(new Oxygen::Subscriber(msg));
+        sub->Signal([this, sub2 = std::shared_ptr<Oxygen::Subscriber>(sub)](Oxygen::Message& response) {
+            if (response.ReadString() == "NACK")
+            {
+                std::cout << response.ReadInt32() << " " << response.ReadString() << std::endl;
+            }
+
+            conn->RemoveSubscriber(sub2);
+            });
+        conn->AddSubscriber(sub);
+    }
+}
+
+void Network::UpdateScript(ScriptObject& script)
+{
+    Oxygen::Object obj = {};
+    obj.id = script.ID();
+    obj.version = script.Version();
+    obj.scale[0] = 1.0;
+    obj.scale[1] = 1.0;
+    obj.scale[2] = 1.0;
+
+    Oxygen::Message msg = levelSub->BuildUpdateMessage(obj);
+    msg.WriteString("SCRIPT");
+    script.Serialize(msg);
+
+    SendUpdateMsg(msg, obj);
+}
+
+void Network::UpdateCursor(int objectId, int subID)
+{
+    Oxygen::Message msg("LEVEL_SVR", "UPDATE_CURSOR");
+    msg.WriteInt32(objectId);
+    msg.WriteInt32(subID);
 
     std::shared_ptr<Oxygen::Subscriber> sub = std::shared_ptr<Oxygen::Subscriber>(new Oxygen::Subscriber(msg));
     sub->Signal([this, sub2 = std::shared_ptr<Oxygen::Subscriber>(sub)](Oxygen::Message& response) {
@@ -358,11 +402,9 @@ void Network::UpdateTilemap(const Tilemap_Layer& layer)
     conn->AddSubscriber(sub);
 }
 
-void Network::UpdateCursor(int objectId, int subID)
+void Network::SendUpdateMsg(Oxygen::Message& msg, Oxygen::Object& obj)
 {
-    Oxygen::Message msg("LEVEL_SVR", "UPDATE_CURSOR");
-    msg.WriteInt32(objectId);
-    msg.WriteInt32(subID);
+    levelSub->PrepareUpdateMessage(&msg, obj);
 
     std::shared_ptr<Oxygen::Subscriber> sub = std::shared_ptr<Oxygen::Subscriber>(new Oxygen::Subscriber(msg));
     sub->Signal([this, sub2 = std::shared_ptr<Oxygen::Subscriber>(sub)](Oxygen::Message& response) {

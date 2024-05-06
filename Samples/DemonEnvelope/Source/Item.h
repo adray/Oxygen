@@ -26,6 +26,10 @@ namespace DE
         Saber = 5
     };
 
+    constexpr int TARGET_FRIENDLY = 1;
+    constexpr int TARGET_ENEMY = 2;
+    constexpr int TARGET_ALL = 3;
+
     class ItemConfig_Item
     {
     public:
@@ -44,6 +48,7 @@ namespace DE
 
         void SetAttribute(const std::string& name, const std::string& value);
         int GetIntegerAttribute(const std::string& name) const;
+        std::string GetStringAttribute(const std::string& name) const;
 
     private:
         void AddInteger(const std::string& name, const std::string& value);

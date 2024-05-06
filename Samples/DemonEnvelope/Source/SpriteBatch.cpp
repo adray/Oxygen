@@ -67,6 +67,12 @@ void SpriteBatch::Initialize(ISLANDER_POLYGON_LIBRARY lib)
 void SpriteBatch::Reset()
 {
     _sprites.clear();
+
+    // Make each sprite transparent
+    for (int i = 0; i < 64; i++)
+    {
+        _constantData->tilesColour[i * 4 + 3] = 0.0f;
+    }
 }
 
 void SpriteBatch::AddSprite(const SpriteBatch_Sprite& sprite)

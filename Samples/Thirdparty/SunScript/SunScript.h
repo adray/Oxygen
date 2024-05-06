@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <chrono>
 
 namespace SunScript
 {
@@ -10,6 +11,7 @@ namespace SunScript
     constexpr int VM_ERROR = 1;
     constexpr int VM_YIELDED = 2;
     constexpr int VM_PAUSED = 3;
+    constexpr int VM_TIMEOUT = 4;
 
     constexpr int ERR_NONE = 0;
     constexpr int ERR_INTERNAL = 1;
@@ -28,7 +30,13 @@ namespace SunScript
 
     int RunScript(VirtualMachine* vm, unsigned char* program);
 
+    int RunScript(VirtualMachine* vm, unsigned char* program, std::chrono::duration<int, std::nano> timeout);
+
     int ResumeScript(VirtualMachine* vm, unsigned char* program);
+
+    void PushReturnValue(VirtualMachine* vm, const std::string& value);
+    
+    void PushReturnValue(VirtualMachine* vm, int value);
 
     int GetCallName(VirtualMachine* vm, std::string* name);
 
@@ -44,6 +52,12 @@ namespace SunScript
 
     void ReleaseProgram(Program* program);
 
+    void EmitReturn(Program* program);
+
+    void EmitBeginFunction(Program* program, const std::string& name, int numArgs);
+
+    void EmitEndFunction(Program* program);
+
     void EmitLocal(Program* program, const std::string& name);
     
     void EmitSet(Program* program, const std::string& name, int value);
@@ -57,6 +71,8 @@ namespace SunScript
     void EmitPush(Program* program, const std::string& value);
 
     void EmitPop(Program* program, const std::string& localName);
+
+    void EmitPop(Program* program);
 
     void EmitYield(Program* program, const std::string& name);
 

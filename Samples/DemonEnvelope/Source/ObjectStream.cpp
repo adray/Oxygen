@@ -2,6 +2,7 @@
 #include "ObjectStream.h"
 #include "Level.h"
 #include "Network.h"
+#include "Scripting.h"
 
 using namespace DE;
 
@@ -10,7 +11,6 @@ ObjectStream::ObjectStream(std::shared_ptr<Level>& level, Network& network)
     _level(level),
     _network(network)
 {
-
 }
 
 void ObjectStream::OnNewObject(const Oxygen::Object& ev, Oxygen::Message& msg)
@@ -24,7 +24,7 @@ void ObjectStream::OnNewObject(const Oxygen::Object& ev, Oxygen::Message& msg)
         auto& tilemap = _level->GetTilemap();
         const int width = msg.ReadInt32();
         const int height = msg.ReadInt32();
-        tilemap.Load(width, height);
+        tilemap.Load(ev.id, width, height);
 
         const int numLayers = msg.ReadInt32();
         tilemap.CreateLayers(numLayers);
@@ -45,6 +45,12 @@ void ObjectStream::OnNewObject(const Oxygen::Object& ev, Oxygen::Message& msg)
         auto& mask = tilemap.GetCollisionMask();
         mask.Deserialize(msg);
         mask.SetID(ev.id);
+    }
+    else if (name == "SCRIPT")
+    {
+        ScriptObject script(ev.id);
+        script.Deserialize(msg);
+        _level->AddScript(script);
     }
 }
 
@@ -79,6 +85,15 @@ void ObjectStream::OnUpdateObject(const Oxygen::Object& ev, Oxygen::Message& msg
         {
             mask.SetVersion(ev.version);
             mask.Deserialize(msg);
+        }
+    }
+    else if (name == "SCRIPT")
+    {
+        ScriptObject* sc = _level->GetScript(ev.id);
+        if (sc)
+        {
+            sc->SetVersion(ev.version);
+            sc->Deserialize(msg);
         }
     }
 }

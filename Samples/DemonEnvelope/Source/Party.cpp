@@ -3,13 +3,59 @@
 
 using namespace DE;
 
+//==========================
+//Party Stat Curve
+//==========================
+
+constexpr int LEVEL_CAP = 60;
+
+int Party_Stat_Curve::Curve0(int level) const
+{
+    // Quadratic ease in (Medium growth)
+    const float a = float(level) / float(LEVEL_CAP);
+    return int(a * a * (_max - _min) + _min);
+}
+
+int Party_Stat_Curve::Curve1(int level) const
+{
+    // Quadratic ease in (Fast growth)
+    const float a = float(level) / float(LEVEL_CAP);
+    return int(std::powf(a, 1.8f) * (_max - _min) + _min);
+}
+
+int Party_Stat_Curve::Curve2(int level) const
+{
+    // Quadratic ease in (Slow growth)
+    const float a = float(level) / float(LEVEL_CAP);
+    return int(std::powf(a, 2.3f) * (_max - _min) + _min);
+}
+
+int Party_Stat_Curve::Calculate(int level) const
+{
+    int value = 0;
+    switch (_curveType)
+    {
+    case 0:
+        value = Curve0(level);
+        break;
+    case 1:
+        value = Curve1(level);
+        break;
+    case 2:
+        value = Curve2(level);
+        break;
+    }
+
+    return value;
+}
+
 //=========================
 //Party Member Stats
 //=========================
 
 void Party_Member_Stats::Reset()
 {
-    _damage = 0;
+    _attack = 0;
     _defence = 0;
     _maxHP = 0;
     _maxDP = 0;
@@ -51,8 +97,9 @@ void Party_Member::CalculateStats(const Party_Pack& pack, const std::shared_ptr<
     items.push_back(_weaponPrimary);
     items.push_back(_weaponSecondary);
 
-    int defence = 0;
-    int damage = 0;
+    int defence = _stats.DefenceCurve().Calculate(_level);
+    int attack = _stats.AttackCurve().Calculate(_level);
+    int hp = _stats.MaxHPCurve().Calculate(_level);
 
     for (int id : items)
     {
@@ -60,12 +107,13 @@ void Party_Member::CalculateStats(const Party_Pack& pack, const std::shared_ptr<
         {
             const auto& item = cfg->Get(id);
             defence += item.GetIntegerAttribute("Defence");
-            damage += item.GetIntegerAttribute("Damage");
+            attack += item.GetIntegerAttribute("Attack");
         }
     }
 
-    _stats.SetDamage(damage);
+    _stats.SetAttack(attack);
     _stats.SetDefence(defence);
+    _stats.SetMaxHP(hp);
 }
 
 //==================================
@@ -147,6 +195,24 @@ Party::Party() :
     const int scarlet = AddMember(Party_Member("Scarlet", 3, 5));
 
     _members[simon].SetActive(true);
+    _members[simon].GetStats().SetAttackCurve(Party_Stat_Curve(0, 20, 280));
+    _members[simon].GetStats().SetDefenceCurve(Party_Stat_Curve(0, 10, 230));
+    _members[simon].GetStats().SetMaxHPCurve(Party_Stat_Curve(1, 40, 400));
+
+    _members[emily].SetActive(true);
+    _members[emily].GetStats().SetAttackCurve(Party_Stat_Curve(1, 30, 180));
+    _members[emily].GetStats().SetDefenceCurve(Party_Stat_Curve(0, 15, 320));
+    _members[emily].GetStats().SetMaxHPCurve(Party_Stat_Curve(2, 40, 470));
+
+    _members[julius].SetActive(true);
+    _members[julius].GetStats().SetAttackCurve(Party_Stat_Curve(1, 25, 200));
+    _members[julius].GetStats().SetDefenceCurve(Party_Stat_Curve(1, 32, 200));
+    _members[julius].GetStats().SetMaxHPCurve(Party_Stat_Curve(0, 38, 410));
+
+    _members[scarlet].SetActive(true);
+    _members[scarlet].GetStats().SetAttackCurve(Party_Stat_Curve(2, 35, 300));
+    _members[scarlet].GetStats().SetDefenceCurve(Party_Stat_Curve(1, 20, 240));
+    _members[scarlet].GetStats().SetMaxHPCurve(Party_Stat_Curve(0, 47, 390));
 
     _pack.AddItem(100, 5);
     _pack.AddItem(101, 2);
@@ -154,9 +220,25 @@ Party::Party() :
     _pack.AddItem(1, 1);
     _pack.AddItem(200, 1);
     _pack.AddItem(300, 1);
+    _pack.AddItem(400, 1);
+    _pack.AddItem(500, 1);
+    _pack.AddItem(600, 1);
 }
 
 Party_Member& Party::FindMemberByID(int id)
+{
+    for (auto& member : _members)
+    {
+        if (member.ID() == id)
+        {
+            return member;
+        }
+    }
+
+    return _unknown;
+}
+
+const Party_Member& Party::FindMemberByID(int id) const
 {
     for (auto& member : _members)
     {

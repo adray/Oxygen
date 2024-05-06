@@ -1,5 +1,8 @@
 #include "Scripting.h"
 #include "imgui.h"
+#include "Message.h"
+#include "Sun.h"
+#include "Level.h"
 #include <functional>
 #include <iostream>
 
@@ -150,6 +153,59 @@ static void Handler(SunScript::VirtualMachine* vm)
             script->Wait(waitTime);
         }
     }
+    else if (name == "ShowDialogue")
+    {
+        std::string param1;
+        if (SunScript::VM_OK == SunScript::GetParamString(vm, &param1))
+        {
+            std::string param2;
+            if (SunScript::VM_OK == SunScript::GetParamString(vm, &param2))
+            {
+                script->Level()->GetDialogue().Show(param1, param2);
+            }
+            else
+            {
+                script->Level()->GetDialogue().Show(param1);
+            }
+
+            script->SetSuspendReason(ScriptSuspendReason::Dialogue);
+        }
+    }
+    else if (name == "AddEntity")
+    {
+        const int entity = script->Level()->AddEntity();
+        SunScript::PushReturnValue(vm, entity);
+    }
+    else if (name == "GetPosX")
+    {
+        int id;
+        if (SunScript::VM_OK == SunScript::GetParamInt(vm, &id))
+        {
+            int px; int py;
+            script->Level()->GetEntityPos(id, &px, &py);
+            SunScript::PushReturnValue(vm, px);
+        }
+    }
+    else if (name == "GetPosY")
+    {
+        int id;
+        if (SunScript::VM_OK == SunScript::GetParamInt(vm, &id))
+        {
+            int px; int py;
+            script->Level()->GetEntityPos(id, &px, &py);
+            SunScript::PushReturnValue(vm, py);
+        }
+    }
+    else if (name == "SetPos")
+    {
+        int id, x, y;
+        if (SunScript::VM_OK == SunScript::GetParamInt(vm, &id) &&
+            SunScript::VM_OK == SunScript::GetParamInt(vm, &x) &&
+            SunScript::VM_OK == SunScript::GetParamInt(vm, &y))
+        {
+            script->Level()->SetEntityPos(id, x, y);
+        }
+    }
 }
 
 Script::Script(unsigned char* program)
@@ -157,23 +213,31 @@ Script::Script(unsigned char* program)
     _vm(nullptr),
     _suspended(false),
     _program(program),
-    _waiting(false),
     _waitTime(0.0f),
     _elapsedTime(0.0f),
-    _completed(false)
+    _completed(false),
+    _resume(false),
+    _level(nullptr),
+    _reason(ScriptSuspendReason::None)
 {
 }
 
 void Script::Wait(float time)
 {
-    _waiting = true;
+    _reason = ScriptSuspendReason::WaitTime;
     _waitTime = time;
     _elapsedTime = 0.0f;
 }
 
-void Script::Initialize()
+void Script::SetSuspendReason(ScriptSuspendReason reason)
+{
+    _reason = reason;
+}
+
+void Script::Initialize(DE::Level* level)
 {
     _vm = SunScript::CreateVirtualMachine();
+    _level = level;
     SunScript::SetHandler(_vm, &Handler);
     SunScript::SetUserData(_vm, this);
 }
@@ -191,37 +255,61 @@ void Script::RunScript(float delta)
         return;
     }
 
-    if (_waiting)
+    if (_reason == ScriptSuspendReason::WaitTime)
     {
         _elapsedTime += delta;
         if (_elapsedTime >= _waitTime)
         {
-            _waiting = false;
-            _suspended = false;
-            _log << "Script resuming.." << std::endl;
-            const int code = SunScript::ResumeScript(_vm, _program);
-            if (code == SunScript::VM_ERROR)
-            {
-                _log << "Script encountered an error." << std::endl;
-            }
-            else if (code == SunScript::VM_YIELDED)
-            {
-                _log << "Script suspended." << std::endl;
-                _suspended = true;
-            }
+            _resume = true;
         }
     }
-    else if (!_suspended)
+    else if (_reason == ScriptSuspendReason::Dialogue)
     {
-        const int code = SunScript::RunScript(_vm, _program);
+        if (!_level->GetDialogue().IsShowing())
+        {
+            _resume = true;
+        }
+    }
+    
+    if (_suspended && _resume)
+    {
+        _suspended = false;
+        _resume = false;
+        _reason = ScriptSuspendReason::None;
+        //_log << "Script resuming.." << std::endl;
+        const int code = SunScript::ResumeScript(_vm, _program);
         if (code == SunScript::VM_ERROR)
         {
             _log << "Script encountered an error." << std::endl;
         }
         else if (code == SunScript::VM_YIELDED)
         {
-            _log << "Script suspended." << std::endl;
+            //_log << "Script suspended." << std::endl;
             _suspended = true;
+        }
+        else if (code == SunScript::VM_TIMEOUT)
+        {
+            _suspended = true;
+            _resume = true;
+        }
+    }
+    else if (!_suspended)
+    {
+        _log << "Script started." << std::endl;
+        const int code = SunScript::RunScript(_vm, _program, std::chrono::duration<int, std::nano>(1000));
+        if (code == SunScript::VM_ERROR)
+        {
+            _log << "Script encountered an error." << std::endl;
+        }
+        else if (code == SunScript::VM_YIELDED)
+        {
+            //_log << "Script suspended." << std::endl;
+            _suspended = true;
+        }
+        else if (code == SunScript::VM_TIMEOUT)
+        {
+            _suspended = true;
+            _resume = true;
         }
     }
 
@@ -232,9 +320,52 @@ void Script::RunScript(float delta)
     }
 }
 
-void Scripting::AddScript(unsigned char* program)
+//=================
+// Script Object
+//=================
+
+ScriptObject::ScriptObject(int id)
+    :
+    _id(id), _px(0), _py(0),
+    _parentId(-1),
+    _trigger(ScriptTrigger::None),
+    _programData(nullptr), 
+    _version(0),
+    _isTriggered(false)
 {
-    _scripts.emplace_back(new Script(program))->Initialize();
+}
+
+void ScriptObject::Deserialize(Oxygen::Message& msg)
+{
+    const int scriptTriggerType = msg.ReadInt32();
+    _trigger = (ScriptTrigger)scriptTriggerType;
+    _px = msg.ReadInt32();
+    _py = msg.ReadInt32();
+    _parentId = msg.ReadInt32();
+    _scriptName = msg.ReadString();
+}
+
+void ScriptObject::Serialize(Oxygen::Message& msg)
+{
+    msg.WriteInt32((int)_trigger);
+    msg.WriteInt32(_px);
+    msg.WriteInt32(_py);
+    msg.WriteInt32(_parentId);
+    msg.WriteString(_scriptName);
+}
+
+void ScriptObject::CompileScript(const std::string& directory)
+{
+    SunScript::CompileFile(directory + "\\" + _scriptName, &_programData);
+}
+
+//=============
+// Scripting
+//=============
+
+void Scripting::AddScript(unsigned char* program, DE::Level* level)
+{
+    _scripts.emplace_back(new Script(program))->Initialize(level);
 }
 
 void Scripting::RunScripts(float delta)

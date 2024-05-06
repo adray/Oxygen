@@ -16,6 +16,39 @@ void Level_Entity::SetPos(int px, int py)
 }
 
 //==================
+// Dialogue
+//==================
+
+Dialogue::Dialogue()
+    : _hasDialogue(false), _hasName(false), _isShowing(false)
+{
+}
+
+void Dialogue::Show(const std::string& name, const std::string& dialogue)
+{
+    _name = name;
+    _dialogue = dialogue;
+
+    _hasDialogue = true;
+    _hasName = true;
+    _isShowing = true;
+}
+
+void Dialogue::Show(const std::string& dialogue)
+{
+    _dialogue = dialogue;
+    _hasDialogue = true;
+    _isShowing = true;
+}
+
+void Dialogue::Hide()
+{
+    _hasDialogue = false;
+    _hasName = false;
+    _isShowing = false;
+}
+
+//==================
 // Level class
 //==================
 
@@ -126,6 +159,59 @@ bool Level::TileMapHitTest(int x, int y) const
 void Level::Reset()
 {
     _tilemaps.Clear();
+    _scripts.clear();
+    ClearEntities();
+}
+
+void Level::AddScript(ScriptObject& script)
+{
+    _scripts.push_back(script);
+}
+
+ScriptObject* Level::GetScript(int id)
+{
+    for (int i = 0; i < _scripts.size(); i++)
+    {
+        ScriptObject* script = &_scripts[i];
+        if (script->ID() == id)
+        {
+            return script;
+        }
+    }
+
+    return nullptr;
+}
+
+void Level::StartScripts()
+{
+    _scripting.ClearScripts();
+
+    for (auto& script : _scripts)
+    {
+        script.CompileScript("../../../../Assets");
+
+        unsigned char* program = script.Program();
+        if (!program)
+        {
+            std::cout << "Failed to start Script '" << script.ScriptName() << "'" << std::endl;
+            continue;
+        }
+
+        if (script.Trigger() == ScriptTrigger::None)
+        {
+            _scripting.AddScript(program, this);
+            script.SetTriggered(true);
+        }
+        else
+        {
+            script.SetTriggered(false);
+        }
+    }
+}
+
+void Level::RunScripts(float delta)
+{
+    _scripting.RunScripts(delta);
 }
 
 void Level::ClearEntities()
@@ -174,6 +260,26 @@ void Level::SetEntityPos(int entity, int px, int py)
         if (!mask.Get(px + py * _tilemaps.Width()))
         {
             ent.SetPos(px, py);
+
+            for (auto& script : _scripts)
+            {
+                if (!script.Program())
+                {
+                    continue;
+                }
+
+                if (script.IsTriggered())
+                {
+                    continue;
+                }
+
+                if (script.Trigger() == ScriptTrigger::OnTouch &&
+                    px == script.X() && py == script.Y())
+                {
+                    _scripting.AddScript(script.Program(), this);
+                    script.SetTriggered(true);
+                }
+            }
         }
     }
 }

@@ -17,6 +17,8 @@ void GameState_Map::Initialize(std::shared_ptr<Tileset>& tileset)
 
 void GameState_Map::Run(float delta, ISLANDER_WINDOW window)
 {
+    _level->RunScripts(delta);
+
     _moveElapsed += delta;
 
     int px; int py;
@@ -70,8 +72,14 @@ void GameState_Map::SetLevel(std::shared_ptr<Level>& level)
     _level = level;
 
     _level->ClearEntities();
+    _level->StartScripts();
     _player = level->AddEntity();
     _moveElapsed = 0.0f;
+}
+
+void GameState_Map::Close()
+{
+    _level->ClearEntities();
 }
 
 //====================
@@ -135,6 +143,7 @@ void GameMenu::EnterMenu(MenuType type, Party& party)
         break;
     case MenuType::Party:
     case MenuType::Equip:
+    case MenuType::Use:
         _selMax = party.NumMembers() - 1;
         _selMin = 0;
         break;
@@ -155,6 +164,7 @@ void GameMenu::BuildItemContextMenu(Party& party, std::shared_ptr<ItemConfig>& i
 {
     _contextMenu = true;
     _contextIndex = 0;
+    _contextMenuItems.clear();
 
     auto& pack = party.Pack();
     auto& item = pack.At(_selIndex - _selMin);
@@ -162,10 +172,15 @@ void GameMenu::BuildItemContextMenu(Party& party, std::shared_ptr<ItemConfig>& i
 
     if (config.CanConsume())
     {
-        ContextMenuItem item;
-        item._text = "Use";
-        item._type = BUTTON_ITEM_USE;
-        _contextMenuItems.push_back(item);
+        int target = config.GetIntegerAttribute("Target");
+        int numTargets = config.GetIntegerAttribute("NumTargets");
+        if (target == TARGET_FRIENDLY && numTargets == 1)
+        {
+            ContextMenuItem item;
+            item._text = "Use";
+            item._type = BUTTON_ITEM_USE;
+            _contextMenuItems.push_back(item);
+        }
     }
 
     if (config.CanEquip())
@@ -269,6 +284,28 @@ void GameMenu::EquipItem(Party& party, std::shared_ptr<ItemConfig>& items)
     }
 }
 
+void GameMenu::UseItem(Party& party, std::shared_ptr<ItemConfig>& items)
+{
+    const int index = _itemIndex - BUTTON_ITEM_BEGIN;
+    auto& item = party.Pack().At(index);
+    auto& itemCfg = items->Get(item.ID());
+
+    int heal = itemCfg.GetIntegerAttribute("Heal");
+    if (heal > 0)
+    {
+        auto& mem = party.FindMemberByIndex(_selIndex);
+        mem.SetHP(mem.HP() + heal);
+        item.Decrement();
+    }
+}
+
+void GameMenu::DiscardItem(Party& party)
+{
+    auto& pack = party.Pack();
+    auto& item = pack.At(_selIndex - BUTTON_ITEM_BEGIN);
+    pack.RemoveItem(item.ID(), item.NumItems());
+}
+
 void GameMenu::Run(float delta, ISLANDER_WINDOW window, Party& party, std::shared_ptr<ItemConfig>& items)
 {
     if (!_open)
@@ -335,6 +372,10 @@ void GameMenu::Run(float delta, ISLANDER_WINDOW window, Party& party, std::share
                 EquipItem(party, items);
                 EnterMenu(MenuType::Items, party);
                 break;
+            case MenuType::Use:
+                UseItem(party, items);
+                EnterMenu(MenuType::Items, party);
+                break;
             case MenuType::Items:
                 if (_contextMenu)
                 {
@@ -343,6 +384,21 @@ void GameMenu::Run(float delta, ISLANDER_WINDOW window, Party& party, std::share
                     {
                         _itemIndex = _selIndex;
                         EnterMenu(MenuType::Equip, party);
+                    }
+                    else if (item._type == BUTTON_ITEM_USE)
+                    {
+                        _itemIndex = _selIndex;
+                        EnterMenu(MenuType::Use, party);
+                    }
+                    else if (item._type == BUTTON_ITEM_CANCEL)
+                    {
+                        _contextMenu = false;
+                    }
+                    else if (item._type == BUTTON_ITEM_DISCARD)
+                    {
+                        DiscardItem(party);
+                        _selMax = party.Pack().NumItems() + BUTTON_ITEM_BEGIN - 1;
+                        _contextMenu = false;
                     }
                 }
                 else
@@ -418,7 +474,8 @@ void GameMenu::Draw(float delta, ISLANDER_WINDOW window, CRIMSON_HANDLE crimson,
             CrimsonButton(crimson, BUTTON_EXIT, "Exit", 0.12f, 0.05f, GetFlags(6));
         }
         else if (_type == MenuType::Party ||
-            _type == MenuType::Equip)
+            _type == MenuType::Equip ||
+            _type == MenuType::Use)
         {
             float colour[4] = { 0.6f, 0.6f, 0.6f, 1.0f };
             float border[4] = { 0.0f,0.0f,0.0f, 1.0f };
@@ -441,11 +498,16 @@ void GameMenu::Draw(float delta, ISLANDER_WINDOW window, CRIMSON_HANDLE crimson,
                     std::stringstream ss; ss << "Lv." << member.Level();
 
                     CrimsonSetPos(crimson, 0.65f, 0.52f + i * gap);
-                    CrimsonText(crimson, ss.str().c_str(), 0.1f, 0.07f, 0, CRIMSON_TEXT_FLAGS_NONE);
+                    CrimsonText(crimson, ss.str().c_str(), 0.05f, 0.07f, 0, CRIMSON_TEXT_FLAGS_NONE);
+
+                    ss.str(""); ss << "HP." << member.HP() << "/" << member.GetStats().MaxHP();
+
+                    CrimsonSetPos(crimson, 0.7f, 0.52f + i * gap);
+                    CrimsonText(crimson, ss.str().c_str(), 0.05f, 0.07f, 0, CRIMSON_TEXT_FLAGS_NONE);
 
                     ss.str(""); ss << "XP." << member.XP();
 
-                    CrimsonSetPos(crimson, 0.75f, 0.52f + i * gap);
+                    CrimsonSetPos(crimson, 0.8f, 0.52f + i * gap);
                     CrimsonText(crimson, ss.str().c_str(), 0.1f, 0.07f, 0, CRIMSON_TEXT_FLAGS_NONE);
 
                     if (_selIndex == i)
@@ -470,10 +532,14 @@ void GameMenu::Draw(float delta, ISLANDER_WINDOW window, CRIMSON_HANDLE crimson,
 
             auto& pack = party.Pack();
 
-            for (int i = 0; i < pack.NumItems(); i++)
+            const int maxItemsShown = 7;
+            int startIndex = std::max(0, _selIndex - _selMin - maxItemsShown + 1);
+            int numItems = std::min(maxItemsShown, pack.NumItems() - startIndex);
+
+            for (int i = 0; i < numItems; i++)
             {
                 constexpr float gap = 0.05f;
-                auto& item = pack.At(i);
+                auto& item = pack.At(i + startIndex);
 
                 CrimsonSetPos(crimson, 0.52f, 0.52f + i * gap);
                 CrimsonFilledRect(crimson, 0.4f, 0.04f, colour, 1.0f, border);
@@ -490,7 +556,7 @@ void GameMenu::Draw(float delta, ISLANDER_WINDOW window, CRIMSON_HANDLE crimson,
                 CrimsonSetPos(crimson, 0.82f, 0.52f + i * gap);
                 CrimsonText(crimson, ss.str().c_str(), 0.1f, 0.04f, 0, CRIMSON_TEXT_FLAGS_NONE);
 
-                if (_selIndex == i + _selMin)
+                if (_selIndex == i + _selMin + startIndex)
                 {
                     CrimsonSetPos(crimson, 0.90f, 0.52f + i * gap);
                     CrimsonFilledRect(crimson, 0.02f, 0.04f, selColour, 1.0f, border);
@@ -575,13 +641,13 @@ void GameMenu::Draw(float delta, ISLANDER_WINDOW window, CRIMSON_HANDLE crimson,
             const std::string statNames[numStats] = {
                 "HP",
                 "DP",
-                "Damage",
+                "Attack",
                 "Defence"
             };
             int statsValues[numStats] = {
                 stats.MaxHP(),
                 stats.MaxDP(),
-                stats.Damage(),
+                stats.Attack(),
                 stats.Defence()
             };
 
@@ -648,12 +714,15 @@ void Game::Start(std::shared_ptr<Level>& level, int px, int py)
     _running = true;
     _menu.Start();
     _map.SetLevel(level);
+    _level = level;
     level->SetEntityPos(_map.Player(), px, py);
 }
 
 void Game::Stop()
 {
     _running = false;
+    _map.Close();
+    _level.reset();
 }
 
 void Game::Run(float delta, ISLANDER_WINDOW window)
@@ -662,6 +731,12 @@ void Game::Run(float delta, ISLANDER_WINDOW window)
     {
         if (_state == State::Map)
         {
+            auto& dialogue = _level->GetDialogue();
+            if (dialogue.IsShowing())
+            {
+                if (IslanderIsKeyDown(window, Islander::KEY_ENTER)) { dialogue.Hide(); IslanderSetKeyUp(window, Islander::KEY_ENTER); }
+            }
+
             _menu.Run(delta, window, _party, _items);
             _map.Run(delta, window);
         }
@@ -672,10 +747,36 @@ void Game::Run(float delta, ISLANDER_WINDOW window)
     }
 }
 
+void Game::DrawDialogue(CRIMSON_HANDLE crimson)
+{
+    auto& dialogue = _level->GetDialogue();
+    if (dialogue.IsShowing())
+    {
+        float colour[4] = { .7f, .7f, .7f, 1.0f };
+        float border[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+        CrimsonSetPos(crimson, 0.53f, 0.8f);
+        CrimsonFilledRect(crimson, 0.42f, 0.1f, colour, 1.0f, border);
+
+        CrimsonSamePos(crimson);
+        CrimsonText(crimson, dialogue.DialogueText().c_str(), 0.42f, 0.1f, 0, CRIMSON_TEXT_FLAGS_WRAP);
+
+        if (dialogue.HasName())
+        {
+            CrimsonSetPos(crimson, 0.55f, 0.75f);
+            CrimsonFilledRect(crimson, 0.1f, 0.05f, colour, 1.0f, border);
+
+            CrimsonSetPos(crimson, 0.56f, 0.75f);
+            CrimsonText(crimson, dialogue.Name().c_str(), 0.08f, 0.05f, 0, CRIMSON_TEXT_FLAGS_NONE);
+        }
+    }
+}
+
 void Game::Draw(float delta, ISLANDER_WINDOW window, CRIMSON_HANDLE crimson)
 {
     if (_running)
     {
         _menu.Draw(delta, window, crimson, _party, _items);
+        DrawDialogue(crimson);
     }
 }

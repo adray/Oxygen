@@ -214,8 +214,9 @@ void Tilemap::Update()
     }
 }
 
-void Tilemap::Load(const int width, const int height)
+void Tilemap::Load(const int id, const int width, const int height)
 {
+    _id = id;
     _width = width;
     _height = height;
 }

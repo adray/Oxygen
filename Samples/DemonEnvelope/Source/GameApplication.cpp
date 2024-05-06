@@ -7,6 +7,7 @@
 #include "ConfigReader.h"
 #include "Game.h"
 #include "Item.h"
+#include "Sun.h"
 
 #include <iostream>
 
@@ -23,8 +24,7 @@ void GameApplication::OnStart()
     auto device = IslanderCreateDevice();
     IslanderSetPreferredRenderer(device, (int)ISLANDER_RENDERER_TYPE_D3D11);
     IslanderFontDescription defaultFont;
-    defaultFont.filedef =  //const_cast<char*>("../../../../Assets/PixgamerRegular-OVD6A.ttf");
-        const_cast<char*>("../../../../Assets/Font/Aleo/Aleo-Regular.ttf");
+    defaultFont.filedef = const_cast<char*>("../../../../Assets/Font/Aleo/Aleo-Regular.ttf");
     defaultFont.name = const_cast<char*>("PixgamerRegular");
     IslanderInitializeDevice(device, window, defaultFont);
     //IslanderInitializeGPUPerformanceCounters(device);

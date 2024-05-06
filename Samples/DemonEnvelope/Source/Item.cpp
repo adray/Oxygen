@@ -64,15 +64,15 @@ void ItemConfig_Item::SetAttribute(const std::string& name, const std::string& v
     {
         if (value == "Friendly")
         {
-            _intAttributes.insert(std::pair<std::string, int>(name, 1));
+            _intAttributes.insert(std::pair<std::string, int>(name, TARGET_FRIENDLY));
         }
         else if (value == "Enemy")
         {
-            _intAttributes.insert(std::pair<std::string, int>(name, 2));
+            _intAttributes.insert(std::pair<std::string, int>(name, TARGET_ENEMY));
         }
         else if (value == "All")
         {
-            _intAttributes.insert(std::pair<std::string, int>(name, 3));
+            _intAttributes.insert(std::pair<std::string, int>(name, TARGET_ALL));
         }
     }
     else if (name == "Consumable")
@@ -109,6 +109,17 @@ int ItemConfig_Item::GetIntegerAttribute(const std::string& name) const
     }
 
     return 0;
+}
+
+std::string ItemConfig_Item::GetStringAttribute(const std::string& name) const
+{
+    const auto& it = _strAttributes.find(name);
+    if (it != _strAttributes.end())
+    {
+        return it->second;
+    }
+
+    return "";
 }
 
 ItemConfig::ItemConfig(ConfigReader& cfg)

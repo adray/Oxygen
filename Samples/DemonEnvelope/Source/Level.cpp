@@ -5,16 +5,6 @@
 
 using namespace DE;
 
-//===================
-// Level_Entity class
-//===================
-
-void Level_Entity::SetPos(int px, int py)
-{
-    _px = px;
-    _py = py;
-}
-
 //==================
 // Dialogue
 //==================
@@ -52,11 +42,12 @@ void Dialogue::Hide()
 // Level class
 //==================
 
-void Level::Setup(ISLANDER_POLYGON_LIBRARY lib, std::shared_ptr<Tileset> tileset_)
+void Level::Setup(ISLANDER_POLYGON_LIBRARY lib, std::shared_ptr<Tileset> tileset_, std::shared_ptr<EntityConfig> entityCfg)
 {
     _lib = lib;
 
     tileset = tileset_;
+    _entityCfg = entityCfg;
 
     _sprites.Initialize(lib);
 }
@@ -108,18 +99,25 @@ void Level::Render(IslanderRenderable* renderables, int* cur_index,
     for (int i = 0; i < _numEntities; i++)
     {
         auto& entity = _entities[i];
-        if (entity.IsActive())
+        if (entity.IsActive() &&
+            entity.X() >= _tilemaps.ScrollX() &&
+            entity.Y() >= _tilemaps.ScrollY() &&
+            entity.X() < _tilemaps.ScrollX() + _tilemaps.ViewWidth() &&
+            entity.Y() < _tilemaps.ScrollY() + _tilemaps.ViewHeight())
         {
+            Entity_Cfg& cfg = _entityCfg->GetSprite(entity.SpriteId());
+
             float pos[3] = {
                 (entity.X() - _tilemaps.ScrollX()) * 16,
                 (entity.Y() - _tilemaps.ScrollY()) * 9,
                 0.0f
             };
-            float uv[4] = {
-                0.0839843750f,
-                0.00195312500f,
-                0.0156250000f,
-                0.00878906250f
+            float uv[4] =
+            {
+                cfg._texture.px,
+                cfg._texture.py,
+                cfg._texture.sx,
+                cfg._texture.sy
             };
 
             _sprites.AddSprite(SpriteBatch_Sprite(pos, uv));
@@ -160,12 +158,25 @@ void Level::Reset()
 {
     _tilemaps.Clear();
     _scripts.clear();
+    _dialogue.Hide();
     ClearEntities();
 }
 
 void Level::AddScript(ScriptObject& script)
 {
     _scripts.push_back(script);
+}
+
+void Level::DeleteScript(int id)
+{
+    const auto& it = std::find_if(_scripts.begin(), _scripts.end(), [&id](ScriptObject& obj) {
+            return obj.ID() == id;
+        });
+
+    if (it != _scripts.end())
+    {
+        _scripts.erase(it);
+    }
 }
 
 ScriptObject* Level::GetScript(int id)
@@ -259,25 +270,39 @@ void Level::SetEntityPos(int entity, int px, int py)
         auto& mask = _tilemaps.GetCollisionMask();
         if (!mask.Get(px + py * _tilemaps.Width()))
         {
-            ent.SetPos(px, py);
-
-            for (auto& script : _scripts)
+            bool hit = false;
+            for (int i = 0; i < _entities.size(); i++)
             {
-                if (!script.Program())
+                Level_Entity& other = _entities[i];
+                if (other.IsActive() && other.X() == px && other.Y() == py)
                 {
-                    continue;
+                    hit = true;
+                    break;
                 }
+            }
 
-                if (script.IsTriggered())
-                {
-                    continue;
-                }
+            if (!hit)
+            {
+                ent.SetPos(px, py);
 
-                if (script.Trigger() == ScriptTrigger::OnTouch &&
-                    px == script.X() && py == script.Y())
+                for (auto& script : _scripts)
                 {
-                    _scripting.AddScript(script.Program(), this);
-                    script.SetTriggered(true);
+                    if (!script.Program())
+                    {
+                        continue;
+                    }
+
+                    if (script.IsTriggered())
+                    {
+                        continue;
+                    }
+
+                    if (script.Trigger() == ScriptTrigger::OnTouch &&
+                        px == script.X() && py == script.Y())
+                    {
+                        _scripting.AddScript(script.Program(), this);
+                        script.SetTriggered(true);
+                    }
                 }
             }
         }

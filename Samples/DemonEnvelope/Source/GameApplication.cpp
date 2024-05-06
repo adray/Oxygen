@@ -72,6 +72,10 @@ void GameApplication::OnStart()
     ConfigReader tileCfg("../../../../Assets/tiles.cfg");
     tileset->Load(device, tileCfg);
 
+    ConfigReader entitiesCfg("../../../../Assets/entities.cfg");
+    std::shared_ptr<EntityConfig> entityCfg = std::shared_ptr<EntityConfig>(new EntityConfig());
+    entityCfg->Load(entitiesCfg, device);
+
     ConfigReader itemCfg("../../../../Assets/items.cfg");
     ConfigReader attributeCfg("../../../../Assets/attributes.cfg");
     std::shared_ptr<ItemConfig> items = std::shared_ptr<ItemConfig>(new ItemConfig(itemCfg));
@@ -81,14 +85,11 @@ void GameApplication::OnStart()
         std::cout << "Error: " << error << std::endl;
     }
 
-    Islander::component_texture texture;
-    IslanderFindMaterialTexture(device, "simon", &texture);
-
     Game* game = new Game();
     game->Initialize(tileset, items);
 
     Editor editor;
-    editor.Start(lib, tileset, game, "../../../../Assets");
+    editor.Start(lib, tileset, entityCfg, game, "../../../../Assets");
 
     Render* render = new Render();
 

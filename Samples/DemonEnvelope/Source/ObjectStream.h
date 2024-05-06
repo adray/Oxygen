@@ -13,6 +13,7 @@ namespace DE
         ObjectStream(std::shared_ptr<Level>& level, Network& network);
         virtual void OnNewObject(const Oxygen::Object& ev, Oxygen::Message& msg);
         virtual void OnUpdateObject(const Oxygen::Object& ev, Oxygen::Message& msg);
+        virtual void OnDeleteObject(int id);
         virtual void OnStreamEnded();
         virtual ~ObjectStream();
     private:

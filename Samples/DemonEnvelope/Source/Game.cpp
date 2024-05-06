@@ -722,7 +722,21 @@ void Game::Stop()
 {
     _running = false;
     _map.Close();
+    _level->GetDialogue().Hide();
     _level.reset();
+}
+
+void Game::_Run(ISLANDER_WINDOW window)
+{
+    auto& dialogue = _level->GetDialogue();
+    if (dialogue.IsShowing())
+    {
+        if (IslanderIsKeyDown(window, Islander::KEY_ENTER))
+        {
+            dialogue.Hide();
+            IslanderSetKeyUp(window, Islander::KEY_ENTER);
+        }
+    }
 }
 
 void Game::Run(float delta, ISLANDER_WINDOW window)
@@ -731,12 +745,7 @@ void Game::Run(float delta, ISLANDER_WINDOW window)
     {
         if (_state == State::Map)
         {
-            auto& dialogue = _level->GetDialogue();
-            if (dialogue.IsShowing())
-            {
-                if (IslanderIsKeyDown(window, Islander::KEY_ENTER)) { dialogue.Hide(); IslanderSetKeyUp(window, Islander::KEY_ENTER); }
-            }
-
+            _Run(window);
             _menu.Run(delta, window, _party, _items);
             _map.Run(delta, window);
         }

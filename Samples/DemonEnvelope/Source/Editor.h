@@ -13,7 +13,7 @@ namespace DE
     class Editor
     {
     public:
-        void Start(ISLANDER_POLYGON_LIBRARY lib, std::shared_ptr<Tileset> tileset_, Game* game, const std::string& assetDir);
+        void Start(ISLANDER_POLYGON_LIBRARY lib, std::shared_ptr<Tileset> tileset_, std::shared_ptr<EntityConfig> _entityCfg, Game* game, const std::string& assetDir);
         void Run(float delta, ISLANDER_WINDOW window);
         void Draw(float delta, ISLANDER_DEVICE device, ISLANDER_WINDOW window, CRIMSON_HANDLE crimson, IslanderImguiContext* cxt);
         inline std::shared_ptr<Level>& GetLevel() { return level; }

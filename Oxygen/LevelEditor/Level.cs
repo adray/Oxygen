@@ -409,8 +409,10 @@ namespace Oxygen
             }
         }
 
-        public void RemoveObject(int id)
+        public void RemoveObject(Request request, Message msg)
         {
+            int id = msg.ReadInt();
+
             if (objectMap.TryGetValue(id, out LevelObject? obj))
             {
                 objects.Remove(obj);
@@ -419,6 +421,12 @@ namespace Oxygen
                 objectStream.RemoveObject(id);
 
                 streamEvent.Set();
+
+                request.Send(Response.Ack(msg.NodeName, msg.MessageName));
+            }
+            else
+            {
+                request.Send(Response.Nack(msg.NodeName, 100, "No such object by that id.", msg.MessageName));
             }
         }
 

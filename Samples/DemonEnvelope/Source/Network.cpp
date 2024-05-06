@@ -384,6 +384,13 @@ void Network::UpdateScript(ScriptObject& script)
     SendUpdateMsg(msg, obj);
 }
 
+void Network::DeleteObject(int id)
+{
+    Oxygen::Message msg = Oxygen::Message("LEVEL_SVR", "DELETE_OBJECT");
+    msg.WriteInt32(id);
+    SendMsg(msg);
+}
+
 void Network::UpdateCursor(int objectId, int subID)
 {
     Oxygen::Message msg("LEVEL_SVR", "UPDATE_CURSOR");
@@ -402,10 +409,8 @@ void Network::UpdateCursor(int objectId, int subID)
     conn->AddSubscriber(sub);
 }
 
-void Network::SendUpdateMsg(Oxygen::Message& msg, Oxygen::Object& obj)
+void Network::SendMsg(Oxygen::Message& msg)
 {
-    levelSub->PrepareUpdateMessage(&msg, obj);
-
     std::shared_ptr<Oxygen::Subscriber> sub = std::shared_ptr<Oxygen::Subscriber>(new Oxygen::Subscriber(msg));
     sub->Signal([this, sub2 = std::shared_ptr<Oxygen::Subscriber>(sub)](Oxygen::Message& response) {
         if (response.ReadString() == "NACK")
@@ -416,6 +421,13 @@ void Network::SendUpdateMsg(Oxygen::Message& msg, Oxygen::Object& obj)
         conn->RemoveSubscriber(sub2);
         });
     conn->AddSubscriber(sub);
+}
+
+void Network::SendUpdateMsg(Oxygen::Message& msg, Oxygen::Object& obj)
+{
+    levelSub->PrepareUpdateMessage(&msg, obj);
+
+    SendMsg(msg);
 }
 
 bool Network::Connected()

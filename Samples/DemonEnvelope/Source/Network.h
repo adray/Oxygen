@@ -50,6 +50,7 @@ namespace DE
         void UpdateCursor(int objectId, int subID);
         void CreateScript(int parentId, int x, int y);
         void UpdateScript(ScriptObject& script);
+        void DeleteObject(int id);
         bool Connected();
         inline Network_State State() const { return _state; }
         void Process();
@@ -64,6 +65,7 @@ namespace DE
     private:
 
         void OnLevelLoaded(std::shared_ptr<Level>& level);
+        void SendMsg(Oxygen::Message& msg);
         void SendUpdateMsg(Oxygen::Message& msg, Oxygen::Object& obj);
 
         Oxygen::ClientConnection* conn;

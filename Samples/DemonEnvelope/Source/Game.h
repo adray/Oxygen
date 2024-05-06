@@ -94,6 +94,7 @@ namespace DE
 
     private:
         void DrawDialogue(CRIMSON_HANDLE crimson);
+        void _Run(ISLANDER_WINDOW window);
 
         enum class State
         {

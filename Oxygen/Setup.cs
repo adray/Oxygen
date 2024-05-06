@@ -55,6 +55,7 @@ namespace Oxygen
             Authorizer.SetPermission(demo, "LEVEL_SVR", "LIST_LEVELS", PermissionAttribute.Allow);
             Authorizer.SetPermission(demo, "LEVEL_SVR", "ADD_OBJECT", PermissionAttribute.Allow);
             Authorizer.SetPermission(demo, "LEVEL_SVR", "UPDATE_OBJECT", PermissionAttribute.Allow);
+            Authorizer.SetPermission(demo, "LEVEL_SVR", "DELETE_OBJECT", PermissionAttribute.Allow);
             Authorizer.SetPermission(demo, "LEVEL_SVR", "OBJECT_STREAM", PermissionAttribute.Allow);
             Authorizer.SetPermission(demo, "LEVEL_SVR", "EVENT_STREAM", PermissionAttribute.Allow);
             Authorizer.SetPermission(demo, "LEVEL_SVR", "UPDATE_CURSOR", PermissionAttribute.Allow);

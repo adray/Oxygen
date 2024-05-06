@@ -159,6 +159,18 @@ namespace Oxygen
                     SendNack(request, 100, "No level opened.", msg.MessageName);
                 }
             }
+            else if (messageName == "DELETE_OBJECT")
+            {
+                Level? level = client.GetProperty("LEVEL") as Level;
+                if (level != null)
+                {
+                    level.RemoveObject(request, msg);
+                }
+                else
+                {
+                    SendNack(request, 100, "No level opened.", msg.MessageName);
+                }
+            }
             else if (messageName == "EVENT_STREAM")
             {
                 Level? level = client.GetProperty("LEVEL") as Level;

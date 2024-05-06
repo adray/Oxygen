@@ -212,6 +212,12 @@
     },
     {
       "Node": "LEVEL_SVR",
+      "Message": "DELETE_OBJECT",
+      "Text": "Permission to delete an object from the level.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "LEVEL_SVR",
       "Message": "OBJECT_STREAM",
       "Text": "Permission to open a stream for the objects from the level.",
       "Default": "Deny"

@@ -9,7 +9,7 @@
 
 using namespace DE;
 
-void Editor::Start(ISLANDER_POLYGON_LIBRARY lib, std::shared_ptr<Tileset> tileset_, Game* game, const std::string& assetDir)
+void Editor::Start(ISLANDER_POLYGON_LIBRARY lib, std::shared_ptr<Tileset> tileset_, std::shared_ptr<EntityConfig> entityCfg_, Game* game, const std::string& assetDir)
 {
     level = std::shared_ptr<Level>(new Level());
     network = std::shared_ptr<DE::Network>(new DE::Network());
@@ -25,7 +25,7 @@ void Editor::Start(ISLANDER_POLYGON_LIBRARY lib, std::shared_ptr<Tileset> tilese
     
     std::strcpy(hostname, "localhost");
 
-    level->Setup(lib, tileset_);
+    level->Setup(lib, tileset_, entityCfg_);
 }
 
 void Editor::ScanAssetDir()
@@ -150,6 +150,16 @@ void Editor::DrawScriptNode(ScriptObject& sc)
     ImGui::PushID(sc.ID());
     if (ImGui::TreeNode("Script"))
     {
+        if (ImGui::BeginPopupContextWindow())
+        {
+            if (ImGui::Selectable("Delete"))
+            {
+                network->DeleteObject(sc.ID());
+            }
+
+            ImGui::EndPopup();
+        }
+
         ImGui::Text("ID %i", sc.ID());
         
         int x = sc.X();

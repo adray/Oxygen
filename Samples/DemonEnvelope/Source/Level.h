@@ -2,30 +2,13 @@
 #include "Tilemap.h"
 #include "Scripting.h"
 #include "SpriteBatch.h"
+#include "Level_Entity.h"
 #include <vector>
 #include <unordered_map>
 #include <array>
 
 namespace DE
 {
-    class Level_Entity
-    {
-    public:
-        void SetPos(int px, int py);
-        inline int X() const { return _px; }
-        inline int Y() const { return _py; }
-        inline bool IsActive() const { return _active; }
-        inline void SetActive(bool active) { _active = active; }
-        inline void SetTileId(int tile) { _tileId = tile; }
-        inline int TileId() const { return _tileId; }
-
-    private:
-        bool _active;
-        int _px;
-        int _py;
-        int _tileId;
-    };
-
     class Dialogue
     {
     public:
@@ -52,7 +35,7 @@ namespace DE
     class Level
     {
     public:
-        void Setup(ISLANDER_POLYGON_LIBRARY lib, std::shared_ptr<Tileset> tileset_);
+        void Setup(ISLANDER_POLYGON_LIBRARY lib, std::shared_ptr<Tileset> tileset_, std::shared_ptr<EntityConfig> entityCfg);
         void Loaded();
         void Render(IslanderRenderable* renderables, int* cur_index,
             const int tilemappixelShader, const int tilemapvertexShader,
@@ -65,6 +48,7 @@ namespace DE
         void Reset();
 
         void AddScript(ScriptObject& script);
+        void DeleteScript(int id);
         ScriptObject* GetScript(int id);
         inline std::vector<ScriptObject>& Scripts() { return _scripts; }
         void StartScripts();
@@ -84,6 +68,7 @@ namespace DE
         Scripting _scripting;
         std::vector<ScriptObject> _scripts;
         std::shared_ptr<Tileset> tileset;
+        std::shared_ptr<EntityConfig> _entityCfg;
         ISLANDER_POLYGON_LIBRARY _lib;
         SpriteBatch _sprites;
         std::array<Level_Entity, 128> _entities;

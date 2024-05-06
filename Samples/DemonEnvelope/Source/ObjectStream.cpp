@@ -98,6 +98,11 @@ void ObjectStream::OnUpdateObject(const Oxygen::Object& ev, Oxygen::Message& msg
     }
 }
 
+void ObjectStream::OnDeleteObject(int id)
+{
+    _level->DeleteScript(id);
+}
+
 void ObjectStream::OnStreamEnded()
 {
     std::cout << "Object stream closed" << std::endl;

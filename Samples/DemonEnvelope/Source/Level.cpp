@@ -210,7 +210,7 @@ void Level::StartScripts()
 
         if (script.Trigger() == ScriptTrigger::None)
         {
-            _scripting.AddScript(program, this);
+            _scripting.AddScript(program, this, -1);
             script.SetTriggered(true);
         }
         else
@@ -300,7 +300,7 @@ void Level::SetEntityPos(int entity, int px, int py)
                     if (script.Trigger() == ScriptTrigger::OnTouch &&
                         px == script.X() && py == script.Y())
                     {
-                        _scripting.AddScript(script.Program(), this);
+                        _scripting.AddScript(script.Program(), this, -1);
                         script.SetTriggered(true);
                     }
                 }
@@ -314,4 +314,28 @@ void Level::GetEntityPos(int entity, int* px, int* py)
     Level_Entity& ent = _entities[entity];
     *px = ent.X();
     *py = ent.Y();
+}
+
+void Level::SetEntitySprite(int entity, int spriteId)
+{
+    Level_Entity& ent = _entities[entity];
+    ent.SetSpriteId(spriteId);
+}
+
+void Level::AddNPC(NPCObject& npc)
+{
+    _npc.push_back(npc);
+}
+
+void Level::DeleteNPC(int id)
+{
+    const auto& it = std::find_if(_npc.begin(), _npc.end(), [&id](NPCObject& obj)
+        {
+            return obj.ID() == id;
+        });
+
+    if (it != _npc.end())
+    {
+        _npc.erase(it);
+    }
 }

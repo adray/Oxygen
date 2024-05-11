@@ -36,6 +36,12 @@ namespace Oxygen
             cache.SaveCache();
         }
 
+		public void Heartbeat()
+		{
+			Message msg = new Message("HEARTBEART", "");
+			Send(msg.GetData());
+		}
+
         private void Send(byte[] bytes)
         {
             networkStream.WriteByte((byte)(bytes.Length & 0xFF));
@@ -91,60 +97,60 @@ namespace Oxygen
             return msg;
         }
 
-        public void RunClientThread()
-        {
-            new Thread(() =>
-            {
-                while (true)
-                {
-                    Message msg = Read();
-                    string? messageName = msg.MessageName;
+        //public void RunClientThread()
+        //{
+        //    new Thread(() =>
+        //    {
+        //        while (true)
+        //        {
+        //            Message msg = Read();
+        //            string? messageName = msg.MessageName;
 
-                    Subscriber? subscriber = null;
+        //            Subscriber? subscriber = null;
 
-                    lock (this.subscriberLock)
-                    {
-                        foreach (var sub in this.subscribers)
-                        {
-                            if (sub.NodeName == msg.NodeName &&
-                                sub.MessageName == messageName)
-                            {
-                                subscriber = sub;
-                                break;
-                            }
-                        }
-                    }
+        //            lock (this.subscriberLock)
+        //            {
+        //                foreach (var sub in this.subscribers)
+        //                {
+        //                    if (sub.NodeName == msg.NodeName &&
+        //                        sub.MessageName == messageName)
+        //                    {
+        //                        subscriber = sub;
+        //                        break;
+        //                    }
+        //                }
+        //            }
 
-                    if (subscriber != null)
-                    {
-                        subscriber.OnMessageRecieved(msg);
-                    }
-                }
-            }).Start();
-        }
+        //            if (subscriber != null)
+        //            {
+        //                subscriber.OnMessageRecieved(msg);
+        //            }
+        //        }
+        //    }).Start();
+        //}
 
-        private void Subscriber_MessageReady(object? sender, Message e)
-        {
-            this.Send(e.GetData());
-        }
+        //private void Subscriber_MessageReady(object? sender, Message e)
+        //{
+        //    this.Send(e.GetData());
+        //}
 
-        public void AddSubscriber(Subscriber subscriber)
-        {
-            lock (this.subscriberLock)
-            {
-                subscriber.MessageReady += Subscriber_MessageReady;
-                this.subscribers.Add(subscriber);
-            }
-        }
+        //public void AddSubscriber(Subscriber subscriber)
+        //{
+        //    lock (this.subscriberLock)
+        //    {
+        //        subscriber.MessageReady += Subscriber_MessageReady;
+        //        this.subscribers.Add(subscriber);
+        //    }
+        //}
 
-        public void RemoveSubscriber(Subscriber subscriber)
-        {
-            lock (this.subscriberLock)
-            {
-                subscriber.MessageReady -= Subscriber_MessageReady;
-                this.subscribers.Remove(subscriber);
-            }
-        }
+        //public void RemoveSubscriber(Subscriber subscriber)
+        //{
+        //    lock (this.subscriberLock)
+        //    {
+        //        subscriber.MessageReady -= Subscriber_MessageReady;
+        //        this.subscribers.Remove(subscriber);
+        //    }
+        //}
 
         public IList<string> ListAssets()
         {
@@ -709,6 +715,57 @@ namespace Oxygen
             }
 
             return assets;
+        }
+
+        public IList<string> SearchAssets(string searchType, string searchText)
+        {
+            Message msg = new Message("ASSET_SVR", "SEARCH_ASSETS");
+            msg.WriteString(searchType);
+            msg.WriteString(searchText);
+
+            Send(msg.GetData());
+
+            Message response = Read();
+            List<string> resources = new List<string>();
+
+            string ack = response.ReadString();
+            if (ack == "ACK")
+            {
+                int numResources = response.ReadInt();
+                for (int i = 0; i < numResources; i++)
+                {
+                    resources.Add(response.ReadString());
+                }
+            }
+            else
+            {
+                int errorCode = response.ReadInt();
+                string errorMsg = response.ReadString();
+
+                throw new ClientException(errorCode, errorMsg);
+            }
+
+            return resources;
+        }
+
+        public void AddAssetTags(string asset, IList<string> tags)
+        {
+            Message msg = new Message("ASSET_SVR", "ADD_ASSET_TAG");
+            msg.WriteString(asset);
+            msg.WriteInt(tags.Count);
+            for (int i = 0; i < tags.Count;i++)
+            {
+                msg.WriteString(tags[i]);
+            }
+
+            Send(msg.GetData());
+
+            CheckAck();
+        }
+
+        public IList<string> GetTagsForAsset(string asset)
+        {
+            return ListResource("ASSET_SVR", "TAG_LIST", asset);
         }
     }
 }

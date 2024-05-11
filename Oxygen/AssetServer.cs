@@ -9,6 +9,7 @@ namespace Oxygen
 {
     internal class AssetServer : Node
     {
+        private readonly Tags tagData = new Tags();
         private readonly DataStream stream = new DataStream();
         private readonly Cache cache = new Cache();
 
@@ -267,6 +268,87 @@ namespace Oxygen
                 }
 
                 request.Send(response);
+            }
+            else if (msgName == "TAG_LIST")
+            {
+                string asset = msg.ReadString();
+                var tags = tagData.QueryTagsByName(asset);
+                Message response = Response.Ack(this.Name, msgName);
+                if (tags != null)
+                {
+                    response.WriteInt(tags.Count);
+                    foreach (var tag in tags)
+                    {
+                        response.WriteString(tag);
+                    }
+                }
+                else
+                {
+                    response.WriteInt(0);
+                }
+
+                request.Send(response);
+            }
+            else if (msgName == "SEARCH_ASSETS")
+            {
+                string searchType = msg.ReadString();
+                string searchText = msg.ReadString();
+
+                if (searchType == "TAG")
+                {
+                    var assets = tagData.QueryTags(searchText);
+                    Message response = Response.Ack(this.Name, msgName);
+                    if (assets != null)
+                    {
+                        response.WriteInt(assets.Count);
+                        foreach (string asset in assets)
+                        {
+                            response.WriteString(asset);
+                        }
+                    }
+                    else
+                    {
+                        response.WriteInt(0);
+                    }
+
+                    request.Send(response);
+                }
+                else
+                {
+                    SendNack(request, 200, "Invalid search type specified.", msgName);
+                }
+            }
+            else if (msgName == "ADD_ASSET_TAG")
+            {
+                var assetName = msg.ReadString();
+
+                if (Archiver.GetAssetVersion(assetName) >= 0)
+                {
+                    int numTags = msg.ReadInt();
+                    for (int i = 0; i < numTags; i++)
+                    {
+                        var tag = msg.ReadString();
+                        tagData.AddNewTag(assetName, tag);
+                    }
+
+                    SendAck(request, msgName);
+                }
+                else
+                {
+                    SendNack(request, 200, "No such asset.", msgName);
+                }
+            }
+            else if (msgName == "REMOVE_ASSET_TAG")
+            {
+                var assetName = msg.ReadString();
+                int numTags = msg.ReadInt();
+                for (int i = 0; i < numTags; i++)
+                {
+                    var tag = msg.ReadString();
+                    tagData.DeleteTag(assetName, tag);
+                }
+
+                SendAck(request, msgName);
             }
             else
             {

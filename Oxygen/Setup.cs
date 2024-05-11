@@ -50,6 +50,7 @@ namespace Oxygen
 
             // Enable demo features
             Authorizer.SetPermission(demo, "ASSET_SVR", "ASSET_LIST", PermissionAttribute.Allow);
+            Authorizer.SetPermission(demo, "ASSET_SVR", "SEARCH_ASSETS", PermissionAttribute.Allow);
             Authorizer.SetPermission(demo, "LEVEL_SVR", "LOAD_LEVEL", PermissionAttribute.Allow);
             Authorizer.SetPermission(demo, "LEVEL_SVR", "CLOSE_LEVEL", PermissionAttribute.Allow);
             Authorizer.SetPermission(demo, "LEVEL_SVR", "LIST_LEVELS", PermissionAttribute.Allow);

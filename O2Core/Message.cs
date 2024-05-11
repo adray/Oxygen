@@ -130,6 +130,11 @@ namespace Oxygen
             this.writer.Write(bytes, 0, size);
         }
 
+        private static Exception CreateMalformedException(Exception ex)
+        {
+            return new Exception("Malformed message.", ex);
+        }
+
         public string ReadString()
         {
             if (this.reader == null)
@@ -137,10 +142,17 @@ namespace Oxygen
                 throw new InvalidOperationException();
             }
 
-            int numBytes = reader.ReadInt32();
-            byte[] bytes = reader.ReadBytes(numBytes);
+            try
+            {
+                int numBytes = reader.ReadInt32();
+                byte[] bytes = reader.ReadBytes(numBytes);
 
-            return Encoding.UTF8.GetString(bytes);
+                return Encoding.UTF8.GetString(bytes);
+            }
+            catch (IOException ex)
+            {
+                throw CreateMalformedException(ex);
+            }
         }
 
         public int ReadInt()
@@ -149,8 +161,14 @@ namespace Oxygen
             {
                 throw new InvalidOperationException();
             }
-
-            return reader.ReadInt32();
+            try
+            {
+                return reader.ReadInt32();
+            }
+            catch (IOException ex)
+            {
+                throw CreateMalformedException(ex);
+            }
         }
 
         public double ReadDouble()
@@ -159,8 +177,14 @@ namespace Oxygen
             {
                 throw new InvalidOperationException();
             }
-
-            return reader.ReadDouble();
+            try
+            {
+                return reader.ReadDouble();
+            }
+            catch (IOException ex)
+            {
+                throw CreateMalformedException(ex);
+            }
         }
 
         public byte[] ReadByteArray()
@@ -169,9 +193,15 @@ namespace Oxygen
             {
                 throw new InvalidOperationException();
             }
-
-            int numBytes = reader.ReadInt32();
-            return reader.ReadBytes(numBytes);
+            try
+            {
+                int numBytes = reader.ReadInt32();
+                return reader.ReadBytes(numBytes);
+            }
+            catch (IOException ex)
+            {
+                throw CreateMalformedException(ex);
+            }
         }
 
         public void Dispose()

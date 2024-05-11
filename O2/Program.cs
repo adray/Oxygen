@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Security;
 using System.Security.Cryptography;
@@ -45,6 +46,9 @@ namespace O2
                     case "label":
                         LabelCommand(args);
                         break;
+                    case "tag":
+                        TagCommand(args);
+                        break;
                     default:
                         Console.WriteLine("Invalid command");
                         break;
@@ -79,6 +83,10 @@ namespace O2
                 Console.WriteLine("o2 label create <name>                                           Creates a label of the head versions.");
                 Console.WriteLine("o2 label spec <name>                                             Gets the label spec of the specified label.");
                 Console.WriteLine("o2 label list                                                    Gets the list of labels.");
+                Console.WriteLine("o2 tag search <tag>                                              Searches for assets matching the specified tag.");
+                Console.WriteLine("o2 tag add <asset> <tag>                                         Adds a tag for the specified asset.");
+                Console.WriteLine("                                                                 This can be a comma seperated list of tags.");
+                Console.WriteLine("o2 tag get <asset>                                               Gets the gets for the specified asset.");
                 //Console.WriteLine("o2 build upload <name>");
                 //Console.WriteLine("o2 build download <name>");
                 //Console.WriteLine("o2 build list");
@@ -910,6 +918,110 @@ namespace O2
                 catch (ClientException ex)
                 {
                     Console.WriteLine(ex.Message);
+                }
+            }
+            else
+            {
+                Console.WriteLine("Invalid command");
+            }
+        }
+
+        static void AddTagCommand(string[] args)
+        {
+            if (args.Length == 4)
+            {
+                string asset = args[2];
+                string tags = args[3];
+
+                var tagList = new List<string>(tags.Split(","));
+
+                var client = StartClient();
+
+                try
+                {
+                    LoginWithAPIKey(client);
+                    client.AddAssetTags(asset, tagList);
+                }
+                catch (ClientException ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
+            }
+            else
+            {
+                Console.WriteLine("Invalid command");
+            }
+        }
+
+        static void SearchTagCommand(string[] args)
+        {
+            if (args.Length == 3)
+            {
+                string tag = args[2];
+
+                var client = StartClient();
+
+                try
+                {
+                    LoginWithAPIKey(client);
+                    foreach (var asset in client.SearchAssets("TAG", tag))
+                    {
+                        Console.WriteLine(asset);
+                    }
+                }
+                catch (ClientException ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
+            }
+            else
+            {
+                Console.WriteLine("Invalid command");
+            }
+        }
+
+        static void GetTagsForAssetCommand(string[] args)
+        {
+            if (args.Length == 3)
+            {
+                string asset = args[2];
+
+                var client = StartClient();
+
+                try
+                {
+                    LoginWithAPIKey(client);
+                    foreach (var tag in client.GetTagsForAsset(asset))
+                    {
+                        Console.WriteLine(tag);
+                    }
+                }
+                catch (ClientException ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
+            }
+            else
+            {
+                Console.WriteLine("Invalid command");
+            }
+        }
+
+        static void TagCommand(string[] args)
+        {
+            if (args.Length > 1)
+            {
+                switch (args[1])
+                {
+                    case "search":
+                        SearchTagCommand(args);
+                        break;
+                    case "add":
+                        AddTagCommand(args);
+                        break;
+                    case "get":
+                        GetTagsForAssetCommand(args);
+                        break;
                 }
             }
             else

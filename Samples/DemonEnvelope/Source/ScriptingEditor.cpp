@@ -38,7 +38,7 @@ void DE::DrawScriptingEditor(Scripting& scripting, ScriptBuilder& script)
             script.Compile(&program);
 
             scripting.ClearScripts();
-            scripting.AddScript(program, nullptr);
+            scripting.AddScript(program, nullptr, -1);
         }
 
         auto& nodes = script.Nodes();

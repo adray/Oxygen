@@ -32,6 +32,29 @@ namespace DE
         std::string _dialogue;
     };
 
+    class NPCObject
+    {
+    public:
+        inline int ID() const { return _id; }
+        inline int Version() const { return _version; }
+        inline int X() const { return _px; }
+        inline int Y() const { return _py; }
+        inline int SpriteID() const { return _spriteId; }
+
+        void SetID(int id) { _id = id; }
+        void SetVersion(int version) { _version = version; }
+        void SetX(int x) { _px = x; }
+        void SetY(int y) { _py = y; }
+        void SetSpriteID(int id) { _spriteId = id; }
+
+    private:
+        int _id;
+        int _version;
+        int _px;
+        int _py;
+        int _spriteId;
+    };
+
     class Level
     {
     public:
@@ -60,13 +83,19 @@ namespace DE
         void RemoveEntity(int entity);
         void SetEntityPos(int entity, int px, int py);
         void GetEntityPos(int entity, int* px, int* py);
+        void SetEntitySprite(int entity, int spriteId);
 
         inline Dialogue& GetDialogue() { return _dialogue; }
+
+        void AddNPC(NPCObject& npc);
+        void DeleteNPC(int id);
+        inline const std::vector<NPCObject>& NPCs() const { return _npc; }
 
     private:
         Tilemap _tilemaps;
         Scripting _scripting;
         std::vector<ScriptObject> _scripts;
+        std::vector<NPCObject> _npc;
         std::shared_ptr<Tileset> tileset;
         std::shared_ptr<EntityConfig> _entityCfg;
         ISLANDER_POLYGON_LIBRARY _lib;

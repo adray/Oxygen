@@ -206,6 +206,10 @@ static void Handler(SunScript::VirtualMachine* vm)
             script->Level()->SetEntityPos(id, x, y);
         }
     }
+    else if (name == "GetParent")
+    {
+        SunScript::PushReturnValue(vm, script->Parent());
+    }
 }
 
 Script::Script(unsigned char* program)
@@ -218,6 +222,7 @@ Script::Script(unsigned char* program)
     _completed(false),
     _resume(false),
     _level(nullptr),
+    _parentId(-1),
     _reason(ScriptSuspendReason::None)
 {
 }
@@ -234,10 +239,11 @@ void Script::SetSuspendReason(ScriptSuspendReason reason)
     _reason = reason;
 }
 
-void Script::Initialize(DE::Level* level)
+void Script::Initialize(DE::Level* level, int parentId)
 {
     _vm = SunScript::CreateVirtualMachine();
     _level = level;
+    _parentId = parentId;
     SunScript::SetHandler(_vm, &Handler);
     SunScript::SetUserData(_vm, this);
 }
@@ -363,9 +369,9 @@ void ScriptObject::CompileScript(const std::string& directory)
 // Scripting
 //=============
 
-void Scripting::AddScript(unsigned char* program, DE::Level* level)
+void Scripting::AddScript(unsigned char* program, DE::Level* level, int parentId)
 {
-    _scripts.emplace_back(new Script(program))->Initialize(level);
+    _scripts.emplace_back(new Script(program))->Initialize(level, parentId);
 }
 
 void Scripting::RunScripts(float delta)

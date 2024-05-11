@@ -94,12 +94,13 @@ namespace DE
     {
     public:
         Script(unsigned char* program);
-        void Initialize(DE::Level* level);
+        void Initialize(DE::Level* level, int parentId);
         void RunScript(float delta);
         void Wait(float time);
         void SetSuspendReason(ScriptSuspendReason reason);
         inline std::stringstream& GetLog() { return _log; }
         inline DE::Level* Level() const { return _level; }
+        inline int Parent() const { return _parentId; }
         ~Script();
     private:
         SunScript::VirtualMachine* _vm;
@@ -111,6 +112,7 @@ namespace DE
         float _elapsedTime;
         std::stringstream _log;
         DE::Level* _level;
+        int _parentId;
         ScriptSuspendReason _reason;
     };
 
@@ -166,7 +168,7 @@ namespace DE
     class Scripting
     {
     public:
-        void AddScript(unsigned char* program, DE::Level* level);
+        void AddScript(unsigned char* program, DE::Level* level, int parentId);
         void RunScripts(float delta);
         void ClearScripts();
 

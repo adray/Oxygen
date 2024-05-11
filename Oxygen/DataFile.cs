@@ -15,7 +15,28 @@ namespace Oxygen
             Int32 = 0,
             String = 1,
             ByteArray = 2,
-            Int64 =3
+            Int64 = 3
+        }
+
+        public class Transaction : IDisposable
+        {
+            private DataFile? file;
+
+            public Transaction(DataFile file)
+            {
+                this.file = file;
+                this.file.SeekEnd();
+                this.file.NewRow();
+            }
+
+            public void Dispose()
+            {
+                if (this.file != null)
+                {
+                    this.file.NextRow();
+                    this.file = null;
+                }
+            }
         }
 
         private string[]? columns;
@@ -121,7 +142,7 @@ namespace Oxygen
 
                     int numRows = values.Count / columns.Length;
                     writer.Write(numRows);
-                    
+
                     for (int i = 0; i < numRows; i++)
                     {
                         for (int j = 0; j < columns.Length; j++)
@@ -159,6 +180,15 @@ namespace Oxygen
             this.values.Clear();
         }
 
+        public int NumRows
+        {
+            get
+            {
+                if (this.columns == null) { return 0; }
+                return this.values.Count / this.columns.Length;
+            }
+        }
+
         public void SeekBegin()
         {
             this.offset = 0;
@@ -167,6 +197,11 @@ namespace Oxygen
         public void SeekEnd()
         {
             this.offset = this.values.Count;
+        }
+
+        public Transaction CreateTransaction()
+        {
+            return new Transaction(this);
         }
 
         public void NewRow()
@@ -222,6 +257,17 @@ namespace Oxygen
             }
 
             this.offset = row * this.columns.Length;
+        }
+
+        public void DeleteRow()
+        {
+            if (columns != null)
+            {
+                for (int i = 0; i < columns.Length; i++)
+                {
+                    this.values.RemoveAt(this.offset);
+                }
+            }
         }
 
         private int GetColumnId(string columnName)

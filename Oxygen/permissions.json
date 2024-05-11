@@ -158,6 +158,30 @@
     },
     {
       "Node": "ASSET_SVR",
+      "Message": "TAG_LIST",
+      "Text": "Permission to get the tags for an asset.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "ASSET_SVR",
+      "Message": "SEARCH_ASSETS",
+      "Text": "Permission to search for querying assets.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "ASSET_SVR",
+      "Message": "ADD_ASSET_TAG",
+      "Text": "Permission to add tags to assets.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "ASSET_SVR",
+      "Message": "REMOVE_ASSET_TAG",
+      "Text": "Permission to remove tags from assets.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "ASSET_SVR",
       "Message": "CREATE_LABEL",
       "Text": "Permission to create a label at the head revisions.",
       "Default": "Deny"

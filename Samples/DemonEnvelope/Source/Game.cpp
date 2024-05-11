@@ -716,6 +716,13 @@ void Game::Start(std::shared_ptr<Level>& level, int px, int py)
     _map.SetLevel(level);
     _level = level;
     level->SetEntityPos(_map.Player(), px, py);
+
+    for (auto& entity : level->NPCs())
+    {
+        int id = level->AddEntity();
+        level->SetEntityPos(id, entity.X(), entity.Y());
+        level->SetEntitySprite(id, entity.SpriteID());
+    }
 }
 
 void Game::Stop()

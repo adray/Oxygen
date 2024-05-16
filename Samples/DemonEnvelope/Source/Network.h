@@ -23,6 +23,7 @@ namespace DE
     class Tilemap_Layer;
     class Tilemap_Mask;
     class ScriptObject;
+    class NPCObject;
 
     enum class Network_State
     {
@@ -42,12 +43,16 @@ namespace DE
         void GetAssets(std::vector<Asset>& assets);
         void CreateLevel(const std::string& name, std::shared_ptr<Level>& level);
         void JoinLevel(const std::string& name, std::shared_ptr<Level>& level);
+        void DeleteLevel(const std::string& name);
         void CloseLevel();
         void ListLevels(std::vector<std::string>& levels);
         void CreateTilemap(int width, int height, int numLayers);
         void UpdateTilemap(const Tilemap_Layer& layer);
         void UpdateTilemask(const Tilemap_Mask& mask);
         void UpdateCursor(int objectId, int subID);
+        void CreateNPC(int parentId, int x, int y);
+        void UpdateNPC(NPCObject& npc);
+        void DeleteNPC(int id);
         void CreateScript(int parentId, int x, int y);
         void UpdateScript(ScriptObject& script);
         void DeleteObject(int id);

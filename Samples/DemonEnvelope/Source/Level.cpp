@@ -39,6 +39,29 @@ void Dialogue::Hide()
 }
 
 //==================
+// NPC class
+//==================
+
+NPCObject::NPCObject()
+    : _px(0), _py(0), _spriteId(-1), _id(0), _version(0)
+{
+}
+
+void NPCObject::Serialize(Oxygen::Message& msg)
+{
+    msg.WriteInt32(_px);
+    msg.WriteInt32(_py);
+    msg.WriteInt32(_spriteId);
+}
+
+void NPCObject::Deserialize(Oxygen::Message& msg)
+{
+    _px = msg.ReadInt32();
+    _py = msg.ReadInt32();
+    _spriteId = msg.ReadInt32();
+}
+
+//==================
 // Level class
 //==================
 
@@ -285,23 +308,26 @@ void Level::SetEntityPos(int entity, int px, int py)
             {
                 ent.SetPos(px, py);
 
-                for (auto& script : _scripts)
+                if ((ent.GetFlags() & (int)EntityFlags::CanTrigger) == (int)EntityFlags::CanTrigger)
                 {
-                    if (!script.Program())
+                    for (auto& script : _scripts)
                     {
-                        continue;
-                    }
+                        if (!script.Program())
+                        {
+                            continue;
+                        }
 
-                    if (script.IsTriggered())
-                    {
-                        continue;
-                    }
+                        if (script.IsTriggered())
+                        {
+                            continue;
+                        }
 
-                    if (script.Trigger() == ScriptTrigger::OnTouch &&
-                        px == script.X() && py == script.Y())
-                    {
-                        _scripting.AddScript(script.Program(), this, -1);
-                        script.SetTriggered(true);
+                        if (script.Trigger() == ScriptTrigger::OnTouch &&
+                            px == script.X() && py == script.Y())
+                        {
+                            _scripting.AddScript(script.Program(), this, -1);
+                            script.SetTriggered(true);
+                        }
                     }
                 }
             }
@@ -322,6 +348,13 @@ void Level::SetEntitySprite(int entity, int spriteId)
     ent.SetSpriteId(spriteId);
 }
 
+void Level::SetEntityFlags(int entity, EntityFlags flags)
+{
+    auto& ent = _entities[entity];
+    int curFlags = ent.GetFlags();
+    ent.SetFlags(curFlags | (int)flags);
+}
+
 void Level::AddNPC(NPCObject& npc)
 {
     _npc.push_back(npc);
@@ -338,4 +371,19 @@ void Level::DeleteNPC(int id)
     {
         _npc.erase(it);
     }
+}
+
+NPCObject* Level::GetNPC(int id)
+{
+    const auto& it = std::find_if(_npc.begin(), _npc.end(), [&id](NPCObject& obj)
+        {
+            return obj.ID() == id;
+        });
+
+    if (it != _npc.end())
+    {
+        return &(*it);
+    }
+
+    return nullptr;
 }

@@ -143,6 +143,56 @@ void Editor::_Run(float delta, ISLANDER_WINDOW window)
     }
 }
 
+void Editor::DrawNPCNode(NPCObject& npc)
+{
+    bool update = false;
+
+    ImGui::PushID(npc.ID());
+    if (ImGui::TreeNode("NPC"))
+    {
+        if (ImGui::BeginPopupContextItem())
+        {
+            if (ImGui::Selectable("Delete"))
+            {
+                network->DeleteObject(npc.ID());
+            }
+
+            if (ImGui::Selectable("New Script"))
+            {
+                network->CreateScript(npc.ID(), 0, 0);
+            }
+
+            ImGui::EndPopup();
+        }
+
+        ImGui::Text("ID %i", npc.ID());
+
+        int x = npc.X();
+        int y = npc.Y();
+        if (ImGui::InputInt("X", &x)) { npc.SetX(x); update = true; }
+        if (ImGui::InputInt("Y", &y)) { npc.SetY(y); update = true; }
+
+        int sprite = npc.SpriteID();
+        if (ImGui::InputInt("Sprite ID", &sprite)) { npc.SetSpriteID(sprite); update = true; }
+
+        for (auto& script : level->Scripts())
+        {
+            if (script.ParentID() == npc.ID())
+            {
+                DrawScriptNode(script);
+            }
+        }
+
+        ImGui::TreePop();
+    }
+    ImGui::PopID();
+
+    if (update)
+    {
+        network->UpdateNPC(npc);
+    }
+}
+
 void Editor::DrawScriptNode(ScriptObject& sc)
 {
     bool update = false;
@@ -150,7 +200,7 @@ void Editor::DrawScriptNode(ScriptObject& sc)
     ImGui::PushID(sc.ID());
     if (ImGui::TreeNode("Script"))
     {
-        if (ImGui::BeginPopupContextWindow())
+        if (ImGui::BeginPopupContextItem())
         {
             if (ImGui::Selectable("Delete"))
             {
@@ -316,8 +366,6 @@ void Editor::Draw(float delta, ISLANDER_DEVICE device, ISLANDER_WINDOW window, C
         }
     }
 
-    DrawScriptingEditor(_scripting, _scriptBuilder);
-
     if (ImGui::Begin("Options"))
     {
         if (ImGui::Button("Bordered mode"))
@@ -446,6 +494,15 @@ void Editor::Draw(float delta, ISLANDER_DEVICE device, ISLANDER_WINDOW window, C
                         network->JoinLevel(selectedLevelName, level);
                     }
                 }
+
+                ImGui::SameLine();
+                if (ImGui::Button("Delete"))
+                {
+                    network->DeleteLevel(selectedLevelName);
+
+                    levels.clear();
+                    network->ListLevels(levels);
+                }
             }
         }
         ImGui::End();
@@ -459,9 +516,13 @@ void Editor::Draw(float delta, ISLANDER_DEVICE device, ISLANDER_WINDOW window, C
                 {
                     if (ImGui::BeginPopupContextItem())
                     {
-                        if (ImGui::Selectable("New script"))
+                        if (ImGui::Selectable("New Script"))
                         {
                             network->CreateScript(tilemap.ID(), 0, 0);
+                        }
+                        else if (ImGui::Selectable("New NPC"))
+                        {
+                            network->CreateNPC(tilemap.ID(), 0, 0);
                         }
 
                         ImGui::EndPopup();
@@ -478,6 +539,11 @@ void Editor::Draw(float delta, ISLANDER_DEVICE device, ISLANDER_WINDOW window, C
                         {
                             DrawScriptNode(sc);
                         }
+                    }
+
+                    for (auto& npc : level->NPCs())
+                    {
+                        DrawNPCNode(npc);
                     }
 
                     ImGui::TreePop();

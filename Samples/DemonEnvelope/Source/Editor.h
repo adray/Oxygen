@@ -21,6 +21,7 @@ namespace DE
     private:
 
         void DrawScriptNode(ScriptObject& sc);
+        void DrawNPCNode(NPCObject& npc);
 
         void ScanAssetDir();
         void _Run(float delta, ISLANDER_WINDOW window);

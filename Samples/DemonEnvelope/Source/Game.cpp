@@ -722,6 +722,7 @@ void Game::Start(std::shared_ptr<Level>& level, int px, int py)
         int id = level->AddEntity();
         level->SetEntityPos(id, entity.X(), entity.Y());
         level->SetEntitySprite(id, entity.SpriteID());
+        level->SetEntityFlags(id, EntityFlags::CanTrigger);
     }
 }
 

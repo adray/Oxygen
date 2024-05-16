@@ -7,6 +7,17 @@ using namespace DE;
 // Level_Entity class
 //===================
 
+Level_Entity::Level_Entity()
+    :
+    _flags(0),
+    _px(0),
+    _py(0),
+    _tileId(0),
+    _active(false),
+    _spriteId(0)
+{
+}
+
 void Level_Entity::SetPos(int px, int py)
 {
     _px = px;

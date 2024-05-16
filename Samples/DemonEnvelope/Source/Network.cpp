@@ -139,6 +139,17 @@ void Network::JoinLevel(const std::string& name, std::shared_ptr<Level>& level)
     }
 }
 
+void Network::DeleteLevel(const std::string& name)
+{
+    if (_state == Network_State::LoggedIn)
+    {
+        Oxygen::Message request("LEVEL_SVR", "DELETE_LEVEL");
+        request.WriteString(name);
+
+        SendMsg(request);
+    }
+}
+
 void Network::ObjectStreamClosed()
 {
     conn->RemoveSubscriber(levelSub);
@@ -334,6 +345,51 @@ void Network::UpdateTilemap(const Tilemap_Layer& layer)
     layer.Serialize(msg);
 
     SendUpdateMsg(msg, obj);
+}
+
+void Network::CreateNPC(int parentId, int x, int y)
+{
+    Oxygen::Object obj = {};
+    obj.scale[0] = 1.0;
+    obj.scale[1] = 1.0;
+    obj.scale[2] = 1.0;
+
+    {
+        Oxygen::Message msg = levelSub->BuildAddMessage(obj);
+        msg.WriteString("NPC");
+
+        NPCObject npc;
+        npc.SetX(x);
+        npc.SetY(y);
+        npc.Serialize(msg);
+
+        levelSub->PrepareAddMessage(&msg, obj);
+
+        SendMsg(msg);
+    }
+}
+
+void Network::UpdateNPC(NPCObject& npc)
+{
+    Oxygen::Object obj = {};
+    obj.id = npc.ID();
+    obj.version = npc.Version();
+    obj.scale[0] = 1.0;
+    obj.scale[1] = 1.0;
+    obj.scale[2] = 1.0;
+
+    Oxygen::Message msg = levelSub->BuildUpdateMessage(obj);
+    msg.WriteString("NPC");
+    npc.Serialize(msg);
+
+    SendUpdateMsg(msg, obj);
+}
+
+void Network::DeleteNPC(int id)
+{
+    Oxygen::Message msg = Oxygen::Message("LEVEL_SVR", "DELETE_OBJECT");
+    msg.WriteInt32(id);
+    SendMsg(msg);
 }
 
 void Network::CreateScript(int parentId, int x, int y)

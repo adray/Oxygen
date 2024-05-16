@@ -218,6 +218,12 @@
     },
     {
       "Node": "LEVEL_SVR",
+      "Message": "DELETE_LEVEL",
+      "Text": "Permission to delete a level on the server.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "LEVEL_SVR",
       "Message": "LIST_LEVELS",
       "Text": "Permission to list the levels on the server.",
       "Default": "Deny"

@@ -35,6 +35,8 @@ namespace DE
     class NPCObject
     {
     public:
+        NPCObject();
+
         inline int ID() const { return _id; }
         inline int Version() const { return _version; }
         inline int X() const { return _px; }
@@ -46,6 +48,9 @@ namespace DE
         void SetX(int x) { _px = x; }
         void SetY(int y) { _py = y; }
         void SetSpriteID(int id) { _spriteId = id; }
+
+        void Serialize(Oxygen::Message& msg);
+        void Deserialize(Oxygen::Message& msg);
 
     private:
         int _id;
@@ -84,12 +89,14 @@ namespace DE
         void SetEntityPos(int entity, int px, int py);
         void GetEntityPos(int entity, int* px, int* py);
         void SetEntitySprite(int entity, int spriteId);
+        void SetEntityFlags(int entity, EntityFlags flags);
 
         inline Dialogue& GetDialogue() { return _dialogue; }
 
         void AddNPC(NPCObject& npc);
         void DeleteNPC(int id);
-        inline const std::vector<NPCObject>& NPCs() const { return _npc; }
+        inline std::vector<NPCObject>& NPCs() { return _npc; }
+        NPCObject* GetNPC(int id);
 
     private:
         Tilemap _tilemaps;

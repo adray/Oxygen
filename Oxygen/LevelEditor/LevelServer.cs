@@ -124,6 +124,26 @@ namespace Oxygen
                     SendNack(request, 200, "Level already exists.", messageName);
                 }
             }
+            else if (messageName == "DELETE_LEVEL")
+            {
+                string levelName = msg.ReadString();
+                if (!levels.ContainsKey(levelName))
+                {
+                    if (Level.DeleteLevel(levelName))
+                    {
+                        SendAck(request, messageName);
+                        Audit.Instance.Log("Level '{0}' deleted by '{1}'.", levelName, user);
+                    }
+                    else
+                    {
+                        SendNack(request, 200, "Error deleting level, could not be deleted.", messageName);
+                    }
+                }
+                else
+                {
+                    SendNack(request, 200, "Opened level cannot be deleted.", messageName);
+                }
+            }
             else if (messageName == "LIST_LEVELS")
             {
                 Message response = new Message(this.Name, messageName);

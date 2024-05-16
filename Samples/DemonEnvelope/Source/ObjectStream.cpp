@@ -52,6 +52,13 @@ void ObjectStream::OnNewObject(const Oxygen::Object& ev, Oxygen::Message& msg)
         script.Deserialize(msg);
         _level->AddScript(script);
     }
+    else if (name == "NPC")
+    {
+        NPCObject npc;
+        npc.Deserialize(msg);
+        npc.SetID(ev.id);
+        _level->AddNPC(npc);
+    }
 }
 
 void ObjectStream::OnUpdateObject(const Oxygen::Object& ev, Oxygen::Message& msg)
@@ -96,11 +103,21 @@ void ObjectStream::OnUpdateObject(const Oxygen::Object& ev, Oxygen::Message& msg
             sc->Deserialize(msg);
         }
     }
+    else if (name == "NPC")
+    {
+        NPCObject* npc = _level->GetNPC(ev.id);
+        if (npc)
+        {
+            npc->SetVersion(ev.version);
+            npc->Deserialize(msg);
+        }
+    }
 }
 
 void ObjectStream::OnDeleteObject(int id)
 {
     _level->DeleteScript(id);
+    _level->DeleteNPC(id);
 }
 
 void ObjectStream::OnStreamEnded()

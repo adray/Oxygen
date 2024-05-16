@@ -67,7 +67,7 @@ namespace Oxygen
         private Thread streamThread;
         private bool running;
         private static string LevelPath = @"Levels\";
-        private static List<string> levels = new List<string>();
+        private static HashSet<string> levels = new HashSet<string>();
         private const int END_STREAM = 255;
 
         private Level(string levelName)
@@ -122,7 +122,31 @@ namespace Oxygen
             }
         }
 
-        public static IList<string> Levels => levels;
+        public static ICollection<string> Levels => levels;
+
+        public static bool DeleteLevel(string levelName)
+        {
+            if (levels.Contains(levelName))
+            {
+                string path = LevelPath + levelName;
+
+                try
+                {
+                    File.Delete(path);
+                }
+                catch (IOException ex)
+                {
+                    Logger.Instance.Log(ex.Message);
+                    return false;
+                }
+                
+                levels.Remove(levelName);
+
+                return true;
+            }
+
+            return false;
+        }
 
         private void SaveLevel()
         {

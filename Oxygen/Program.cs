@@ -19,6 +19,7 @@ namespace Oxygen
                 server.AddNode(new LevelServer());
                 server.AddNode(new UserServer());
                 server.AddNode(new MetricsServer());
+                server.AddNode(new PluginEngine());
 
                 try
                 {

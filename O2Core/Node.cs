@@ -63,6 +63,11 @@ namespace Oxygen
             // Do nothing
         }
 
+        public virtual void OnTrigger(string condition)
+        {
+            // Do nothing
+        }
+
         protected void SendNack(Request request, int errorCode, string msg, string messageName)
         {
             Message response = Response.Nack(this, errorCode, msg, messageName);

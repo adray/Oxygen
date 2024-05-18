@@ -13,7 +13,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebServer", "WebServer\WebS
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ConsoleAppSample", "Samples\ConsoleAppSample\ConsoleAppSample.vcxproj", "{363946D0-D47A-4260-B5C0-E1F28D7B58EC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Compressor", "Samples\Compressor\Compressor.csproj", "{FF38CBE1-8835-4181-BE3A-23AD24F79457}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Compressor", "Samples\Compressor\Compressor.csproj", "{FF38CBE1-8835-4181-BE3A-23AD24F79457}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

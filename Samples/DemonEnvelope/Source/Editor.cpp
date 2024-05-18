@@ -413,10 +413,13 @@ void Editor::Draw(float delta, ISLANDER_DEVICE device, ISLANDER_WINDOW window, C
                 network->GetAssets(assets);
             }
             ImGui::SameLine();
-            if (ImGui::Button("Bake"))
+            if (network->IsBaking())
             {
-                // todo
-                Islander::FileSystem::RunProcess("", "");
+                ImGui::Text("Baking...");
+            }
+            else if (ImGui::Button("Bake"))
+            {
+                network->BakeAssets();
             }
 
             for (int i = 0; i < assets.size(); i++)

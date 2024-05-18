@@ -5,6 +5,7 @@
 #include "Metrics.h"
 #include "AssetService.h"
 #include "Asset.h"
+#include "PluginService.h"
 
 namespace Oxygen
 {
@@ -64,6 +65,8 @@ namespace DE
         void StartAssetService(const std::string& assetDir);
         void DownloadAsset(const std::string& asset);
         void UploadAsset(const std::string& asset);
+        void BakeAssets();
+        bool IsBaking();
 
         inline std::shared_ptr<Oxygen::EventStream> EventStream() const { return eventSub; }
         inline std::shared_ptr<Oxygen::Subscriber> CloseSub() const { return closeSub; }
@@ -81,5 +84,6 @@ namespace DE
         Network_State _state = Network_State::Disconnected;
         std::unique_ptr<Oxygen::Metrics> _metrics;
         std::unique_ptr<Oxygen::AssetService> _assetService;
+        std::unique_ptr<Oxygen::PluginService> _pluginService;
     };
 }

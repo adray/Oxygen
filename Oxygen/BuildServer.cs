@@ -22,25 +22,18 @@ namespace Oxygen
             }
 
             var msg = request.Message;
-            if (msg.MessageName == "UPLOAD_BUILD")
+            if (msg.MessageName == "UPLOAD_ARTIFACT")
+            {
+                string name = msg.ReadString();
+                int flags = msg.ReadInt();
+
+            }
+            else if (msg.MessageName == "DOWNLOAD_ARTIFACT")
             {
                 string name = msg.ReadString();
 
             }
-            else if (msg.MessageName == "DOWNLOAD_BUILD")
-            {
-                string name = msg.ReadString();
-
-            }
-            else if (msg.MessageName == "LIST_BUILD")
-            {
-
-            }
-            else if (msg.MessageName == "UPLOAD_CRASH_DUMP")
-            {
-
-            }
-            else if (msg.MessageName == "DOWNLOAD_CRASH_DUMP")
+            else if (msg.MessageName == "LIST_ARTIFACTS")
             {
 
             }

@@ -275,6 +275,30 @@
       "Message": "METRIC_COLLECTION",
       "Text": "Permission to collect metric data.",
       "Default": "Deny"
+    },
+    {
+      "Node": "PLUGIN_SVR",
+      "Message": "LIST_PLUGINS",
+      "Text": "Permission to list the installed plugins.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "PLUGIN_SVR",
+      "Message": "SCHEDULE_PLUGIN",
+      "Text": "Permission to schedule a plugin start.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "PLUGIN_SVR",
+      "Message": "NOTIFICATION_STREAM",
+      "Text": "Permission to receive notifications for a plugin.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "PLUGIN_SVR",
+      "Message": "CLOSE_NOTIFICATION_STREAM",
+      "Text": "Permission to close a plugin notification stream.",
+      "Default": "Deny"
     }
   ]
 }

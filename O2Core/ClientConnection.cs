@@ -767,5 +767,10 @@ namespace Oxygen
         {
             return ListResource("ASSET_SVR", "TAG_LIST", asset);
         }
+
+        public IList<string> GetPlugins()
+        {
+            return ListResource("PLUGIN_SVR", "LIST_PLUGINS");
+        }
     }
 }

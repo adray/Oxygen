@@ -11,7 +11,7 @@ project ("libOxygen")
 include_directories(${LIBCRYPTO_HEADERS})
 
 # Add source to this project's executable.
-add_library (libOxygen "ClientConnection.cpp" "ClientConnection.h" "Message.h" "Message.cpp" "Subscriber.cpp" "Subscriber.h" "DeltaCompress.cpp" "DeltaCompress.h" "Security.cpp" "Security.h" "ObjectStream.cpp" "ObjectStream.h" "EventStream.cpp" "EventStream.h" "Metrics.cpp" "Metrics.h"   "AssetService.h" "AssetService.cpp")
+add_library (libOxygen "ClientConnection.cpp" "ClientConnection.h" "Message.h" "Message.cpp" "Subscriber.cpp" "Subscriber.h" "DeltaCompress.cpp" "DeltaCompress.h" "Security.cpp" "Security.h" "ObjectStream.cpp" "ObjectStream.h" "EventStream.cpp" "EventStream.h" "Metrics.cpp" "Metrics.h"   "AssetService.h" "AssetService.cpp" "PluginService.cpp" "PluginService.h")
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET libOxygen PROPERTY CXX_STANDARD 20)

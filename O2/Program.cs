@@ -49,6 +49,9 @@ namespace O2
                     case "tag":
                         TagCommand(args);
                         break;
+                    case "plugin":
+                        PluginCommand(args);
+                        break;
                     default:
                         Console.WriteLine("Invalid command");
                         break;
@@ -86,7 +89,8 @@ namespace O2
                 Console.WriteLine("o2 tag search <tag>                                              Searches for assets matching the specified tag.");
                 Console.WriteLine("o2 tag add <asset> <tag>                                         Adds a tag for the specified asset.");
                 Console.WriteLine("                                                                 This can be a comma seperated list of tags.");
-                Console.WriteLine("o2 tag get <asset>                                               Gets the gets for the specified asset.");
+                Console.WriteLine("o2 tag get <asset>                                               Gets the tags for the specified asset.");
+                Console.WriteLine("o2 plugin list                                                   Gets the installed plugins on the server.");
                 //Console.WriteLine("o2 build upload <name>");
                 //Console.WriteLine("o2 build download <name>");
                 //Console.WriteLine("o2 build list");
@@ -1022,6 +1026,34 @@ namespace O2
                     case "get":
                         GetTagsForAssetCommand(args);
                         break;
+                }
+            }
+            else
+            {
+                Console.WriteLine("Invalid command");
+            }
+        }
+
+        static void PluginCommand(string[] args)
+        {
+            if (args.Length > 1)
+            {
+                if (args[1] == "list")
+                {
+                    var client = StartClient();
+
+                    try
+                    {
+                        LoginWithAPIKey(client);
+                        foreach (var plugin in client.GetPlugins())
+                        {
+                            Console.WriteLine(plugin);
+                        }
+                    }
+                    catch (ClientException ex)
+                    {
+                        Console.WriteLine(ex.Message);
+                    }
                 }
             }
             else

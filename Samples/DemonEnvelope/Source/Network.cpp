@@ -21,6 +21,7 @@ void Network::StartAssetService(const std::string& assetDir)
     if (_state == Network_State::Connected)
     {
         _assetService = std::make_unique<Oxygen::AssetService>(conn, assetDir);
+        _pluginService = std::make_unique<Oxygen::PluginService>(conn);
     }
 }
 
@@ -174,6 +175,16 @@ void Network::UploadAsset(const std::string& asset)
     _assetService->UploadAsset(asset, [this]() {
         std::cout << "Upload completed" << std::endl;
         });
+}
+
+void Network::BakeAssets()
+{
+    _pluginService->SchedulePlugin("Baking plugin");
+}
+
+bool Network::IsBaking()
+{
+    return _pluginService->IsRunning("Baking plugin");
 }
 
 void Network::CloseLevel()

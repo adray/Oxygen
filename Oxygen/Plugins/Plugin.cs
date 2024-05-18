@@ -9,6 +9,7 @@ namespace Oxygen
         public string? Type { get; set; }
         public string? Filter { get; set; }
         public string? Package { get; set; }
+        public Time? Time { get; set; }
 
         private readonly List<PluginAction> actions = new List<PluginAction>();
         private readonly List<string> artefacts = new List<string>();
@@ -79,7 +80,43 @@ namespace Oxygen
 
         public void Schedule(Schedule schedule)
         {
-            // TODO: schedule to start a time
+            if (Time.HasValue)
+            {
+                DateTime now = DateTime.Now;
+                DateTime date = new DateTime(now.Year, now.Month, now.Day, Time.Value.Hour, Time.Value.Minute, Time.Value.Second);
+
+                // If we are already past the calculated time, schedule it for the next day.
+                if (now > date)
+                {
+                    date = date.AddDays(1);
+                }
+
+                schedule.StartAt(this, date, TimeSpan.FromMinutes(20));
+            }
+        }
+    }
+
+    internal struct Time
+    {
+        public int Hour { get; private set; }
+        public int Minute { get; private set; }
+        public int Second { get; private set; }
+
+        public Time(int hour, int minute, int second)
+        {
+            this.Hour = hour;
+            this.Minute = minute;
+            this.Second = second;
+        }
+
+        public Time(string time)
+        {
+            int sep1 = time.IndexOf(":");
+            int sep2 = time.IndexOf(":", sep1 + 1);
+
+            this.Hour = int.Parse(time.Substring(0, sep1));
+            this.Minute = int.Parse(time.Substring(sep1 + 1, sep2 - sep1 - 1));
+            this.Second = int.Parse(time.Substring(sep2 + 1));
         }
     }
 

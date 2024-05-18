@@ -98,6 +98,14 @@ namespace Oxygen
                         Advance(ref reader);
                         LoadArtefacts(plugin, ref reader);
                         break;
+                    case "Time":
+                        Advance(ref reader);
+                        string? time = reader.GetString();
+                        if (time != null)
+                        {
+                            plugin.Time = new Time(time);
+                        }
+                        break;
                     default:
                         throw new JsonException();
                 }

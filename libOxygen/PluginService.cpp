@@ -29,21 +29,18 @@ void PluginNotificationStream::OnNewMessage(Message& msg)
     switch (type)
     {
     case TASK_STARTED:
-        std::cout << "Task started" << std::endl;
         if (_handler)
         {
             _handler(_name, TASK_STARTED);
         }
         break;
     case TASK_COMPLETED:
-        std::cout << "Task completed" << std::endl;
         if (_handler)
         {
             _handler(_name, TASK_COMPLETED);
         }
         break;
     case STREAM_ENDED:
-        std::cout << "Stream ended" << std::endl;
         if (_handler)
         {
             _handler(_name, STREAM_ENDED);

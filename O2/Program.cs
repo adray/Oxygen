@@ -11,50 +11,44 @@ namespace O2
 {
     internal class Program
     {
-        private static string cacheName = "o2-cache";
-
         static void Main(string[] args)
         {
             if (args.Length > 0)
             {
-                switch (args[0])
+                Commands commands = new Commands();
+                commands.AddCommand(new DownloadArtefact(), "build", "download");
+                commands.AddCommand(new PluginList(), "plugin", "list");
+                commands.AddCommand(new SearchTag(), "tag", "search");
+                commands.AddCommand(new AddTag(), "tag", "add");
+                commands.AddCommand(new TagsForAsset(), "tag", "get");
+                commands.AddCommand(new DownloadAsset(), "asset", "download");
+                commands.AddCommand(new UploadAsset(), "asset", "upload");
+                commands.AddCommand(new PatchAssets(), "asset", "patch");
+                commands.AddCommand(new ListAssetHistory(), "asset", "history");
+                commands.AddCommand(new ListAsset(), "asset", "list");
+                commands.AddCommand(new RestoreAsset(), "asset", "restore");
+                commands.AddCommand(new CreateUser(), "user", "create");
+                commands.AddCommand(new DeleteUser(), "user", "delete");
+                commands.AddCommand(new ListUsers(), "user", "list");
+                commands.AddCommand(new ResetUser(), "user", "reset");
+                commands.AddCommand(new LabelList(), "label", "list");
+                commands.AddCommand(new LabelSpec(), "label", "spec");
+                commands.AddCommand(new AddUserToGroup(), "group", "add");
+                commands.AddCommand(new RemoveUserFromGroup(), "group", "remove");
+                commands.AddCommand(new CreateUserGroupCommand(), "group", "create");
+                commands.AddCommand(new DeleteUserGroupCommand(), "group", "delete");
+                commands.AddCommand(new ListUserGroupsCommand(), "group", "list");
+                commands.AddCommand(new ListUsersInGroupCommand(), "group", "info");
+                commands.AddCommand(new SetPermission(), "set-permission");
+                commands.AddCommand(new GetPermission(), "get-permission");
+                commands.AddCommand(new SetGroupPermission(), "set-group-permission");
+                commands.AddCommand(new CreateAPIKey(), "api-key", "create");
+                commands.AddCommand(new RevokeAPIKey(), "api-key", "revoke");
+                commands.AddCommand(new Login(), "login");
+
+                if (!commands.Invoke(args))
                 {
-                    case "asset":
-                        AssetCommand(args);
-                        break;
-                    case "login":
-                        LoginCommand();
-                        break;
-                    case "api-key":
-                        APIKeyCommand(args);
-                        break;
-                    case "user":
-                        UserCommand(args);
-                        break;
-                    case "group":
-                        GroupCommand(args);
-                        break;
-                    case "set-permission":
-                        SetPermissionCommand(args);
-                        break;
-                    case "get-permission":
-                        GetPermissionCommand(args);
-                        break;
-                    case "set-group-permission":
-                        SetGroupPermissionCommand(args);
-                        break;
-                    case "label":
-                        LabelCommand(args);
-                        break;
-                    case "tag":
-                        TagCommand(args);
-                        break;
-                    case "plugin":
-                        PluginCommand(args);
-                        break;
-                    default:
-                        Console.WriteLine("Invalid command");
-                        break;
+                    Console.WriteLine("Invalid command");
                 }
             }
             else
@@ -68,6 +62,7 @@ namespace O2
                 Console.WriteLine("o2 user list                                                     Lists the users in the system");
                 Console.WriteLine("o2 user reset                                                    Reset the users password");
                 Console.WriteLine("o2 group create <group>                                          Create a new user group");
+                Console.WriteLine("o2 group delete <group>                                          Deletes a user group");
                 Console.WriteLine("o2 group add <group> <username>                                  Adds a user to a user group");
                 Console.WriteLine("o2 group remove <group> <username>                               Remove a user from a user group");
                 Console.WriteLine("o2 group list                                                    Lists the groups");
@@ -92,146 +87,27 @@ namespace O2
                 Console.WriteLine("o2 tag get <asset>                                               Gets the tags for the specified asset.");
                 Console.WriteLine("o2 plugin list                                                   Gets the installed plugins on the server.");
                 //Console.WriteLine("o2 build upload <name>");
-                //Console.WriteLine("o2 build download <name>");
-                //Console.WriteLine("o2 build list");
+                Console.WriteLine("o2 build download <name>                                         Downloads a build artefact from the server.");
+                Console.WriteLine("o2 build list                                                    Lists the build artefacts on the server.");
                 //Console.WriteLine("o2 crash upload <name>");
                 //Console.WriteLine("o2 crash download <name>");
             }
         }
 
-        static ClientConnection StartClient()
+        private static void AddOrRemoveUserGroup(ClientConnection client, string[] args, bool addOrRemove)
         {
-            string hostname = Environment.GetEnvironmentVariable("OXYGEN_HOST") ?? "localhost";
-            if (!int.TryParse(Environment.GetEnvironmentVariable("OXYGEN_PORT"), out int port))
+            if (args.Length > 3)
             {
-                port = 9888;
-            }
+                string group = args[2];
+                string username = args[3];
 
-            ClientConnection cli = new ClientConnection(hostname, port);
-            return cli;
-        }
-
-        static string? UserNamePrompt()
-        {
-            Console.Write("Username: ");
-            return Console.ReadLine();
-        }
-
-        static byte[] PasswordPrompt()
-        {
-            string password = string.Empty;
-
-            Console.Write("Password: ");
-            for (; ; )
-            {
-                var keyInfo = Console.ReadKey(true);
-                if (keyInfo.Key == ConsoleKey.Enter)
+                if (addOrRemove)
                 {
-                    break;
-                }
-                else if (keyInfo.Key == ConsoleKey.Backspace)
-                {
-                    password = password.Remove(password.Length - 1);
+                    client.AddUserToGroup(username, group);
                 }
                 else
                 {
-                    password += keyInfo.KeyChar;
-                }
-            }
-            Console.WriteLine();
-
-            byte[] bytes = Encoding.UTF8.GetBytes(password);
-            byte[]? hashedBytes = null;
-
-            using (var sha256 = SHA256.Create())
-            {
-                hashedBytes = sha256.ComputeHash(bytes);
-            }
-
-            // Clear password bytes.
-            Array.Fill<byte>(bytes, 0);
-
-            return hashedBytes;
-        }
-
-        static ClientConnection? LoginCommand()
-        {
-            string? username = UserNamePrompt();
-            if (username != null)
-            {
-                byte[] hashedBytes = PasswordPrompt();
-
-                if (hashedBytes != null)
-                {
-                    ClientConnection cli = StartClient();
-
-                    try
-                    {
-                        cli.Login(username, hashedBytes);
-                        Console.WriteLine("Logged in successfully");
-                        return cli;
-                    }
-                    catch (ClientException ex)
-                    {
-                        Console.WriteLine(ex.Message);
-                    }
-                }
-            }
-
-            return null;
-        }
-
-        static void ChangePassword()
-        {
-            ClientConnection cli = StartClient();
-
-            try
-            {
-                LoginWithAPIKey(cli);
-
-                Console.WriteLine("Change password");
-                byte[] password = PasswordPrompt();
-                byte[] newpassword = PasswordPrompt();
-                cli.ResetPassword(password, newpassword);
-            }
-            catch (ClientException ex)
-            {
-                Console.WriteLine(ex.Message);
-            }
-        }
-
-        static void APIKeyCommand(string[] args)
-        {
-            if (args.Length > 1)
-            {
-                switch (args[1])
-                {
-                    case "create":
-                        CreateAPIKeyCommand();
-                        break;
-                    case "revoke":
-                        RevokeAPIKeyCommand(args);
-                        break;
-                }
-            }
-        }
-
-        static void RevokeAPIKeyCommand(string[] args)
-        {
-            if (args.Length == 3)
-            {
-                string username = args[2];
-
-                var client = StartClient();
-
-                try
-                {
-                    LoginWithAPIKey(client);
-                    client.RevokeAPIKeys(username);
-                }
-                catch (ClientException ex)
-                {
-                    Console.WriteLine(ex.Message);
+                    client.RemoveUserFromGroup(username, group);
                 }
             }
             else
@@ -240,17 +116,100 @@ namespace O2
             }
         }
 
-        static void CreateAPIKeyCommand()
+        class Login : Command
         {
-            if (File.Exists("api-key"))
+            public override void Invoke(string[] args)
             {
-                Console.WriteLine("Error api key file already present");
-                return;
+                string? username = UserNamePrompt();
+                if (username != null)
+                {
+                    byte[] hashedBytes = PasswordPrompt();
+
+                    if (hashedBytes != null)
+                    {
+                        ClientConnection cli = StartClient();
+
+                        try
+                        {
+                            cli.Login(username, hashedBytes);
+                            Console.WriteLine("Logged in successfully");
+                        }
+                        catch (ClientException ex)
+                        {
+                            Console.WriteLine(ex.Message);
+                        }
+                    }
+                }
+            }
+        }
+
+        class RevokeAPIKey : Command
+        {
+            public override void Invoke(ClientConnection client, string[] args)
+            {
+                base.Invoke(client, args);
+
+                if (args.Length == 3)
+                {
+                    string username = args[2];
+
+                    client.RevokeAPIKeys(username);
+                }
+                else
+                {
+                    Console.WriteLine("Invalid command");
+                }
+            }
+        }
+
+        class CreateAPIKey : Command
+        {
+            static ClientConnection? LoginCommand()
+            {
+                string? username = UserNamePrompt();
+                if (username != null)
+                {
+                    byte[] hashedBytes = PasswordPrompt();
+
+                    if (hashedBytes != null)
+                    {
+                        ClientConnection cli = StartClient();
+
+                        try
+                        {
+                            cli.Login(username, hashedBytes);
+                            Console.WriteLine("Logged in successfully");
+                            return cli;
+                        }
+                        catch (ClientException ex)
+                        {
+                            Console.WriteLine(ex.Message);
+                        }
+                    }
+                }
+
+                return null;
             }
 
-            ClientConnection? client = LoginCommand();
-            if (client != null)
+            public override void Invoke(string[] args)
             {
+                if (File.Exists("api-key"))
+                {
+                    Console.WriteLine("Error api key file already present");
+                    return;
+                }
+
+                ClientConnection? client = LoginCommand();
+                if (client != null)
+                {
+                    Invoke(client, args);
+                }
+            }
+
+            public override void Invoke(ClientConnection client, string[] args)
+            {
+                base.Invoke(client, args);
+
                 try
                 {
                     string apiKey = client.CreateAPIKey();
@@ -268,84 +227,45 @@ namespace O2
             }
         }
 
-        static string? LoadAPIKey()
+        class SetGroupPermission : Command
         {
-            if (File.Exists("api-key"))
+            public override void Invoke(ClientConnection client, string[] args)
             {
-                byte[] key = File.ReadAllBytes("api-key");
-                return Encoding.UTF8.GetString(key);
-            }
+                base.Invoke(client, args);
 
-            return null;
-        }
-
-        private static void LoginWithAPIKey(ClientConnection cli)
-        {
-            string? apikey = LoadAPIKey();
-            if (apikey != null)
-            {
-                cli.Login(apikey);
-            }
-            else
-            {
-                Console.WriteLine("Login");
-                string? username = UserNamePrompt();
-                if (username != null)
+                if (args.Length == 5)
                 {
-                    byte[] password = PasswordPrompt();
-                    if (password != null)
+                    string group = args[1];
+                    string nodeName = args[2];
+                    string messageName = args[3];
+                    string permission = args[4].ToLower();
+
+                    if (permission == "allow" || permission == "deny" || permission == "default")
                     {
-                        cli.Login(username, password);
-                    }
-                }
-            }
-        }
-
-        static void SetGroupPermissionCommand(string[] args)
-        {
-            if (args.Length == 5)
-            {
-                string group = args[1];
-                string nodeName = args[2];
-                string messageName = args[3];
-                string permission = args[4].ToLower();
-
-                if (permission == "allow" || permission == "deny" || permission == "default")
-                {
-                    var client = StartClient();
-
-                    try
-                    {
-                        LoginWithAPIKey(client);
                         client.SetGroupPermission(group, nodeName, messageName, permission);
                     }
-                    catch (ClientException ex)
+                    else
                     {
-                        Console.WriteLine(ex.Message);
+                        Console.WriteLine("Permission should be 'allow' or 'deny'");
                     }
                 }
                 else
                 {
-                    Console.WriteLine("Permission should be 'allow' or 'deny'");
+                    Console.WriteLine("Invalid command");
                 }
-            }
-            else
-            {
-                Console.WriteLine("Invalid command");
             }
         }
 
-        static void GetPermissionCommand(string[] args)
+        class GetPermission : Command
         {
-            if (args.Length == 2)
+            public override void Invoke(ClientConnection client, string[] args)
             {
-                string username = args[1];
+                base.Invoke(client, args);
 
-                var client = StartClient();
-
-                try
+                if (args.Length == 2)
                 {
-                    LoginWithAPIKey(client);
+                    string username = args[1];
+
                     foreach (var permission in client.GetPermissionsForUser(username))
                     {
                         if (permission.Inherit == PermissionInherit.Group)
@@ -362,703 +282,440 @@ namespace O2
                         }
                     }
                 }
-                catch (ClientException ex)
+                else
                 {
-                    Console.WriteLine(ex.Message);
+                    Console.WriteLine("Invalid command");
                 }
-            }
-            else
-            {
-                Console.WriteLine("Invalid command");
             }
         }
 
-        static void SetPermissionCommand(string[] args)
+        class SetPermission : Command
         {
-            if (args.Length == 5)
+            public override void Invoke(ClientConnection client, string[] args)
             {
-                string username = args[1];
-                string nodeName = args[2];
-                string messageName = args[3];
-                string permission = args[4].ToLower();
+                base.Invoke(client, args);
 
-                if (permission == "allow" || permission == "deny" || permission == "default")
+                if (args.Length == 5)
                 {
-                    var client = StartClient();
+                    string username = args[1];
+                    string nodeName = args[2];
+                    string messageName = args[3];
+                    string permission = args[4].ToLower();
 
-                    try
+                    if (permission == "allow" || permission == "deny" || permission == "default")
                     {
-                        LoginWithAPIKey(client);
                         client.SetPermission(username, nodeName, messageName, permission);
                     }
-                    catch (ClientException ex)
+                    else
                     {
-                        Console.WriteLine(ex.Message);
+                        Console.WriteLine("Permission should be 'allow' or 'deny'");
                     }
                 }
                 else
                 {
-                    Console.WriteLine("Permission should be 'allow' or 'deny'");
-                }
-            }
-            else
-            {
-                Console.WriteLine("Invalid command");
-            }
-        }
-
-        static void CreateNewUserCommand()
-        {
-            Console.WriteLine("Creating New User");
-            string? username = UserNamePrompt();
-            if (username != null)
-            {
-                byte[] password = PasswordPrompt();
-                if (password != null)
-                {
-                    var cli = StartClient();
-                    try
-                    {
-                        LoginWithAPIKey(cli);
-                        cli.CreateNewUser(username, password);
-                    }
-                    catch (ClientException ex)
-                    {
-                        Console.WriteLine(ex.Message);
-                    }
+                    Console.WriteLine("Invalid command");
                 }
             }
         }
 
-        static void GroupCommand(string[] args)
+        class ListUsersInGroupCommand : Command
         {
-            if (args.Length > 1)
+            public override void Invoke(ClientConnection client, string[] args)
             {
-                switch (args[1])
+                base.Invoke(client, args);
+
+                if (args.Length > 2)
                 {
-                    case "add":
-                        AddUserToGroupCommand(args, true);
-                        break;
-                    case "remove":
-                        AddUserToGroupCommand(args, false);
-                        break;
-                    case "list":
-                        ListUserGroups();
-                        break;
-                    case "info":
-                        ListUsersInGroup(args);
-                        break;
-                    case "create":
-                        CreateUserGroup(args);
-                        break;
-                    case "delete":
-                        DeleteUserGroup(args);
-                        break;
-                }
-            }
-            else
-            {
-                Console.WriteLine("Invalid command");
-            }
-        }
-
-        static void ListUsersInGroup(string[] args)
-        {
-            if (args.Length > 2)
-            {
-                ClientConnection cli = StartClient();
-
-                try
-                {
-                    LoginWithAPIKey(cli);
-
-                    foreach (var user in cli.ListUsersInGroup(args[2]))
+                    foreach (var user in client.ListUsersInGroup(args[2]))
                     {
                         Console.WriteLine(user);
                     }
                 }
-                catch (ClientException ex)
+                else
                 {
-                    Console.WriteLine(ex.Message);
+                    Console.WriteLine("Invalid command");
                 }
-            }
-            else
-            {
-                Console.WriteLine("Invalid command");
             }
         }
 
-        static void ListUserGroups()
+        class ListUserGroupsCommand : Command
         {
-            ClientConnection cli = StartClient();
-
-            try
+            public override void Invoke(ClientConnection client, string[] args)
             {
-                LoginWithAPIKey(cli);
+                base.Invoke(client, args);
 
-                var groups = cli.ListUserGroups();
+                var groups = client.ListUserGroups();
                 foreach (var group in groups)
                 {
                     Console.WriteLine(group);
                 }
             }
-            catch (ClientException ex)
+        }
+
+        class DeleteUserGroupCommand : Command
+        {
+            public override void Invoke(ClientConnection client, string[] args)
             {
-                Console.WriteLine(ex.Message);
+                base.Invoke(client, args);
+
+                if (args.Length > 2)
+                {
+                    string group = args[2];
+
+                    client.DeleteUserGroup(group);
+                }
+                else
+                {
+                    Console.WriteLine("Invalid command");
+                }
             }
         }
 
-        static void DeleteUserGroup(string[] args)
+        class CreateUserGroupCommand : Command
         {
-            if (args.Length > 2)
+            public override void Invoke(ClientConnection client, string[] args)
             {
-                string group = args[2];
+                base.Invoke(client, args);
 
-                ClientConnection cli = StartClient();
-
-                try
+                if (args.Length > 2)
                 {
-                    LoginWithAPIKey(cli);
-
-                    cli.DeleteUserGroup(group);
+                    string group = args[2];
+                    client.CreateUserGroup(group);
                 }
-                catch (ClientException ex)
+                else
                 {
-                    Console.WriteLine(ex.Message);
+                    Console.WriteLine("Invalid command");
                 }
-            }
-            else
-            {
-                Console.WriteLine("Invalid command");
             }
         }
 
-        static void CreateUserGroup(string[] args)
+        class RemoveUserFromGroup : Command
         {
-            if (args.Length > 2)
+            public override void Invoke(ClientConnection client, string[] args)
             {
-                string group = args[2];
+                base.Invoke(client, args);
 
-                ClientConnection cli = StartClient();
-
-                try
-                {
-                    LoginWithAPIKey(cli);
-
-                    cli.CreateUserGroup(group);
-                }
-                catch (ClientException ex)
-                {
-                    Console.WriteLine(ex.Message);
-                }
-            }
-            else
-            {
-                Console.WriteLine("Invalid command");
+                AddOrRemoveUserGroup(client, args, false);
             }
         }
 
-        static void AddUserToGroupCommand(string[] args, bool addOrRemove)
+        class AddUserToGroup : Command
         {
-            if (args.Length > 3)
+            public override void Invoke(ClientConnection client, string[] args)
             {
-                string group = args[2];
-                string username = args[3];
+                base.Invoke(client, args);
 
-                ClientConnection cli = StartClient();
-
-                try
-                {
-                    LoginWithAPIKey(cli);
-
-                    if (addOrRemove)
-                    {
-                        cli.AddUserToGroup(username, group);
-                    }
-                    else
-                    {
-                        cli.RemoveUserFromGroup(username, group);
-                    }
-                }
-                catch (ClientException ex)
-                {
-                    Console.WriteLine(ex.Message);
-                }
-            }
-            else
-            {
-                Console.WriteLine("Invalid command");
+                AddOrRemoveUserGroup(client, args, true);
             }
         }
 
-        static void LabelCommand(string[] args)
+        class LabelList : Command
         {
-            if (args.Length > 1)
+            public override void Invoke(ClientConnection client, string[] args)
             {
-                switch (args[1])
-                {
-                    case "spec":
-                        LabelSpecCommand(args);
-                        break;
-                    case "create":
-                        CreateLabelCommand(args);
-                        break;
-                    case "list":
-                        LabelListCommand(args);
-                        break;
-                }
-            }
-            else
-            {
-                Console.WriteLine("Invalid command");
-            }
-        }
+                base.Invoke(client, args);
 
-        static void LabelListCommand(string[] args)
-        {
-            ClientConnection cli = StartClient();
-
-            try
-            {
-                LoginWithAPIKey(cli);
-
-                List<string> list = cli.GetAssetLabels();
+                List<string> list = client.GetAssetLabels();
                 foreach (string item in list)
                 {
                     Console.WriteLine(item);
                 }
             }
-            catch (ClientException ex)
-            {
-                Console.WriteLine(ex.Message);
-            }
         }
 
-        static void LabelSpecCommand(string[] args)
+        class LabelSpec : Command
         {
-            if (args.Length > 2)
+            public override void Invoke(ClientConnection client, string[] args)
             {
-                ClientConnection cli = StartClient();
+                base.Invoke(client, args);
 
-                try
+                if (args.Length > 2)
                 {
-                    LoginWithAPIKey(cli);
-
-                    List<string> spec = cli.GetAssetLabelSpec(args[2]);
+                    List<string> spec = client.GetAssetLabelSpec(args[2]);
                     foreach (string item in spec)
                     {
                         Console.WriteLine(item);
                     }
                 }
-                catch (ClientException ex)
+                else
                 {
-                    Console.WriteLine(ex.Message);
+                    Console.WriteLine("Invalid command");
                 }
-            }
-            else
-            {
-                Console.WriteLine("Invalid command");
             }
         }
 
-        static void CreateLabelCommand(string[] args)
+        class CreateLabel : Command
         {
-            if (args.Length > 2)
+            public override void Invoke(ClientConnection client, string[] args)
             {
-                ClientConnection cli = StartClient();
+                base.Invoke(client, args);
 
-                try
+                if (args.Length > 2)
                 {
-                    LoginWithAPIKey(cli);
-
-                    cli.CreateAssetLabel(args[2]);
+                    client.CreateAssetLabel(args[2]);
                 }
-                catch (ClientException ex)
+                else
                 {
-                    Console.WriteLine(ex.Message);
+                    Console.WriteLine("Invalid command");
                 }
-            }
-            else
-            {
-                Console.WriteLine("Invalid command");
             }
         }
 
-        static void UserCommand(string[] args)
+        class ResetUser : Command
         {
-            if (args.Length > 1)
+            public override void Invoke(ClientConnection client, string[] args)
             {
-                switch (args[1])
-                {
-                    case "list":
-                        ListUserCommand();
-                        break;
-                    case "create":
-                        CreateNewUserCommand();
-                        break;
-                    case "delete":
-                        DeleteUserCommand(args);
-                        break;
-                    case "reset":
-                        ChangePassword();
-                        break;
-                }
-            }
-            else
-            {
-                Console.WriteLine("Invalid command");
+                base.Invoke(client, args);
+
+                Console.WriteLine("Change password");
+                byte[] password = PasswordPrompt();
+                byte[] newpassword = PasswordPrompt();
+                client.ResetPassword(password, newpassword);
             }
         }
 
-        static void DeleteUserCommand(string[] args)
+        class CreateUser : Command
         {
-            if (args.Length == 3)
+            public override void Invoke(ClientConnection client, string[] args)
             {
-                string user = args[2];
+                base.Invoke(client, args);
 
-                ClientConnection cli = StartClient();
-
-                try
+                Console.WriteLine("Creating New User");
+                string? username = UserNamePrompt();
+                if (username != null)
                 {
-                    LoginWithAPIKey(cli);
-                    cli.DeleteUser(user);
+                    byte[] password = PasswordPrompt();
+                    if (password != null)
+                    {
+                        client.CreateNewUser(username, password);
+                    }
                 }
-                catch (ClientException ex)
-                {
-                    Console.WriteLine(ex.Message);
-                }
-            }
-            else
-            {
-                Console.WriteLine("Invalid command");
             }
         }
 
-        static void ListUserCommand()
+        class DeleteUser : Command
         {
-            ClientConnection cli = StartClient();
-
-            try
+            public override void Invoke(ClientConnection client, string[] args)
             {
-                LoginWithAPIKey(cli);
-                foreach (string user in cli.ListUsers())
+                base.Invoke(client, args);
+
+                if (args.Length == 3)
+                {
+                    string user = args[2];
+
+                    client.DeleteUser(user);
+                }
+                else
+                {
+                    Console.WriteLine("Invalid command");
+                }
+            }
+        }
+
+        class ListUsers : Command
+        {
+            public override void Invoke(ClientConnection client, string[] args)
+            {
+                base.Invoke(client, args);
+
+                foreach (string user in client.ListUsers())
                 {
                     Console.WriteLine(user);
                 }
             }
-            catch (ClientException ex)
-            {
-                Console.WriteLine(ex.Message);
-            }
         }
 
-        static void AssetCommand(string[] args)
+        class RestoreAsset : Command
         {
-            if (args.Length > 1)
+            public override void Invoke(ClientConnection client, string[] args)
             {
-                switch (args[1])
+                base.Invoke(client, args);
+
+                if (args.Length == 4)
                 {
-                    case "upload":
-                        UploadAssetCommand(args);
-                        break;
-                    case "download":
-                        DownloadAssetCommand(args);
-                        break;
-                    case "list":
-                        ListAssetCommand(args);
-                        break;
-                    case "history":
-                        ListAssetHistoryCommand(args);
-                        break;
-                    case "patch":
-                        PatchAssetsCommand();
-                        break;
-                    case "restore":
-                        RestoreAssetCommand(args);
-                        break;
-                    default:
-                        Console.WriteLine("Invalid command");
-                        break;
-                }
-            }
-            else
-            {
-                Console.WriteLine("Invalid command");
-            }
-        }
+                    string name = args[2];
+                    int revision = int.Parse(args[3]);
 
-        static void RestoreAssetCommand(string[] args)
-        {
-            if (args.Length == 4)
-            {
-                string name = args[2];
-                int revision = int.Parse(args[3]);
-
-                var client = StartClient();
-
-                try
-                {
-                    LoginWithAPIKey(client);
                     client.RestoreAsset(name, revision);
                 }
-                catch (ClientException ex)
+                else
                 {
-                    Console.WriteLine(ex.Message);
+                    Console.WriteLine("Invalid command");
                 }
-            }
-            else
-            {
-                Console.WriteLine("Invalid command");
             }
         }
 
-        static void PatchAssetsCommand()
+        class PatchAssets : Command
         {
-            ClientConnection cli = StartClient();
-
-            try
+            public override void Invoke(ClientConnection client, string[] args)
             {
-                LoginWithAPIKey(cli);
-                cli.LoadCache(cacheName);
+                base.Invoke(client, args);
 
-                IList<string> assets = cli.ListAssets();
+                IList<string> assets = client.ListAssets();
 
                 foreach (string asset in assets)
                 {
-                    cli.DownloadAsset(asset);
+                    client.DownloadAsset(asset);
                     Console.WriteLine($"Patched {asset}");
                 }
-                cli.SaveCache();
-            }
-            catch (ClientException ex)
-            {
-                Console.WriteLine(ex.Message);
+                client.SaveCache();
             }
         }
 
-        static void ListAssetHistoryCommand(string[] args)
+        class ListAssetHistory : Command
         {
-            if (args.Length == 3)
+            public override void Invoke(ClientConnection client, string[] args)
             {
-                string name = args[2];
+                base.Invoke(client, args);
 
-                var client = StartClient();
-
-                try
+                if (args.Length == 3)
                 {
-                    LoginWithAPIKey(client);
+                    string name = args[2];
+
                     Console.WriteLine(client.GetAssetHistory(name));
                 }
-                catch (ClientException ex)
+                else
                 {
-                    Console.WriteLine(ex.Message);
+                    Console.WriteLine("Invalid command");
                 }
-            }
-            else
-            {
-                Console.WriteLine("Invalid command");
             }
         }
 
-        static void ListAssetCommand(string[] args)
+        class ListAsset : Command
         {
-            ClientConnection cli = StartClient();
-
-            try
+            public override void Invoke(ClientConnection client, string[] args)
             {
-                LoginWithAPIKey(cli);
+                base.Invoke(client, args);
 
-                IList<string> assets = cli.ListAssets();
+                IList<string> assets = client.ListAssets();
                 foreach (var asset in assets)
                 {
                     Console.WriteLine(asset);
                 }
             }
-            catch (ClientException ex)
-            {
-                Console.WriteLine(ex.Message);
-            }
         }
 
-        static void DownloadAssetCommand(string[] args)
+        class DownloadAsset : Command
         {
-            if (args.Length == 3)
+            public override void Invoke(ClientConnection client, string[] args)
             {
-                string name = args[2];
+                base.Invoke(client, args);
 
-                var client = StartClient();
-
-                try
+                if (args.Length == 3)
                 {
-                    client.LoadCache(cacheName);
-                    LoginWithAPIKey(client);
+                    string name = args[2];
+
                     client.DownloadAsset(name);
-                    client.SaveCache();
                 }
-                catch (ClientException ex)
+                else
                 {
-                    Console.WriteLine(ex.Message);
+                    Console.WriteLine("Invalid command");
                 }
-            }
-            else
-            {
-                Console.WriteLine("Invalid command");
             }
         }
 
-        static void UploadAssetCommand(string[] args)
+        class UploadAsset : Command
         {
-            if (args.Length == 3)
+            public override void Invoke(ClientConnection client, string[] args)
             {
-                string name = args[2];
+                base.Invoke(client, args);
 
-                var client = StartClient();
-
-                try
+                if (args.Length == 3)
                 {
-                    LoginWithAPIKey(client);
+                    string name = args[2];
+
                     client.UploadAsset(name);
                 }
-                catch (ClientException ex)
+                else
                 {
-                    Console.WriteLine(ex.Message);
+                    Console.WriteLine("Invalid command");
                 }
-            }
-            else
-            {
-                Console.WriteLine("Invalid command");
             }
         }
 
-        static void AddTagCommand(string[] args)
+        class AddTag : Command
         {
-            if (args.Length == 4)
+            public override void Invoke(ClientConnection client, string[] args)
             {
-                string asset = args[2];
-                string tags = args[3];
+                base.Invoke(client, args);
 
-                var tagList = new List<string>(tags.Split(","));
-
-                var client = StartClient();
-
-                try
+                if (args.Length == 4)
                 {
-                    LoginWithAPIKey(client);
+                    string asset = args[2];
+                    string tags = args[3];
+
+                    var tagList = new List<string>(tags.Split(","));
                     client.AddAssetTags(asset, tagList);
                 }
-                catch (ClientException ex)
+                else
                 {
-                    Console.WriteLine(ex.Message);
+                    Console.WriteLine("Invalid command");
                 }
-            }
-            else
-            {
-                Console.WriteLine("Invalid command");
             }
         }
 
-        static void SearchTagCommand(string[] args)
+        class SearchTag : Command
         {
-            if (args.Length == 3)
+            public override void Invoke(ClientConnection client, string[] args)
             {
-                string tag = args[2];
+                base.Invoke(client, args);
 
-                var client = StartClient();
-
-                try
+                if (args.Length == 3)
                 {
-                    LoginWithAPIKey(client);
+                    string tag = args[2];
                     foreach (var asset in client.SearchAssets("TAG", tag))
                     {
                         Console.WriteLine(asset);
                     }
                 }
-                catch (ClientException ex)
+                else
                 {
-                    Console.WriteLine(ex.Message);
+                    Console.WriteLine("Invalid command");
                 }
-            }
-            else
-            {
-                Console.WriteLine("Invalid command");
             }
         }
 
-        static void GetTagsForAssetCommand(string[] args)
+        class TagsForAsset : Command
         {
-            if (args.Length == 3)
+            public override void Invoke(ClientConnection client, string[] args)
             {
-                string asset = args[2];
+                base.Invoke(client, args);
 
-                var client = StartClient();
-
-                try
+                if (args.Length == 3)
                 {
-                    LoginWithAPIKey(client);
+                    string asset = args[2];
                     foreach (var tag in client.GetTagsForAsset(asset))
                     {
                         Console.WriteLine(tag);
                     }
                 }
-                catch (ClientException ex)
+                else
                 {
-                    Console.WriteLine(ex.Message);
+                    Console.WriteLine("Invalid command");
                 }
-            }
-            else
-            {
-                Console.WriteLine("Invalid command");
             }
         }
 
-        static void TagCommand(string[] args)
+        class PluginList : Command
         {
-            if (args.Length > 1)
+            public override void Invoke(ClientConnection client, string[] args)
             {
-                switch (args[1])
+                base.Invoke(client, args);
+
+                foreach (var plugin in client.GetPlugins())
                 {
-                    case "search":
-                        SearchTagCommand(args);
-                        break;
-                    case "add":
-                        AddTagCommand(args);
-                        break;
-                    case "get":
-                        GetTagsForAssetCommand(args);
-                        break;
+                    Console.WriteLine(plugin);
                 }
-            }
-            else
-            {
-                Console.WriteLine("Invalid command");
             }
         }
 
-        static void PluginCommand(string[] args)
+        class DownloadArtefact : Command
         {
-            if (args.Length > 1)
+            public override void Invoke(ClientConnection client, string[] args)
             {
-                if (args[1] == "list")
-                {
-                    var client = StartClient();
+                base.Invoke(client, args);
 
-                    try
-                    {
-                        LoginWithAPIKey(client);
-                        foreach (var plugin in client.GetPlugins())
-                        {
-                            Console.WriteLine(plugin);
-                        }
-                    }
-                    catch (ClientException ex)
-                    {
-                        Console.WriteLine(ex.Message);
-                    }
-                }
-            }
-            else
-            {
-                Console.WriteLine("Invalid command");
+                client.DownloadArtefact(args[2]);
             }
         }
     }

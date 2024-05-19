@@ -299,6 +299,18 @@
       "Message": "CLOSE_NOTIFICATION_STREAM",
       "Text": "Permission to close a plugin notification stream.",
       "Default": "Deny"
+    },
+    {
+      "Node": "BUILD_SVR",
+      "Message": "DOWNLOAD_ARTEFACT",
+      "Text": "Permission to download an artefact.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "BUILD_SVR",
+      "Message": "DOWNLOAD_ARTEFACT_PART",
+      "Text": "Permission to download an artefact in parts.",
+      "Default": "Deny"
     }
   ]
 }

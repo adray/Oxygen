@@ -152,96 +152,35 @@ namespace Oxygen
         //    }
         //}
 
+        private void Download(IDownloadStream stream)
+        {
+            Message msg = stream.SendDownload();
+            Send(msg.GetData());
+            Message response = Read();
+            stream.Download(response);
+            while (!stream.Completed)
+            {
+                msg = stream.SendDownloadPart();
+                Send(msg.GetData());
+                response = Read();
+                stream.DownloadPart(response);
+            }
+            stream.Close();
+        }
+
+        public void DownloadArtefact(string artefact)
+        {
+            Download(new ArtefactDownloadStream(artefact));
+        }
+
+        public void DownloadAsset(string asset)
+        {
+            Download(new AssetDownloadStream(asset, this.cache));
+        }
+
         public IList<string> ListAssets()
         {
             return ListResource("ASSET_SVR", "ASSET_LIST");
-        }
-
-        public void DownloadAsset(string name)
-        {
-            BinaryWriter? fileWriter = null;
-
-            SendDownloadAsset(name);
-
-            Message response = Read();
-            int recieved = 0;
-
-            string ack = response.ReadString();
-
-            int numBytes = 0;
-            string? checksum;
-            if (ack == "ACK")
-            {
-                checksum = response.ReadString();
-                if (checksum != cache.GetChecksum(name))
-                {
-                    File.Delete(name);
-                    fileWriter = new BinaryWriter(File.OpenWrite(name));
-
-                    numBytes = response.ReadInt();
-
-                    byte[] data = response.ReadByteArray();
-
-                    recieved += data.Length;
-                    fileWriter.Write(data);
-                }
-            }
-            else
-            {
-                int errorCode = response.ReadInt();
-                string errorMessage = response.ReadString();
-
-                throw new ClientException(errorCode, errorMessage);
-            }
-
-            while (recieved < numBytes)
-            {
-                SendDownloadAssetPart();
-
-                response = Read();
-
-                ack = response.ReadString();
-                if (ack == "ACK")
-                {
-                    byte[] data = response.ReadByteArray();
-
-                    recieved += data.Length;
-                    fileWriter?.Write(data);
-                }
-                else
-                {
-                    int errorCode = response.ReadInt();
-                    string errorMessage = response.ReadString();
-
-                    throw new ClientException(errorCode, errorMessage);
-                }
-            }
-
-            fileWriter?.Close();
-
-            if (checksum != null)
-            {
-                cache.CacheItem(name, checksum);
-            }
-        }
-
-        private void SendDownloadAssetPart()
-        {
-            Message msg = new Message("ASSET_SVR", "DOWNLOAD_ASSET_PART");
-            Send(msg.GetData());
-        }
-
-        private void SendDownloadAsset(string name)
-        {
-            Message msg = new Message("ASSET_SVR", "DOWNLOAD_ASSET");
-            msg.WriteString(name);
-            string? checksum = cache.GetChecksum(name);
-            msg.WriteInt(checksum != null ? 1 : 0);
-            if (checksum != null)
-            {
-                msg.WriteString(checksum);
-            }
-            Send(msg.GetData());
         }
 
         public void UploadAsset(string name)

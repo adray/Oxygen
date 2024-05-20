@@ -20,8 +20,17 @@ void Network::StartAssetService(const std::string& assetDir)
 {
     if (_state == Network_State::Connected)
     {
+        _buildService = std::make_unique<Oxygen::BuildService>(conn, "");
         _assetService = std::make_unique<Oxygen::AssetService>(conn, assetDir);
         _pluginService = std::make_unique<Oxygen::PluginService>(conn);
+        _pluginService->SetCompletedHandler([this](const std::string& name, const std::string& artefact)
+            {
+                std::cout << "Task '" << name << "' completed, '" << artefact << "' ready for download." << std::endl;
+
+                _buildService->DownloadArtefact(artefact, [this]() {
+                    std::cout << "Download complete!" << std::endl;
+                    });
+            });
     }
 }
 
@@ -266,7 +275,7 @@ void Network::CreateTilemap(int width, int height, int numLayers)
         msg.WriteString("TILEMAP");
         msg.WriteInt32(width);
         msg.WriteInt32(height);
-        msg.WriteInt32(tilemap.NumLayers());
+        msg.WriteInt32((int)tilemap.NumLayers());
 
         levelSub->PrepareAddMessage(&msg, obj);
 

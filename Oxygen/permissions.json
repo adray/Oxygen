@@ -301,6 +301,12 @@
       "Default": "Deny"
     },
     {
+      "Node": "PLUGIN_SVR",
+      "Message": "SCHEDULE_LIST",
+      "Text": "Permission to get the plugin schedule.",
+      "Default": "Deny"
+    },
+    {
       "Node": "BUILD_SVR",
       "Message": "DOWNLOAD_ARTEFACT",
       "Text": "Permission to download an artefact.",
@@ -310,6 +316,12 @@
       "Node": "BUILD_SVR",
       "Message": "DOWNLOAD_ARTEFACT_PART",
       "Text": "Permission to download an artefact in parts.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "BUILD_SVR",
+      "Message": "LIST_ARTEFACTS",
+      "Text": "Permission to list the artefacts.",
       "Default": "Deny"
     }
   ]

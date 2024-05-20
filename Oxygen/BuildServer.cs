@@ -84,7 +84,16 @@ namespace Oxygen
             }
             else if (msg.MessageName == "LIST_ARTEFACTS")
             {
+                Message response = Response.Ack(this, msg.MessageName);
 
+                string[] files = Directory.GetFiles("Artefacts");
+                response.WriteInt(files.Length);
+                foreach (string file in files)
+                {
+                    response.WriteString(Path.GetFileName(file));
+                }
+
+                request.Send(response);
             }
             else
             {

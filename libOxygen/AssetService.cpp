@@ -11,13 +11,13 @@ constexpr int chunkSize = 1024;
 #define NOMINMAX
 #include <Windows.h>
 
-int GetFileSize(const std::wstring& filepath)
+static int GetFileSize(const std::wstring& filepath)
 {
     HANDLE handle = CreateFileW(filepath.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     LARGE_INTEGER size;
     if (handle && GetFileSizeEx(handle, &size))
     {
-        return size.QuadPart;
+        return (int)size.QuadPart;
     }
 
     return 0;

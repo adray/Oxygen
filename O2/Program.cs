@@ -17,7 +17,9 @@ namespace O2
             {
                 Commands commands = new Commands();
                 commands.AddCommand(new DownloadArtefact(), "build", "download");
+                commands.AddCommand(new ListArtefact(), "build", "list");
                 commands.AddCommand(new PluginList(), "plugin", "list");
+                commands.AddCommand(new PluginSchedule(), "plugin", "schedule");
                 commands.AddCommand(new SearchTag(), "tag", "search");
                 commands.AddCommand(new AddTag(), "tag", "add");
                 commands.AddCommand(new TagsForAsset(), "tag", "get");
@@ -86,6 +88,7 @@ namespace O2
                 Console.WriteLine("                                                                 This can be a comma seperated list of tags.");
                 Console.WriteLine("o2 tag get <asset>                                               Gets the tags for the specified asset.");
                 Console.WriteLine("o2 plugin list                                                   Gets the installed plugins on the server.");
+                Console.WriteLine("o2 plugin schedule                                               Gets the schedule for plugins operating on the server.");
                 //Console.WriteLine("o2 build upload <name>");
                 Console.WriteLine("o2 build download <name>                                         Downloads a build artefact from the server.");
                 Console.WriteLine("o2 build list                                                    Lists the build artefacts on the server.");
@@ -709,6 +712,60 @@ namespace O2
             }
         }
 
+        class PluginSchedule : Command
+        {
+            public override void Invoke(ClientConnection client, string[] args)
+            {
+                base.Invoke(client, args);
+
+                var schedule = client.GetSchedule();
+
+                if (schedule.Count == 0)
+                {
+                    Console.WriteLine("No items scheduled.");
+                }
+                else
+                {
+                    Console.WriteLine(string.Empty.PadRight(80, '='));
+                    Console.Write("Name".PadRight(20));
+                    Console.Write("Started By".PadRight(12));
+                    Console.Write("Running".PadRight(10));
+                    Console.Write("Start".PadRight(16));
+                    Console.Write("Manual".PadRight(10));
+                    Console.WriteLine();
+                    Console.WriteLine(string.Empty.PadRight(80, '='));
+                    foreach (var item in schedule)
+                    {
+                        Console.Write(item.Name.PadRight(20));
+                        Console.Write(item.StartedBy.PadRight(12));
+
+                        if (item.Running)
+                        {
+                            Console.Write("Yes".PadRight(10));
+                        }
+                        else
+                        {
+                            Console.Write("No".PadRight(10));
+                        }
+
+                        Console.Write(item.Date.PadRight(16));
+
+                        if (item.StartedManually)
+                        {
+                            Console.Write("Yes".PadRight(10));
+                        }
+                        else
+                        {
+                            Console.Write("No".PadRight(10));
+                        }
+                        Console.WriteLine();
+                    }
+
+                    Console.WriteLine(string.Empty.PadRight(80, '='));
+                }
+            }
+        }
+
         class DownloadArtefact : Command
         {
             public override void Invoke(ClientConnection client, string[] args)
@@ -716,6 +773,19 @@ namespace O2
                 base.Invoke(client, args);
 
                 client.DownloadArtefact(args[2]);
+            }
+        }
+
+        class ListArtefact : Command
+        {
+            public override void Invoke(ClientConnection client, string[] args)
+            {
+                base.Invoke(client, args);
+
+                foreach (string artefact in client.GetArtefacts())
+                {
+                    Console.WriteLine(artefact);
+                }
             }
         }
     }

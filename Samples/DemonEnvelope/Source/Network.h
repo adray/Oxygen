@@ -6,6 +6,7 @@
 #include "AssetService.h"
 #include "Asset.h"
 #include "PluginService.h"
+#include "BuildService.h"
 
 namespace Oxygen
 {
@@ -85,5 +86,6 @@ namespace DE
         std::unique_ptr<Oxygen::Metrics> _metrics;
         std::unique_ptr<Oxygen::AssetService> _assetService;
         std::unique_ptr<Oxygen::PluginService> _pluginService;
+        std::unique_ptr<Oxygen::BuildService> _buildService;
     };
 }

@@ -13,7 +13,10 @@ namespace Oxygen
         private readonly Plugin plugin;
         private readonly string workspace;
         private string artefactFile = string.Empty;
-        private bool running = false;
+        /// <summary>
+        /// Set volatile to prevent optimising it away.
+        /// </summary>
+        private volatile bool running = false;
         private readonly bool startedManually;
         private readonly string startedBy;
         private readonly long userId;
@@ -35,6 +38,8 @@ namespace Oxygen
 
             // Create working area
             this.workspace = CreateWorkingArea();
+
+            this.running = true;
         }
 
         private static string CreateWorkingArea()
@@ -92,8 +97,6 @@ namespace Oxygen
 
         public void Start()
         {
-            this.running = true;
-
             // Install package
             InstallPackage();
 
@@ -156,8 +159,8 @@ namespace Oxygen
                     Directory.CreateDirectory("Artefacts");
                 }
 
-                this.artefactFile = Path.Combine("Artefacts", plugin.Name + "_" + DateTime.Now.ToString("yyMMdd_HHmmss") + ".zip");
-                using (ZipArchive archive = new ZipArchive(File.Create(artefactFile), ZipArchiveMode.Create))
+                this.artefactFile =  plugin.Name + "_" + DateTime.Now.ToString("yyMMdd_HHmmss") + ".zip";
+                using (ZipArchive archive = new ZipArchive(File.Create(Path.Combine("Artefacts", artefactFile)), ZipArchiveMode.Create))
                 {
                     foreach (var artefact in plugin.Artefacts)
                     {

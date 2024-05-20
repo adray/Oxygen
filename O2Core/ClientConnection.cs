@@ -16,8 +16,8 @@ namespace Oxygen
         private Cache cache = new Cache();
         private TcpClient client;
         private NetworkStream networkStream;
-        private List<Subscriber> subscribers = new List<Subscriber>();
-        private object subscriberLock = new object();
+        //private List<Subscriber> subscribers = new List<Subscriber>();
+        //private object subscriberLock = new object();
         private int messageId;
 
         public ClientConnection(string hostname, int port)
@@ -710,6 +710,35 @@ namespace Oxygen
         public IList<string> GetPlugins()
         {
             return ListResource("PLUGIN_SVR", "LIST_PLUGINS");
+        }
+
+        public IList<ScheduleItem> GetSchedule()
+        {
+            Message msg = new Message("PLUGIN_SVR", "SCHEDULE_LIST");
+            Send(msg.GetData());
+
+            var response = CheckAck();
+
+            List<ScheduleItem> items = new List<ScheduleItem>();
+
+            int num = response.ReadInt();
+            for (int i = 0; i < num; i++)
+            {
+                bool running = response.ReadInt() == 1;
+                string name = response.ReadString();
+                bool startedManually = response.ReadInt() == 1;
+                string startedBy = response.ReadString();
+                string date = response.ReadString();
+
+                items.Add(new ScheduleItem(running, name, date, startedBy, startedManually));
+            }
+
+            return items;
+        }
+
+        public IList<string> GetArtefacts()
+        {
+            return ListResource("BUILD_SVR", "LIST_ARTEFACTS");
         }
     }
 }

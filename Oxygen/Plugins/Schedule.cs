@@ -147,5 +147,27 @@ namespace Oxygen
                 }
             }
         }
+
+        public void PrintSchedule(Message msg)
+        {
+            msg.WriteInt(this.scheduleItems.Count + this.running.Count);
+            foreach (var item in this.scheduleItems)
+            {
+                msg.WriteInt(0);
+                msg.WriteString(item.Plugin.Name ?? string.Empty);
+                msg.WriteInt(item.StartedManually ? 1 : 0);
+                msg.WriteString(item.StartedBy);
+                msg.WriteString(item.StartTime.ToString("yyMMdd-HHmmss"));
+            }
+
+            foreach (var item in this.running)
+            {
+                msg.WriteInt(1);
+                msg.WriteString(item.Plugin.Name ?? string.Empty);
+                msg.WriteInt(item.StartedManually ? 1 : 0);
+                msg.WriteString(item.StartedBy);
+                msg.WriteString(string.Empty);
+            }
+        }
     }
 }

@@ -37,6 +37,7 @@ void PluginNotificationStream::OnNewMessage(Message& msg)
     case TASK_COMPLETED:
         if (_handler)
         {
+            _artefact = msg.ReadString();
             _handler(_name, TASK_COMPLETED);
         }
         break;
@@ -55,7 +56,7 @@ PluginService::PluginService(ClientConnection* conn) : _conn(conn) {
 }
 
 
-void PluginService::OnTaskCompleted(const std::string& name)
+void PluginService::OnTaskCompleted(const std::string& name, const std::string& artefact)
 {
     Message msg = Message("PLUGIN_SVR", "CLOSE_NOTIFICATION_STREAM");
     msg.WriteString(name);
@@ -73,7 +74,7 @@ void PluginService::OnTaskCompleted(const std::string& name)
 
     if (_completedHandler)
     {
-        _completedHandler(name);
+        _completedHandler(name, artefact);
     }
 }
 
@@ -89,7 +90,7 @@ void PluginService::NotificationCallback(const std::string& name, int state)
             _streams.erase(it);
             break;
         case TASK_COMPLETED:
-            OnTaskCompleted(name);
+            OnTaskCompleted(name, it->second->Artefact());
             break;
         }
     }

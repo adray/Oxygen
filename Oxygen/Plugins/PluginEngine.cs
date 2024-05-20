@@ -80,6 +80,12 @@ namespace Oxygen
                 }
                 request.Send(response);
             }
+            else if (request.Message.MessageName == "SCHEDULE_LIST")
+            {
+                Message response = Response.Ack(this, msg.MessageName);
+                schedule.PrintSchedule(response);
+                request.Send(response);
+            }
             else if (request.Message.MessageName == "SCHEDULE_PLUGIN")
             {
                 string name = msg.ReadString();

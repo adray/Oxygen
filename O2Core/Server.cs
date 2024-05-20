@@ -460,6 +460,7 @@ namespace Oxygen
                     Stopwatch watch = Stopwatch.StartNew();
                     foreach (var node in nodes)
                     {
+#if DEBUG
                         try
                         {
                             ev.HandleEvent(node);
@@ -472,6 +473,9 @@ namespace Oxygen
                                 Log(e.StackTrace);
                             }
                         }
+#else
+                        ev.HandleEvent(node);
+#endif
                     }
 
                     watch.Stop();

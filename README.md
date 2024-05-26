@@ -7,6 +7,7 @@ Asset server and multi-user level editor
 * Rich user permissioning model
 * Metric collection framework
 * Command line tool to automate tasks
+* Task scheduling using a plugin system e.g. baking assets
 
 # Components
 * Oxygen.exe - The oxygen server component
@@ -26,6 +27,37 @@ Some common example operations:
 * o2 asset upload myAsset.png - uploads the asset called myAsset.png to the asset server
 * o2 asset download myAsset.png - downloads the asset called myAsset.png from the asset server
 * o2 asset patch - downloads all the latest assets from the server
+
+# Plugins
+Plugins can be defined server side using a JSON file which is placed within a 'Plugins' directory.
+```
+{
+    "Plugins": [
+        {
+            "Name": "Baking plugin",
+            "Package": "SpriteSheetGenerator",
+            "ManualStart": true,
+            "Type": "Bake",
+            "Filter": "*.png",
+            "Time": "17:12:00",
+            "Actions": [
+                {
+                    "Run": "run.bat"
+                },
+                {
+                    "Run": "SpriteSheetGenerator.exe"
+                }
+             ],
+             "Artefacts": [
+                "Baked/Tileset.png",
+                "Baked/Tileset.mat"
+             ]
+        }
+    ]
+}
+```
+
+This plugin has been defined to run two actions: 'run.bat' and 'SpriteSheetGenerator.exe'. It has been defined to start at '17:12:00', but it is allowed to be started manually. It has been set to type 'Bake' which will copy the assets into the working area for the execution of the plugin. The Artefacts section indicates which files should be output of the execution. These files would become available for download.
 
 # libOxygen
 This is designed to be integrated directly into games and engines. For example a connection can be created and a login message sent to the server.

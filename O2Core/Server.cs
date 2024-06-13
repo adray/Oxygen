@@ -1,10 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Net.Sockets;
 
-// +Support clients connecting (blocking listener)
-// +Support clients sending a request and response
-// +
-
 namespace Oxygen
 {
     public class ServerException : Exception
@@ -33,22 +29,53 @@ namespace Oxygen
         }
     }
 
+    public class ClientWaitHandle : EventWaitHandle
+    {
+        private int refCount;
+
+        public ClientWaitHandle(bool initialState, EventResetMode mode) : base(initialState, mode)
+        {
+        }
+
+        public ClientWaitHandle(bool initialState, EventResetMode mode, string? name) : base(initialState, mode, name)
+        {
+        }
+
+        public ClientWaitHandle(bool initialState, EventResetMode mode, string? name, out bool createdNew) : base(initialState, mode, name, out createdNew)
+        {
+        }
+
+        public void AddRef()
+        {
+            Interlocked.Increment(ref refCount);
+        }
+
+        public void Release()
+        {
+            if (Interlocked.Decrement(ref refCount) == 0)
+            {
+                this.Dispose();
+            }
+        }
+    }
+
     public class Client
     {
-        private readonly EventWaitHandle waitHandle;
+        private readonly ClientWaitHandle waitHandle;
         private readonly object msgLock = new object();
         private readonly Queue<Message> msgs;
         private readonly Dictionary<string, object> properies = new Dictionary<string, object>();
         private readonly long id;
         private bool connected;
 
-        public Client(Queue<Message> msgs, object msgLock, EventWaitHandle waitHandle, long id)
+        public Client(Queue<Message> msgs, object msgLock, ClientWaitHandle waitHandle, long id)
         {
             this.msgs = msgs;
             this.msgLock = msgLock;
             this.waitHandle = waitHandle;
             this.id = id;
             this.connected = true;
+            this.waitHandle.AddRef();
         }
 
         public long ID => this.id;
@@ -58,6 +85,8 @@ namespace Oxygen
         /// </summary>
         internal void Disconnect()
         {
+            this.waitHandle.Release();
+            Interlocked.MemoryBarrier();
             this.connected = false;
         }
 
@@ -105,12 +134,11 @@ namespace Oxygen
             public bool Running { get; set; }
             public TcpClient Connection { get; private set; }
             public Client Client { get; private set; }
-            public EventWaitHandle MsgHandle { get; private set; }
+            public ClientWaitHandle MsgHandle { get; private set; }
             public Queue<Message> Messages { get; private set; }
             public object MsgLock { get; private set; }
-            private int threadEndCount;
 
-            public ClientConnection(TcpClient connection, Client client, EventWaitHandle msgHandle, object msgLock, Queue<Message> messages)
+            public ClientConnection(TcpClient connection, Client client, ClientWaitHandle msgHandle, object msgLock, Queue<Message> messages)
             {
                 Connection = connection;
                 Client = client;
@@ -121,12 +149,7 @@ namespace Oxygen
 
             public void ExitClientThread()
             {
-                // if the we have finished write+read threads then safe to dispose the handle.
-                int result = Interlocked.Increment(ref threadEndCount);
-                if (result == 2)
-                {
-                    MsgHandle.Dispose();
-                }
+                MsgHandle.Release();
             }
         }
 
@@ -272,6 +295,7 @@ namespace Oxygen
 
             if (cli != null)
             {
+                cli.MsgHandle.AddRef();
                 var stream = cli.Connection.GetStream();
 
                 byte[] buffer = new byte[2048 * 32];
@@ -338,6 +362,7 @@ namespace Oxygen
 
             if (cli != null)
             {
+                cli.MsgHandle.AddRef();
                 var stream = cli.Connection.GetStream();
                 var messages = cli.Messages;
 
@@ -401,7 +426,7 @@ namespace Oxygen
             {
                 TcpClient client = listener.AcceptTcpClient();
                 var msgs = new Queue<Message>();
-                var handle = new EventWaitHandle(false, EventResetMode.AutoReset);
+                var handle = new ClientWaitHandle(false, EventResetMode.AutoReset);
                 var msgLock = new object();
                 ClientConnection cli = new ClientConnection(client,
                     new Client(msgs, msgLock, handle, clientID++),

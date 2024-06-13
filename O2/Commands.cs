@@ -23,9 +23,9 @@ namespace O2
 
         static string? LoadAPIKey()
         {
-            if (File.Exists("api-key"))
+            if (File.Exists(@".o2\api-key"))
             {
-                byte[] key = File.ReadAllBytes("api-key");
+                byte[] key = File.ReadAllBytes(@".o2\api-key");
                 return Encoding.UTF8.GetString(key);
             }
 

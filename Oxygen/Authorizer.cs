@@ -304,7 +304,14 @@ namespace Oxygen
 
         private static void SendNack(Request request, int errorCode, string msg, Message message)
         {
-            request.Send(Response.Nack(message.NodeName, errorCode, msg, message.MessageName));
+            if (request.Message.MessageName.EndsWith("_STREAM"))
+            {
+                DataStreamBase.StatusError(request, msg);
+            }
+            else
+            {
+                request.Send(Response.Nack(message.NodeName, errorCode, msg, message.MessageName));
+            }
         }
 
         public static void LoadPermissions()

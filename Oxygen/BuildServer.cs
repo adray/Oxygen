@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,11 +9,19 @@ namespace Oxygen
 {
     internal class BuildServer : Node
     {
+        private readonly ArtefactDataStream stream = new ArtefactDataStream();
         private readonly DataStream streams = new DataStream();
         private const int DOWNLOAD_SIZE = 2048;
 
         public BuildServer() : base("BUILD_SVR")
         {
+        }
+
+        public override void OnClientDisconnected(Client client)
+        {
+            base.OnClientDisconnected(client);
+
+            stream.CloseStreams(client);
         }
 
         public override void OnRecieveMessage(Request request)
@@ -81,6 +90,14 @@ namespace Oxygen
                     streams.CloseDownloadStream(request.Client);
                     SendNack(request, 200, "Unable to download data.", msg.MessageName);
                 }
+            }
+            else if (msg.MessageName == "ARTEFACT_DOWNLOAD_STREAM")
+            {
+                stream.ProcessDownloadStreamMessage(request);
+            }
+            else if (msg.MessageName == "ARTEFACT_UPLOAD_STREAM")
+            {
+                stream.ProcessUploadStreamMessage(request);
             }
             else if (msg.MessageName == "LIST_ARTEFACTS")
             {

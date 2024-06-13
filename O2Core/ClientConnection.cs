@@ -11,6 +11,20 @@ using System.Xml.Linq;
 
 namespace Oxygen
 {
+    public class DataEventArgs : EventArgs
+    {
+        public long TotalBytes { get; private set; }
+        public long TransferredBytes { get; private set; }
+        public string Filename { get; private set; }
+
+        public DataEventArgs(string filename, long totalBytes, long transferredBytes)
+        {
+            this.Filename = filename;
+            this.TotalBytes = totalBytes;
+            this.TransferredBytes = transferredBytes;
+        }
+    }
+
     public class ClientConnection
     {
         private Cache cache = new Cache();
@@ -19,6 +33,9 @@ namespace Oxygen
         //private List<Subscriber> subscribers = new List<Subscriber>();
         //private object subscriberLock = new object();
         private int messageId;
+
+        public event EventHandler<DataEventArgs>? DataReceived;
+        public event EventHandler<DataEventArgs>? DataSent;
 
         public ClientConnection(string hostname, int port)
         {
@@ -57,6 +74,24 @@ namespace Oxygen
 
             networkStream.Write(bytes);
             networkStream.Flush();
+        }
+
+        private Message? ReadNonBlocking()
+        {
+            byte[] header = new byte[8];
+            try
+            {
+                if (networkStream.DataAvailable)
+                {
+                    return Read();
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new ClientException(0, ex.Message);
+            }
+
+            return null;
         }
 
         private Message Read()
@@ -152,67 +187,125 @@ namespace Oxygen
         //    }
         //}
 
-        private void Download(IDownloadStream stream)
+        private void OnDataDownloaded(string filename, long totalBytes, long bytesTransferred)
         {
-            Message msg = stream.SendDownload();
-            Send(msg.GetData());
-            Message response = Read();
-            stream.Download(response);
-            while (!stream.Completed)
+            if (this.DataReceived != null)
             {
-                msg = stream.SendDownloadPart();
-                Send(msg.GetData());
-                response = Read();
-                stream.DownloadPart(response);
+                this.DataReceived(this, new DataEventArgs(filename, totalBytes, bytesTransferred));
             }
-            stream.Close();
+        }
+
+        private void OnDataUploaded(string filename, long totalBytes, long bytesTransferred)
+        {
+            if (this.DataSent != null)
+            {
+                this.DataSent(this, new DataEventArgs(filename, totalBytes, bytesTransferred));
+            }
+        }
+
+        private void Download(DownloadStream stream, string file, string nodeName, string messageName)
+        {
+            Message msg = new Message(nodeName, messageName);
+            stream.SendDownloadStream(msg, file);
+            Send(msg.GetData());
+
+            while (!stream.EndOfStream)
+            {
+                Message response = Read();
+                stream.Download(response);
+
+                this.OnDataDownloaded(file, stream.Size, stream.BytesTransferred);
+            }
+
+            if (!string.IsNullOrEmpty(stream.ErrorMessage))
+            {
+                throw new ClientException(0, stream.ErrorMessage);
+            }
+        }
+
+        private void UploadResponse(UploadStream stream)
+        {
+            // During upload, we should periodically check
+            // if there any new messages from the server.
+
+            Message? message = ReadNonBlocking();
+            if (message != null)
+            {
+                stream.OnServerResponse(message);
+
+                if (!string.IsNullOrEmpty(stream.Error))
+                {
+                    throw new ClientException(0, stream.Error);
+                }
+            }
+        }
+
+        private void Upload(UploadStream stream, string file, string nodeName, string messageName)
+        {
+            Message msg = new Message(nodeName, messageName);
+            stream.SendStreamStart(msg);
+            Send(msg.GetData());
+
+            Message response = Read();
+            stream.OnServerResponse(response);
+
+            if (!string.IsNullOrEmpty(stream.Error))
+            {
+                throw new ClientException(0, stream.Error);
+            }
+
+            Message metadata = new Message(nodeName, messageName);
+            stream.SendMetadata(metadata);
+            Send(metadata.GetData());
+
+            this.UploadResponse(stream);
+
+            Message transfer = new Message(nodeName, messageName);
+            stream.SendTransfer(transfer, file);
+            Send(transfer.GetData());
+
+            this.UploadResponse(stream);
+
+            while (stream.Pos < stream.Length)
+            {
+                Message data = new Message(nodeName, messageName);
+                stream.SendData(data);
+                Send(data.GetData());
+
+                this.UploadResponse(stream);
+                this.OnDataUploaded(file, stream.Length, stream.Pos);
+            }
+
+            stream.CloseFile();
+
+            Message close = new Message(nodeName, messageName);
+            stream.SendClose(close);
+            Send(close.GetData());
+        }
+
+        public void UploadArtefact(string artefact)
+        {
+            Upload(new UploadStream(), artefact, "BUILD_SVR", "ARTEFACT_UPLOAD_STREAM");
         }
 
         public void DownloadArtefact(string artefact)
         {
-            Download(new ArtefactDownloadStream(artefact));
+            Download(new DownloadStream(), artefact, "BUILD_SVR", "ARTEFACT_DOWNLOAD_STREAM");
         }
 
         public void DownloadAsset(string asset)
         {
-            Download(new AssetDownloadStream(asset, this.cache));
+            Download(new AssetDownloadStream(this.cache), asset, "ASSET_SVR", "ASSET_DOWNLOAD_STREAM");
+        }
+
+        public void UploadAsset(string name)
+        {
+            Upload(new UploadStream(), name, "ASSET_SVR", "ASSET_UPLOAD_STREAM");
         }
 
         public IList<string> ListAssets()
         {
             return ListResource("ASSET_SVR", "ASSET_LIST");
-        }
-
-        public void UploadAsset(string name)
-        { 
-            if (!File.Exists(name))
-            {
-                throw new ClientException(0, "File cannot be found");
-            }
-
-            FileStream file = File.OpenRead(name);
-
-            const int chunkSize = 1024;
-
-            Message msg = new Message("ASSET_SVR", "UPLOAD_ASSET");
-            msg.WriteString(name);
-            msg.WriteInt((int)file.Length);
-            byte[] data = new byte[chunkSize];
-            int size = file.Read(data, 0, data.Length);
-            msg.WriteInt(size);
-            msg.WriteBytes(data, size);
-            Send(msg.GetData());
-
-            CheckAck();
-
-            while (file.Position < file.Length)
-            {
-                data = new byte[chunkSize];
-                size = file.Read(data, 0, data.Length);
-                UploadPart(data, size);
-
-                CheckAck();
-            }
         }
 
         private Message CheckAck()

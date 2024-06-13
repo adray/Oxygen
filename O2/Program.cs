@@ -11,12 +11,16 @@ namespace O2
 {
     internal class Program
     {
+        private static readonly string directory = ".o2";
+        private static readonly string cacheName = @".o2\cache";
+
         static void Main(string[] args)
         {
             if (args.Length > 0)
             {
                 Commands commands = new Commands();
                 commands.AddCommand(new DownloadArtefact(), "build", "download");
+                commands.AddCommand(new UploadArtefact(), "build", "upload");
                 commands.AddCommand(new ListArtefact(), "build", "list");
                 commands.AddCommand(new PluginList(), "plugin", "list");
                 commands.AddCommand(new PluginSchedule(), "plugin", "schedule");
@@ -47,6 +51,7 @@ namespace O2
                 commands.AddCommand(new CreateAPIKey(), "api-key", "create");
                 commands.AddCommand(new RevokeAPIKey(), "api-key", "revoke");
                 commands.AddCommand(new Login(), "login");
+                commands.AddCommand(new Init(), "init");
 
                 if (!commands.Invoke(args))
                 {
@@ -89,7 +94,7 @@ namespace O2
                 Console.WriteLine("o2 tag get <asset>                                               Gets the tags for the specified asset.");
                 Console.WriteLine("o2 plugin list                                                   Gets the installed plugins on the server.");
                 Console.WriteLine("o2 plugin schedule                                               Gets the schedule for plugins operating on the server.");
-                //Console.WriteLine("o2 build upload <name>");
+                Console.WriteLine("o2 build upload <name>                                           Uploads a build artefact to the server.");
                 Console.WriteLine("o2 build download <name>                                         Downloads a build artefact from the server.");
                 Console.WriteLine("o2 build list                                                    Lists the build artefacts on the server.");
                 //Console.WriteLine("o2 crash upload <name>");
@@ -116,6 +121,25 @@ namespace O2
             else
             {
                 Console.WriteLine("Invalid command");
+            }
+        }
+
+        class Init : Command
+        {
+            public override void Invoke(string[] args)
+            {
+                base.Invoke(args);
+
+                if (Directory.Exists(directory))
+                {
+                    Console.WriteLine("Already initialized");
+                }
+                else
+                {
+                    Directory.CreateDirectory(directory);
+                    File.SetAttributes(directory, FileAttributes.Hidden);
+                    Console.WriteLine("Initialiazed");
+                }
             }
         }
 
@@ -213,19 +237,26 @@ namespace O2
             {
                 base.Invoke(client, args);
 
-                try
+                if (Directory.Exists(directory))
                 {
-                    string apiKey = client.CreateAPIKey();
-
-                    using (FileStream stream = File.OpenWrite("api-key"))
+                    try
                     {
-                        stream.Write(Encoding.UTF8.GetBytes(apiKey));
+                        string apiKey = client.CreateAPIKey();
+
+                        using (FileStream stream = File.OpenWrite(directory + @"\api-key"))
+                        {
+                            stream.Write(Encoding.UTF8.GetBytes(apiKey));
+                        }
+                        Console.WriteLine("API key generated");
                     }
-                    Console.WriteLine("API key generated");
+                    catch (ClientException ex)
+                    {
+                        Console.WriteLine(ex.Message);
+                    }
                 }
-                catch (ClientException ex)
+                else
                 {
-                    Console.WriteLine(ex.Message);
+                    Console.WriteLine("Not initialized.");
                 }
             }
         }
@@ -554,6 +585,8 @@ namespace O2
             {
                 base.Invoke(client, args);
 
+                client.LoadCache(cacheName);
+
                 IList<string> assets = client.ListAssets();
 
                 foreach (string asset in assets)
@@ -608,7 +641,9 @@ namespace O2
                 {
                     string name = args[2];
 
+                    client.LoadCache(cacheName);
                     client.DownloadAsset(name);
+                    client.SaveCache();
                 }
                 else
                 {
@@ -768,11 +803,63 @@ namespace O2
 
         class DownloadArtefact : Command
         {
+            private readonly Stopwatch stopwatch = new Stopwatch();
+
             public override void Invoke(ClientConnection client, string[] args)
             {
                 base.Invoke(client, args);
 
+                stopwatch.Start();
+                client.DataReceived += Client_DataReceived;
                 client.DownloadArtefact(args[2]);
+                stopwatch.Stop();
+            }
+
+            private void Client_DataReceived(object? sender, DataEventArgs e)
+            {
+                double totalMegaBytes = Math.Round(e.TotalBytes / 1024.0 / 1024.0, 2);
+                double transferredMegaBytes = Math.Round(e.TransferredBytes / 1024.0 / 1024.0, 2);
+
+                double speed = Math.Round(transferredMegaBytes / stopwatch.Elapsed.TotalSeconds, 1);
+
+                Console.CursorLeft = 0;
+                Console.Write("{0} {1}/{2}MiB {3:c} {4}MB/s",
+                    e.Filename,
+                    transferredMegaBytes,
+                    totalMegaBytes,
+                    stopwatch.Elapsed,
+                    speed);
+            }
+        }
+
+        class UploadArtefact : Command
+        {
+            private readonly Stopwatch stopwatch = new Stopwatch();
+
+            public override void Invoke(ClientConnection client, string[] args)
+            {
+                base.Invoke(client, args);
+
+                stopwatch.Start();
+                client.DataSent += Client_DataSent;
+                client.UploadArtefact(args[2]);
+                stopwatch.Stop();
+            }
+
+            private void Client_DataSent(object? sender, DataEventArgs e)
+            {
+                double totalMegaBytes = Math.Round(e.TotalBytes / 1024.0 / 1024.0, 2);
+                double transferredMegaBytes = Math.Round(e.TransferredBytes / 1024.0 / 1024.0, 2);
+
+                double speed = Math.Round(transferredMegaBytes / stopwatch.Elapsed.TotalSeconds, 1);
+
+                Console.CursorLeft = 0;
+                Console.Write("{0} {1}/{2}MiB {3:c}",
+                    e.Filename,
+                    transferredMegaBytes,
+                    totalMegaBytes,
+                    stopwatch.Elapsed,
+                    speed);
             }
         }
 

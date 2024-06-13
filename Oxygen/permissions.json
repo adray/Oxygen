@@ -146,6 +146,18 @@
     },
     {
       "Node": "ASSET_SVR",
+      "Message": "ASSET_DOWNLOAD_STREAM",
+      "Text": "Permission to download assets.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "ASSET_SVR",
+      "Message": "ASSET_UPLOAD_STREAM",
+      "Text": "Permission to upload assets.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "ASSET_SVR",
       "Message": "ASSET_HISTORY",
       "Text": "Permission to view the version history of assets.",
       "Default": "Deny"
@@ -304,6 +316,18 @@
       "Node": "PLUGIN_SVR",
       "Message": "SCHEDULE_LIST",
       "Text": "Permission to get the plugin schedule.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "BUILD_SVR",
+      "Message": "ARTEFACT_DOWNLOAD_STREAM",
+      "Text": "Permission to download artefacts.",
+      "Default": "Deny"
+    },
+    {
+      "Node": "BUILD_SVR",
+      "Message": "ARTEFACT_UPLOAD_STREAM",
+      "Text": "Permission to upload artefacts.",
       "Default": "Deny"
     },
     {

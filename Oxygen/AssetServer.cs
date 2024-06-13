@@ -11,10 +11,12 @@ namespace Oxygen
     {
         private readonly Tags tagData = new Tags();
         private readonly DataStream stream = new DataStream();
+        private readonly AssetDataStream dataStream;
         private readonly Cache cache = new Cache();
 
         public AssetServer() : base("ASSET_SVR")
         {
+            this.dataStream = new AssetDataStream(this.cache);
             this.cache.LoadCache(@"Data\cache.data");
             Archiver.LoadAssetFile();
             AssetLabels.LoadLabelsFile();
@@ -82,6 +84,14 @@ namespace Oxygen
                 }
 
                 SendAck(request, msgName);
+            }
+            else if (msgName == "ASSET_UPLOAD_STREAM")
+            {
+                dataStream.ProcessUploadStreamMessage(request);
+            }
+            else if (msgName == "ASSET_DOWNLOAD_STREAM")
+            {
+                dataStream.ProcessDownloadStreamMessage(request);
             }
             else if (msgName == "ASSET_LIST")
             {

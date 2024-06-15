@@ -189,11 +189,11 @@ void Network::UploadAsset(const std::string& asset)
     _assetService->UploadAsset(asset, [this]() {
         if (_assetService->IsUploadError())
         {
-            std::cout << "Upload completed" << std::endl;
+            std::cout << "Upload failed" << std::endl;
         }
         else
         {
-            std::cout << "Upload failed" << std::endl;
+            std::cout << "Upload completed" << std::endl;
         }
         });
 }

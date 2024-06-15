@@ -44,10 +44,12 @@ namespace Oxygen
         private List<object> values = new List<object>();
         private int offset = 0;
         private readonly string filename;
+        private readonly string backupFilename;
 
         public DataFile(string filename)
         {
             this.filename = filename;
+            this.backupFilename = filename + ".tmp";
         }
 
         public void CreateFile(string[] columns, Column[] types)
@@ -60,6 +62,8 @@ namespace Oxygen
 
         public bool ReadFile()
         {
+            this.RestoreBackup();
+
             if (File.Exists(filename))
             {
                 using (FileStream stream = File.OpenRead(filename))
@@ -112,11 +116,37 @@ namespace Oxygen
             }
         }
 
-        private void CreateDataDir()
+        private static void CreateDataDir()
         {
             if (!Directory.Exists("Data"))
             {
                 Directory.CreateDirectory("Data");
+            }
+        }
+
+        private void RestoreBackup()
+        {
+            if (File.Exists(backupFilename))
+            {
+                Logger.Instance.Log("Restoring backup file {0}.", backupFilename);
+
+                File.Move(backupFilename, filename, true);
+            }
+        }
+
+        private void DeleteBackup()
+        {
+            if (File.Exists(backupFilename))
+            {
+                File.Delete(backupFilename);
+            }
+        }
+
+        private void CreateBackup()
+        {
+            if (File.Exists(filename))
+            {
+                File.Move(filename, backupFilename);
             }
         }
 
@@ -128,6 +158,8 @@ namespace Oxygen
             {
                 return;
             }
+
+            this.CreateBackup();
 
             using (FileStream stream = File.OpenWrite(filename))
             {
@@ -172,6 +204,8 @@ namespace Oxygen
                     }
                 }
             }
+
+            this.DeleteBackup();
         }
 
         public void Clear()

@@ -3,7 +3,7 @@
 using namespace Oxygen;
 
 BuildService::BuildService(ClientConnection* conn, const std::string& dir)
-    : _conn(conn), _dir(dir), _stream(_conn, "BUILD_SVR", "DOWNLOAD_ARTEFACT")
+    : _conn(conn), _dir(dir), _stream(_conn, "BUILD_SVR", "ARTEFACT_DOWNLOAD_STREAM")
 {
 }
 

@@ -6,17 +6,30 @@
 namespace Oxygen
 {
     class ClientConnection;
+    class Message;
 
     class DownloadStream
     {
     public:
         DownloadStream(ClientConnection* conn, const std::string& node, const std::string& msgName);
         void Download(const std::string& dir, const std::string& name, const std::function<void()>& callback);
+        
+        inline bool IsError() { return _isError; }
+
+        virtual ~DownloadStream() {};
+
+    protected:
+        virtual void BuildStreamStart(Message& msg) {}
 
     private:
-        void DownloadPart();
-        
+        void OnDataDownloaded(Message& msg);
+        void OnStatus(Message& msg);
+        void OnTransfer(Message& msg);
+        void OnStreamEnded(Message& msg);
+        void OnProtocolError(Message& msg);
+
         ClientConnection* _conn;
+        bool _isError;
 
         std::string _node;
         std::string _msgName;
@@ -27,5 +40,6 @@ namespace Oxygen
 
         int _filesize;
         int _received;
+        std::string _dir;
     };
 }

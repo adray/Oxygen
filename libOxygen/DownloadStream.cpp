@@ -6,6 +6,17 @@
 
 using namespace Oxygen;
 
+constexpr int STREAM_METADATA = 0;
+constexpr int STREAM_TRANSFER = 1;
+constexpr int STREAM_DATA = 2;
+constexpr int STREAM_PROTOCOL_ERROR = 3;
+constexpr int STREAM_OPEN = 4;
+constexpr int STREAM_STATUS = 244;
+constexpr int STREAM_END = 255;
+
+constexpr int STATUS_OK = 0;
+constexpr int STATUS_ERROR = 1;
+
 #ifdef _WINDOWS
 #define WIN32_MEAN_AND_LEAN
 #define NOMINMAX
@@ -36,35 +47,54 @@ DownloadStream::DownloadStream(ClientConnection* conn, const std::string& node, 
 {
 }
 
-void DownloadStream::DownloadPart()
+void DownloadStream::OnDataDownloaded(Message& msg)
 {
-    if (_received < _filesize)
-    {
-        Message msg(_node, _msgName + "_PART");
-        std::shared_ptr<Subscriber> sub = std::make_shared<Subscriber>(msg);
-        _conn->AddSubscriber(sub);
-        sub->Signal([this, sub2 = sub](Oxygen::Message& msg)
-            {
-                if (msg.ReadString() == "ACK")
-                {
-                    const int numBytes = msg.ReadInt32();
-                    std::vector<unsigned char> data(numBytes);
-                    msg.ReadBytes(numBytes, data.data());
+    const int numBytes = msg.ReadInt32();
+    std::vector<unsigned char> data(numBytes);
+    msg.ReadBytes(numBytes, data.data());
 
-                    _received += numBytes;
-                    _downloadStream.write((char*)data.data(), numBytes);
-                    DownloadPart();
-                }
+    _received += numBytes;
+    _downloadStream.write((char*)data.data(), numBytes);
+}
 
-                _conn->RemoveSubscriber(sub2);
-            });
-    }
-    else
+void DownloadStream::OnStatus(Message& msg)
+{
+    const int status = msg.ReadInt32();
+    if (status == STATUS_ERROR)
     {
-        _downloadStream.close();
         _isDownloading = false;
+        _downloadStream.close();
+
         _downloadCallback();
     }
+}
+
+void DownloadStream::OnTransfer(Message& msg)
+{
+    std::string file = msg.ReadString();
+    int size = msg.ReadInt32();
+    int bufferSize = msg.ReadInt32();
+
+    _downloadStream = std::ofstream(_dir + "/" + file, std::ios::binary);
+    if (!_downloadStream.good())
+    {
+        // close stream?
+    }
+}
+
+void DownloadStream::OnStreamEnded(Message& msg)
+{
+    _downloadStream.close();
+    _isDownloading = false;
+    _downloadCallback();
+}
+
+void DownloadStream::OnProtocolError(Message& msg)
+{
+    const std::string error = msg.ReadString();
+    _isDownloading = false;
+    _isError = true;
+    _downloadCallback();
 }
 
 void DownloadStream::Download(const std::string& dir, const std::string& name, const std::function<void()>& callback)
@@ -72,38 +102,42 @@ void DownloadStream::Download(const std::string& dir, const std::string& name, c
     if (!_isDownloading)
     {
         _downloadCallback = callback;
-        _downloadStream = std::ofstream(dir + "/" + name, std::ios::binary);
-        if (_downloadStream.good())
-        {
-            _isDownloading = true;
+        _isDownloading = true;
+        _dir = dir;
+        _isError = false;
 
-            Message msg(_node, _msgName);
-            msg.WriteString(name);
-            //msg.WriteInt32(0); // if contains checksum - ONLY for assets!
-            std::shared_ptr<Subscriber> sub = std::make_shared<Subscriber>(msg);
-            _conn->AddSubscriber(sub);
-            sub->Signal([this, sub2 = sub](Oxygen::Message& msg)
+        Message msg(_node, _msgName);
+        msg.WriteInt32(STREAM_OPEN);
+        msg.WriteString(name);
+
+        BuildStreamStart(msg);
+        //msg.WriteString(""); // checksum
+
+        std::shared_ptr<Subscriber> sub = std::make_shared<Subscriber>(msg);
+        _conn->AddSubscriber(sub);
+        sub->Signal([this, sub2 = sub](Oxygen::Message& msg)
+            {
+                const int type = msg.ReadInt32();
+                switch (type)
                 {
-                    if (msg.ReadString() == "ACK")
-                    {
-                        //std::string checksum = msg.ReadString();
-                        _filesize = msg.ReadInt32();
-                        const int numBytes = msg.ReadInt32();
-                        std::vector<unsigned char> data(numBytes);
-                        msg.ReadBytes(numBytes, data.data());
-
-                        _received += numBytes;
-                        _downloadStream.write((char*)data.data(), numBytes);
-
-                        DownloadPart();
-                    }
-                    else
-                    {
-                        _isDownloading = false;
-                    }
-
+                case STREAM_STATUS:
+                    OnStatus(msg);
+                    break;
+                case STREAM_TRANSFER:
+                    OnTransfer(msg);
+                    break;
+                case STREAM_PROTOCOL_ERROR:
+                    OnProtocolError(msg);
                     _conn->RemoveSubscriber(sub2);
-                });
-        }
+                    break;
+                case STREAM_DATA:
+                    OnDataDownloaded(msg);
+                    break;
+                case STREAM_END:
+                    OnStreamEnded(msg);
+                    _conn->RemoveSubscriber(sub2);
+                    break;
+                }
+            });
     }
 }

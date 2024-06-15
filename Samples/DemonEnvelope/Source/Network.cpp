@@ -20,7 +20,7 @@ void Network::StartAssetService(const std::string& assetDir)
 {
     if (_state == Network_State::Connected)
     {
-        _buildService = std::make_unique<Oxygen::BuildService>(conn, "");
+        _buildService = std::make_unique<Oxygen::BuildService>(conn, "Artefacts");
         _assetService = std::make_unique<Oxygen::AssetService>(conn, assetDir);
         _pluginService = std::make_unique<Oxygen::PluginService>(conn);
         _pluginService->SetCompletedHandler([this](const std::string& name, const std::string& artefact)
@@ -175,14 +175,26 @@ void Network::EventStreamClosed()
 void Network::DownloadAsset(const std::string& asset)
 {
     _assetService->DownloadAsset(asset, [this]() {
-        std::cout << "Download completed" << std::endl;
+        if (_assetService->IsDownloadError()) {
+            std::cout << "Download failed" << std::endl;
+        }
+        else {
+            std::cout << "Download completed" << std::endl;
+        }
         });
 }
 
 void Network::UploadAsset(const std::string& asset)
 {
     _assetService->UploadAsset(asset, [this]() {
-        std::cout << "Upload completed" << std::endl;
+        if (_assetService->IsUploadError())
+        {
+            std::cout << "Upload completed" << std::endl;
+        }
+        else
+        {
+            std::cout << "Upload failed" << std::endl;
+        }
         });
 }
 

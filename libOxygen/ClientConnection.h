@@ -28,8 +28,8 @@ namespace Oxygen
         void Logon(const std::string& username, const std::string& password);
         void LogonHandler(const std::function<void(int errCode, const std::string& text)>& handler);
 
-        int NumByesSent() const;
-        int NumByesReceived() const;
+        int NumBytesSent() const;
+        int NumBytesReceived() const;
 
         ~ClientConnection();
     private:

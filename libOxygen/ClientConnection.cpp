@@ -447,12 +447,12 @@ void ClientConnection::OnLogonFailed(int errCode, const std::string& text)
     }
 }
 
-int ClientConnection::NumByesSent() const
+int ClientConnection::NumBytesSent() const
 {
     return impl->NumBytesSent();
 }
 
-int ClientConnection::NumByesReceived() const
+int ClientConnection::NumBytesReceived() const
 {
     return impl->NumBytesReceived();
 }

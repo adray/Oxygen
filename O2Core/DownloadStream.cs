@@ -65,12 +65,14 @@
             if (status == STATUS_ERROR)
             {
                 errorMsg = msg.ReadString();
+                this.endOfStream = true;
             }
         }
 
         private void OnError(Message msg)
         {
             errorMsg = msg.ReadString();
+            this.endOfStream = true;
         }
 
         private void OnData(Message msg)

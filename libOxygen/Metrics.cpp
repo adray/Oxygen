@@ -96,8 +96,8 @@ void Metrics::AddMetric(std::shared_ptr<Metrics_Gauge>& metric)
 void Metrics::ReportMetrics()
 {
     _numCollections->Increment(1.0);
-    _numBytesSent->Update(_conn->NumByesSent());
-    _numBytesReceived->Update(_conn->NumByesReceived());
+    _numBytesSent->Update(_conn->NumBytesSent());
+    _numBytesReceived->Update(_conn->NumBytesReceived());
 
     for (auto& metric : _posMetrics)
     {

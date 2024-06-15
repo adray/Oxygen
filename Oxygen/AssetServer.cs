@@ -10,7 +10,6 @@ namespace Oxygen
     internal class AssetServer : Node
     {
         private readonly Tags tagData = new Tags();
-        private readonly DataStream stream = new DataStream();
         private readonly AssetDataStream dataStream;
         private readonly Cache cache = new Cache();
 
@@ -26,8 +25,7 @@ namespace Oxygen
         {
             base.OnClientDisconnected(client);
 
-            this.stream.CloseUploadStream(client);
-            this.stream.CloseDownloadStream(client);
+            this.dataStream.CloseStreams(client);
         }
 
         public override void OnRecieveMessage(Request request)
@@ -50,42 +48,7 @@ namespace Oxygen
             }
 
             string msgName = msg.MessageName;
-            if (msgName == "UPLOAD_ASSET")
-            {
-                string assetName = msg.ReadString();
-                int sizeInBytes = msg.ReadInt();
-
-                Archiver.BackupAsset(@"Assets\" + assetName);
-
-                this.stream.AddUploadStream(client, @"Assets\" + assetName, sizeInBytes);
-                Audit.Instance.Log("Asset {0} upload started by user {1}.", assetName, user);
-
-                byte[] bytes = msg.ReadByteArray();
-                if (this.stream.UploadBytes(client, bytes))
-                {
-                    this.cache.CacheItem(@"Assets\" + assetName);
-                    this.cache.SaveCache();
-                    Archiver.ArchiveAsset(@"Assets\" + assetName, user);
-                    Audit.Instance.Log("Asset {0} upload finished by user {1}.", assetName, user);
-                }
-
-                SendAck(request, msgName);
-            }
-            else if (msgName == "UPLOAD_ASSET_PART")
-            {
-                string streamName = this.stream.GetUploadStreamName(client);
-                byte[] bytes = msg.ReadByteArray();
-                if (this.stream.UploadBytes(client, bytes))
-                {
-                    this.cache.CacheItem(streamName);
-                    this.cache.SaveCache();
-                    Archiver.ArchiveAsset(streamName, user);
-                    Audit.Instance.Log("Asset {0} upload finished by user {1}.", streamName, user);
-                }
-
-                SendAck(request, msgName);
-            }
-            else if (msgName == "ASSET_UPLOAD_STREAM")
+            if (msgName == "ASSET_UPLOAD_STREAM")
             {
                 dataStream.ProcessUploadStreamMessage(request);
             }
@@ -106,82 +69,6 @@ namespace Oxygen
                     response.WriteString(asset);
                 }
                 request.Send(response);
-            }
-            else if (msgName == "DOWNLOAD_ASSET")
-            {
-                string assetName = msg.ReadString();
-                int hasChecksum = msg.ReadInt();
-                string? checksum = this.cache.GetChecksum(@"Assets\" + assetName);
-                if (string.IsNullOrEmpty(checksum))
-                {
-                    checksum = this.cache.CacheItem(@"Assets\" + assetName);
-                    this.cache.SaveCache();
-                }
-
-                bool clientHasLatest = false;
-                if (hasChecksum == 1)
-                {
-                    if (checksum == msg.ReadString())
-                    {
-                        clientHasLatest = true;
-                    }
-                }
-
-                if (clientHasLatest)
-                {
-                    Message response = new Message("ASSET_SVR", "DOWNLOAD_ASSET");
-                    response.WriteString("ACK");
-                    response.WriteString(checksum);
-                    request.Send(response);
-                }
-                else
-                {
-                    const int chunkSize = 1024;
-                    int totalBytes = (int)this.stream.AddDownloadStream(client, @"Assets\" + assetName);
-                    if (totalBytes > -1)
-                    {
-                        byte[]? bytes = this.stream.DownloadBytes(client, chunkSize);
-
-                        if (bytes != null)
-                        {
-                            Message response = new Message("ASSET_SVR", "DOWNLOAD_ASSET");
-                            response.WriteString("ACK");
-                            response.WriteString(checksum);
-                            response.WriteInt(totalBytes);
-                            response.WriteInt(bytes.Length);
-                            response.WriteBytes(bytes);
-                            request.Send(response);
-
-                            Audit.Instance.Log("Asset {0} download started by user {1}.", assetName, user);
-                        }
-                        else
-                        {
-                            SendNack(request, 200, "Download failed", msgName);
-                        }
-                    }
-                    else
-                    {
-                        SendNack(request, 200, "Download already in progress", msgName);
-                    }
-                }
-            }
-            else if (msgName == "DOWNLOAD_ASSET_PART")
-            {
-                const int chunkSize = 1024;
-                byte[]? bytes = this.stream.DownloadBytes(client, chunkSize);
-
-                if (bytes != null)
-                {
-                    Message response = new Message("ASSET_SVR", "DOWNLOAD_ASSET_PART");
-                    response.WriteString("ACK");
-                    response.WriteInt(bytes.Length);
-                    response.WriteBytes(bytes);
-                    request.Send(response);
-                }
-                else
-                {
-                    SendNack(request, 200, "Download failed", msgName);
-                }
             }
             else if (msgName == "ASSET_HISTORY")
             {

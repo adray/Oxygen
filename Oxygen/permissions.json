@@ -122,30 +122,6 @@
     },
     {
       "Node": "ASSET_SVR",
-      "Message": "UPLOAD_ASSET",
-      "Text": "Permission to upload assets.",
-      "Default": "Deny"
-    },
-    {
-      "Node": "ASSET_SVR",
-      "Message": "UPLOAD_ASSET_PART",
-      "Text": "Permission to upload assets in parts.",
-      "Default": "Deny"
-    },
-    {
-      "Node": "ASSET_SVR",
-      "Message": "DOWNLOAD_ASSET",
-      "Text": "Permission to download assets.",
-      "Default": "Deny"
-    },
-    {
-      "Node": "ASSET_SVR",
-      "Message": "DOWNLOAD_ASSET_PART",
-      "Text": "Permission to download assets in parts.",
-      "Default": "Deny"
-    },
-    {
-      "Node": "ASSET_SVR",
       "Message": "ASSET_DOWNLOAD_STREAM",
       "Text": "Permission to download assets.",
       "Default": "Deny"
@@ -328,18 +304,6 @@
       "Node": "BUILD_SVR",
       "Message": "ARTEFACT_UPLOAD_STREAM",
       "Text": "Permission to upload artefacts.",
-      "Default": "Deny"
-    },
-    {
-      "Node": "BUILD_SVR",
-      "Message": "DOWNLOAD_ARTEFACT",
-      "Text": "Permission to download an artefact.",
-      "Default": "Deny"
-    },
-    {
-      "Node": "BUILD_SVR",
-      "Message": "DOWNLOAD_ARTEFACT_PART",
-      "Text": "Permission to download an artefact in parts.",
       "Default": "Deny"
     },
     {
